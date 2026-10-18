@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Níveis do C4: Mastodon</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--nav2); color:var(--paper); padding:14px;
+  }
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:6px 12px; cursor:pointer; font:inherit; font-size:.84rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn:disabled{opacity:.4; cursor:default; background:var(--navL)}
+  .count{color:var(--muted); font-size:.8rem; margin-left:auto}
+  .grid{display:grid; grid-template-columns:1fr 210px; gap:12px}
+  @media(max-width:760px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--nav); border-radius:12px; padding:12px; min-width:0}
+  .crumb{font-size:.78rem; color:var(--muted); margin-bottom:6px}
+  .crumb b{color:var(--gold)}
+  .lvl{font-size:.9rem; font-weight:700; margin-bottom:6px}
+  svg{width:100%; height:auto; display:block}
+  .chooser{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; font-size:.78rem; color:var(--muted)}
+  .chip{background:var(--nav2); color:var(--paper); border:1px solid var(--tealL); border-radius:999px; padding:3px 10px; cursor:pointer; font:inherit; font-size:.76rem}
+  .chip.sel{border-color:var(--gold); color:var(--gold); font-weight:700}
+  .legend{display:flex; flex-wrap:wrap; gap:14px; font-size:.72rem; color:var(--muted); margin-top:6px}
+  .legend svg{width:34px; height:10px; display:inline-block; vertical-align:middle}
+  pre{font-variant-ligatures:none; margin:0; background:#1E3040; color:#A8D8A8; border-radius:9px; padding:10px 12px; font-family:"JetBrains Mono",monospace; font-size:.74rem; overflow:auto; line-height:1.45}
+  .src{font-size:.72rem; color:var(--muted); margin-top:6px}
+  .src a{color:var(--tealL)}
+  .rules h2{font-size:.86rem; margin:0 0 8px}
+  .rule{font-size:.7rem; padding:4px 8px; border-radius:7px; margin-bottom:4px; background:var(--nav2); border-left:3px solid var(--navL); color:var(--muted)}
+  .rule b{display:block; font-size:.76rem}
+  .rule.ok{border-left-color:var(--gold); color:var(--paper)}
+  .rule.ok b{color:var(--gold)}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+</style>
+</head>
+<body>
+  <h1>Os quatro níveis do C4 numa instância <span style="color:var(--tealL)">Mastodon</span></h1>
+  <p class="sub">Clique num elemento com <b>+</b> para escolhê-lo e desça um nível: o elemento detalhado permanece destacado em dourado no nível de cima.</p>
+
+  <div class="toolbar">
+    <button class="btn ghost" id="up" onclick="go(level-1)">▲ Subir</button>
+    <span id="tabs"></span>
+    <button class="btn" id="down" onclick="go(level+1)">Descer ▼</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="crumb" id="crumb"></div>
+      <div class="lvl" id="title"></div>
+      <div id="view"></div>
+      <div class="chooser" id="chooser"></div>
+      <div class="legend" id="legend">
+        <span><svg viewBox="0 0 34 10"><line x1="0" y1="5" x2="34" y2="5" stroke="#6FC3D0" stroke-width="2"/></svg> síncrona</span>
+        <span><svg viewBox="0 0 34 10"><line x1="0" y1="5" x2="34" y2="5" stroke="#6FC3D0" stroke-width="2" stroke-dasharray="6 4"/></svg> assíncrona</span>
+        <span>borda dourada: elemento detalhado no nível seguinte</span>
+      </div>
+    </div>
+    <div class="panel rules"><h2>Tabela A.1 neste nível</h2><div id="rules"></div><div class="src">✓ aplica-se; – não se aplica a este nível.</div></div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const N=(x,y,t,k,d,o={})=>Object.assign({x,y,w:200,h:58,t,k,d},o);
+const N2=(...a)=>Object.assign(N(...a),{w:180});
+const LEVELS=[
+ { nome:'Nível 1: contexto', titulo:'Diagrama de contexto de uma instância Mastodon', vb:[890,470],
+   fonte:'Figura 3.2.4 (Seção 3.2), com base em Mastodon (2026a; 2026c; 2026d; 2026e).',
+   nodes:{
+    U:N(15,40,'Usuários locais','[Pessoa]','navegador ou aplicativo',{c:'p'}),
+    D:N(15,200,'Aplicativos de terceiros','[Sistema externo]','clientes da API',{c:'e'}),
+    AD:N(15,360,'Administradores e moderadores','[Pessoa]','painel de administração',{c:'p'}),
+    M:N(350,200,'Instância Mastodon','[Sistema de software]','ex.: social.exemplo.org',{c:'s',exp:true}),
+    O:N(685,8,'Outras instâncias','[Sistema externo]','Mastodon, Pixelfed, PeerTube...',{c:'e'}),
+    RL:N(685,86,'Relays','[Sistema externo]','retransmitem publicações',{c:'e'}),
+    B:N(685,164,'Instâncias bloqueadas','[Sistema externo]','alvo de moderação',{c:'e'}),
+    S:N(685,242,'Armazenamento de objetos','[Sistema externo]','API S3',{c:'e'}),
+    E:N(685,320,'Serviço de e-mail','[Sistema externo]','SMTP',{c:'e'}),
+    P:N(685,398,'Serviços de notificação push','[Sistema externo]','Web Push',{c:'e'})},
+   edges:[['U','M','API REST, WebSocket, OAuth2',0,{t:.45}],['D','M','API REST e streaming',0],['AD','M','painel de administração',0,{t:.45}],
+    ['M','O','ActivityPub: POST assinado',1,{off:7,lp:[545,150]}],['O','M','ActivityPub: POST assinado',1,{off:7,lp:[600,58]}],
+    ['M','RL','ActivityPub',1,{t:.62}],['M','B','bloqueio de domínio\n(relação de moderação)',0,{t:.55}],['M','S','API S3',0,{t:.62}],
+    ['M','E','SMTP',0,{t:.62}],['M','P','Web Push',1,{t:.62}]] },
+ { nome:'Nível 2: containers', titulo:'Diagrama de containers de uma instância Mastodon', vb:[870,500],
+   fonte:'Figura 4.2.1 (Seção 4.2), com base em Mastodon (2026a; 2026b) e no docker-compose.yml da tag v4.7.3.',
+   groups:[{x:10,y:92,w:630,h:400,t:'Instância Mastodon (detalhamento do nível 1)',hl:true}],
+   nodes:{
+    C:N2(235,6,'Clientes','[Container externo]','interface web React e aplicativos',{c:'e'}),
+    N:N2(235,120,'Proxy reverso','[Container: nginx]','TLS e roteamento'),
+    W:N2(25,225,'Web','[Container: Rails + Puma]','páginas e API REST',{exp:true}),
+    SK:N2(235,225,'Workers','[Container: Sidekiq]','jobs assíncronos',{exp:true}),
+    ST:N2(445,225,'Streaming','[Container: Node.js]','WebSocket e SSE'),
+    PG:N2(25,420,'PostgreSQL','[Banco de dados]','dados principais',{c:'d'}),
+    R:N2(235,420,'Redis','[Armazenamento em memória]','cache, filas, timelines, pub/sub',{c:'d'}),
+    OBJ:N2(445,420,'Mídia','[Armazenamento de objetos]','S3 compatível ou disco',{c:'d'}),
+    F:N2(680,120,'Instâncias remotas','[Sistema externo]','ActivityPub',{c:'e'})},
+   edges:[['C','N','',0],['N','W','HTTPS: REST /api e páginas',0,{lp:[150,195]}],['N','ST','WebSocket e SSE',1,{lp:[420,195]}],
+    ['W','PG','',0],['W','R','cache',0,{off:-6,lp:[160,300]}],['W','R','enfileiramento de jobs',1,{off:6,lp:[205,350]}],
+    ['SK','R','consome filas',1,{off:-45,t:.25}],['SK','R','ZADD em timelines',0,{off:0,t:.5}],['SK','R','PUBLISH',1,{off:45,t:.8}],
+    ['SK','PG','',0],['SK','OBJ','',0],['W','OBJ','',0],
+    ['ST','R','SUBSCRIBE',1,{lp:[448,342]}],['ST','PG','valida token de acesso',0,{lp:[440,298]}],
+    ['SK','F','POST para inbox remota',0,{via:[540,195],lp:[640,212]}],['F','N','POST /inbox',0,{lp:[548,140]}]] },
+ { nome:'Nível 3: componentes', titulo:'Componentes dos containers web e workers', vb:[920,530],
+   fonte:'Figura 5.2.1 (Seção 5.2), com base no código da tag v4.7.3.',
+   groups:[{id:'W',x:10,y:10,w:440,h:290,t:'Container web: Rails + Puma'},{id:'SK',x:462,y:10,w:448,h:375,t:'Container workers: Sidekiq'},
+           {x:10,y:405,w:900,h:118,t:'Código compartilhado'}],
+   nodes:{
+    SC:N(25,40,'Api::V1::StatusesController','[Componente: controller]','recebe POST /api/v1/statuses',{g:'W'}),
+    PS:N(240,40,'PostStatusService','[Componente: service object]','valida e grava a publicação',{g:'W',exp:true}),
+    IC:N(25,125,'ActivityPub::InboxesController','[Componente: controller]','recebe POST /inbox',{g:'W'}),
+    HC:N(25,215,'Api::V1::Timelines::HomeController','[Componente: controller]','serve a timeline inicial',{g:'W'}),
+    DW:N(477,40,'DistributionWorker','[Componente: worker]','dispara o fanout local',{g:'SK',exp:true}),
+    AD:N(477,125,'ActivityPub::DistributionWorker','[Componente: worker]','distribui às inboxes remotas',{g:'SK',exp:true}),
+    DL:N(477,210,'ActivityPub::DeliveryWorker','[Componente: worker]','entrega a uma inbox',{g:'SK'}),
+    PW:N(477,305,'ActivityPub::ProcessingWorker','[Componente: worker]','processa atividade recebida',{g:'SK'}),
+    FO:N(695,40,'FanOutOnWriteService','[Componente: service object]','decide para onde vai',{g:'SK',exp:true}),
+    FI:N(695,125,'FeedInsertWorker','[Componente: worker]','insere numa timeline',{g:'SK'}),
+    PU:N(695,210,'PushUpdateWorker','[Componente: worker]','avisa o streaming',{g:'SK'}),
+    ST:N(25,445,'Status e Account','[Componente: Active Record]','publicações e contas'),
+    AP:N(240,445,'ActivityPub::Activity','[Componente: biblioteca]','Create, Follow, Delete...'),
+    HF:N(470,445,'HomeFeed','[Componente: biblioteca]','lê a timeline inicial'),
+    FM:N(695,445,'FeedManager','[Componente: biblioteca]','timelines no Redis')},
+   edges:[['SC','PS','',0],['PS','ST','',0],['PS','DW','enfileira',1,{lp:[455,60]}],['PS','AD','enfileira',1,{lp:[455,118]}],
+    ['DW','FO','',0],['FO','FI','enfileira em lote',1],['FI','FM','',0,{via:[918,300]}],['FM','PU','enfileira se houver ouvinte',1,{lp:[795,395]}],
+    ['AD','DL','enfileira por inbox',1],['IC','PW','enfileira',1,{t:.4}],['PW','AP','',0],['AP','ST','',0],
+    ['AP','DW','enfileira',1,{via:[440,67],lp:[400,330]}],['HC','HF','',0],['HF','FM','',0]] },
+ { nome:'Nível 4: código', titulo:'' }
+];
+const CODE={
+ PS:{t:'Listagem 6.2.1 (trecho): pós-processamento de uma publicação',f:'app/services/post_status_service.rb#L172-L181',c:`  def postprocess_status!
+    process_hashtags_service.call(@status)
+    Trends.tags.register(@status)
+    LinkCrawlWorker.perform_async(@status.id)
+    DistributionWorker.perform_async(@status.id)
+    process_email_subscriptions!
+    ActivityPub::DistributionWorker.perform_async(@status.id)
+    PollExpirationNotifyWorker.perform_at(@status.poll.expires_at, @status.poll.id) if @status.poll
+    ...
+  end`},
+ DW:{t:'Listagem 6.2.2: o job que dispara o fanout local',f:'app/workers/distribution_worker.rb#L3-L15',c:`class DistributionWorker
+  include Sidekiq::Worker
+  include Redisable
+  include Lockable
+
+  def perform(status_id, options = {})
+    with_redis_lock("distribute:#{status_id}") do
+      FanOutOnWriteService.new.call(Status.find(status_id), **options.symbolize_keys)
+    end
+  rescue ActiveRecord::RecordNotFound
+    true
+  end
+end`},
+ FO:{t:'Listagem 6.2.4: entrega a todos os seguidores locais, em lotes',f:'app/services/fan_out_on_write_service.rb#L101-L107',c:`  def deliver_to_all_followers!
+    @account.followers_for_local_distribution.select(:id).reorder(nil).find_in_batches do |followers|
+      FeedInsertWorker.push_bulk(followers) do |follower|
+        [@status.id, follower.id, 'home', { 'update' => update? }]
+      end
+    end
+  end`},
+ AD:{t:'Listagem 6.2.11: esqueleto da distribuição federada (superclasse RawDistributionWorker)',f:'app/workers/activitypub/raw_distribution_worker.rb#L25-L31',c:`  def distribute!
+    return if inboxes.empty?
+
+    ActivityPub::DeliveryWorker.push_bulk(inboxes, limit: 1_000) do |inbox_url|
+      [payload, source_account_id, inbox_url, options]
+    end
+  end`}
+};
+const RULES=[
+ ['Título','O título diz o nível e o escopo?',[0,1,2,3]],
+ ['Legenda','Formas, cores e estilos de linha estão explicados?',[0,1,2]],
+ ['Tipo','Cada caixa diz se é pessoa, sistema, container ou componente?',[0,1,2]],
+ ['Responsabilidade','Cada caixa tem uma linha que diz o que faz?',[0,1,2]],
+ ['Tecnologia','A tecnologia está indicada?',[1,2]],
+ ['Setas','Direção única e rótulo com intenção e protocolo?',[0,1,2]],
+ ['Nível único','Só abstrações de um nível?',[0,1,2,3]],
+ ['Consistência representacional','Está claro de que elemento do nível superior este é o detalhamento?',[1,2,3]],
+ ['Fonte','A legenda indica a documentação ou a versão do código?',[0,1,2,3]]];
+const INFO=[
+ 'O sistema é <b>uma caixa</b>; importam as pessoas e os sistemas com que ele se comunica. A federação por ActivityPub e as notificações push são assíncronas (tracejadas). Só a instância pode ser detalhada no nível seguinte.',
+ 'As partes que <b>executam separadamente</b>. A moldura dourada mostra que este diagrama detalha a instância destacada no nível 1. O Redis concentra relações assíncronas: filas do Sidekiq e <i>pub/sub</i> para o streaming. Escolha <b>Web</b> ou <b>Workers</b> para descer.',
+ 'Os blocos <b>dentro</b> dos containers web e workers. O container escolhido no nível 2 aparece com moldura dourada. Quase toda passagem entre componentes de containers diferentes é um enfileiramento, portanto assíncrona. Escolha um componente com <b>+</b>.',
+ 'Classes e métodos: aqui as decisões viram código. O nível 4 é opcional segundo Brown (2018) e costuma ser gerado da IDE; o trecho é literal, curto e tem <i>permalink</i> para a <i>tag</i> v4.7.3.'];
+
+let level=0, sel={0:'M',1:'SK',2:'FO'};
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ctr=n=>[n.x+n.w/2,n.y+n.h/2];
+function clip(n,c,p){ const dx=p[0]-c[0], dy=p[1]-c[1]; if(!dx&&!dy) return c;
+  const s=Math.min(dx?(n.w/2+3)/Math.abs(dx):1e9, dy?(n.h/2+3)/Math.abs(dy):1e9); return [c[0]+dx*s, c[1]+dy*s]; }
+function edge(L,[a,b,lab,async,o={}]){
+  const A=L.nodes[a], B=L.nodes[b]; let ca=ctr(A), cb=ctr(B);
+  if(o.off){ const dx=cb[0]-ca[0], dy=cb[1]-ca[1], len=Math.hypot(dx,dy), px=-dy/len*o.off, py=dx/len*o.off;
+    ca=[ca[0]+px,ca[1]+py]; cb=[cb[0]+px,cb[1]+py]; }
+  const v=o.via, s=clip(A,ca,v||cb), e=clip(B,cb,v||ca), t=o.t??.5;
+  const d=v?`M${s} Q${v} ${e}`:`M${s} L${e}`;
+  const lp=o.lp||(v?[(1-t)**2*s[0]+2*(1-t)*t*v[0]+t*t*e[0],(1-t)**2*s[1]+2*(1-t)*t*v[1]+t*t*e[1]]:[s[0]+(e[0]-s[0])*t,s[1]+(e[1]-s[1])*t]);
+  const lines=lab?lab.split('\n'):[];
+  const txt=lines.map((l,i)=>`<tspan x="${lp[0]}" dy="${i?12:0}">${esc(l)}</tspan>`).join('');
+  return `<path d="${d}" fill="none" stroke="#6FC3D0" stroke-width="1.6" ${async?'stroke-dasharray="6 4"':''} marker-end="url(#ar)"/>`
+   + (lab?`<text x="${lp[0]}" y="${lp[1]+3-(lines.length-1)*6}" class="el">${txt}</text>`:'');
+}
+const FILL={p:'#2A4468',e:'#3A4458',s:'#0F7A8C',d:'#1E3040'};
+function node(id,n){
+  const isSel=sel[level]===id && n.exp, fill=FILL[n.c]||'#12203A';
+  const stroke=isSel?'#E8A93C':(n.exp?'#6FC3D0':'#2A4468'), sw=isSel?3:(n.exp?1.8:1.2);
+  const mono=level===2?'font-family:JetBrains Mono,monospace;font-size:11px':'font-size:13px';
+  return `<g ${n.exp?`style="cursor:pointer" onclick="pick('${id}')"`:''}>
+   <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>
+   <text x="${n.x+n.w/2}" y="${n.y+18}" text-anchor="middle" fill="#F4F6F9" font-weight="700" style="${mono}">${esc(n.t)}</text>
+   <text x="${n.x+n.w/2}" y="${n.y+33}" text-anchor="middle" fill="#9FB0C4" font-size="10.5">${esc(n.k)}</text>
+   <text x="${n.x+n.w/2}" y="${n.y+48}" text-anchor="middle" fill="#D6DEE8" font-size="11">${esc(n.d)}</text>
+   ${n.exp?`<circle cx="${n.x+n.w-4}" cy="${n.y+4}" r="8" fill="${isSel?'#E8A93C':'#0F7A8C'}"/><text x="${n.x+n.w-4}" y="${n.y+8}" text-anchor="middle" font-size="12" font-weight="700" fill="#12203A">+</text>`:''}
+  </g>`;
+}
+function svg(L){
+  const g=(L.groups||[]).map(G=>{ const hl=G.hl||(G.id&&G.id===sel[1]);
+    return `<rect x="${G.x}" y="${G.y}" width="${G.w}" height="${G.h}" rx="10" fill="none" stroke="${hl?'#E8A93C':'#2A4468'}" stroke-width="${hl?2.5:1.5}"/>
+     <text x="${G.x+10}" y="${G.y+16}" fill="${hl?'#E8A93C':'#9FB0C4'}" font-size="11" font-weight="700">${esc(G.t)}</text>`; }).join('');
+  let nodes=L.nodes; if(level===2) nodes=Object.fromEntries(Object.entries(L.nodes).map(([k,n])=>[k,Object.assign({},n,{exp:n.exp&&n.g===sel[1]})]));
+  const LL=Object.assign({},L,{nodes});
+  return `<svg viewBox="0 0 ${L.vb[0]} ${L.vb[1]}" role="img" aria-label="${esc(L.titulo)}">
+   <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6FC3D0"/></marker>
+   <style>.el{font-size:11px;fill:#F4F6F9;text-anchor:middle;paint-order:stroke;stroke:#1A2E4A;stroke-width:4px;stroke-linejoin:round}</style></defs>
+   ${g}${L.edges.map(e=>edge(LL,e)).join('')}${Object.entries(nodes).map(([k,n])=>node(k,n)).join('')}</svg>`;
+}
+const candidates=()=>level>2?[]:Object.entries(LEVELS[level].nodes).filter(([k,n])=>n.exp&&(level<2||n.g===sel[1])).map(([k])=>k);
+function pick(id){ sel[level]=id; if(level===1){ const c=Object.entries(LEVELS[2].nodes).filter(([k,n])=>n.exp&&n.g===id); if(!c.some(([k])=>k===sel[2])) sel[2]=c[0][0]; } render(); }
+function go(l){ if(l<0||l>3) return; level=l; render(); }
+function name(l){ const id=sel[l]; return LEVELS[l].nodes[id].t; }
+function render(){
+  const L=LEVELS[level];
+  $('tabs').innerHTML=LEVELS.map((x,k)=>`<button class="btn ghost ${k===level?'on':''}" onclick="go(${k})">${k+1}</button>`).join(' ');
+  $('up').disabled=level===0; $('down').disabled=level===3;
+  $('count').textContent=`nível ${level+1} de 4`;
+  const path=[]; for(let k=0;k<level;k++) path.push(name(k));
+  $('crumb').innerHTML=path.length?'Detalhando: '+path.map(esc).join(' › ')+(level<3?'':''):'Ponto de partida: o sistema inteiro';
+  if(level<3){
+    $('title').textContent=`${L.nome}. ${L.titulo}`;
+    $('view').innerHTML=svg(L)+`<div class="src">Fonte: ${L.fonte} Linhas contínuas: comunicação síncrona; tracejadas: assíncrona.</div>`;
+    const c=candidates();
+    $('chooser').innerHTML=c.length>1?'Expandir no nível seguinte: '+c.map(k=>`<button class="chip ${sel[level]===k?'sel':''}" onclick="pick('${k}')">${esc(L.nodes[k].t)}</button>`).join(''):
+      (c.length?`Elemento detalhado no nível seguinte: <b style="color:#E8A93C">${esc(L.nodes[c[0]].t)}</b>`:'');
+    $('legend').style.display='flex';
+  } else {
+    const k=CODE[sel[2]];
+    $('title').textContent=`${L.nome}. ${name(2)}`;
+    $('view').innerHTML=`<div class="crumb">${esc(k.t)}</div><pre>${esc(k.c)}</pre>
+      <div class="src">Fonte: Mastodon, <a href="https://github.com/mastodon/mastodon/blob/v4.7.3/${k.f}" target="_blank" rel="noopener">${esc(k.f)}</a>, tag v4.7.3 (Seção 6.2).</div>`;
+    $('chooser').innerHTML='Outro componente: '+candidates2().map(id=>`<button class="chip ${sel[2]===id?'sel':''}" onclick="sel[2]='${id}';render()">${esc(LEVELS[2].nodes[id].t)}</button>`).join('');
+    $('legend').style.display='none';
+  }
+  $('rules').innerHTML=RULES.map(([r,q,ls])=>`<div class="rule ${ls.includes(level)?'ok':''}"><b>${ls.includes(level)?'✓':'–'} ${r}</b>${ls.includes(level)?q:''}</div>`).join('');
+  $('info').innerHTML=`<b>${L.nome}.</b> `+INFO[level];
+}
+function candidates2(){ return Object.entries(LEVELS[2].nodes).filter(([k,n])=>n.exp&&n.g===sel[1]).map(([k])=>k); }
+{ const h=parseInt(location.hash.slice(1),10); if(h>=1&&h<=4) level=h-1; }
+render();
+</script>
+</body>
+</html>

@@ -376,6 +376,20 @@ mede coisas diferentes num projeto que lança versões semanais e num que lança
 números do histórico, como as métricas de código discutidas por Fox e Patterson (2021, p. 281-283), são
 indicadores para orientar a leitura, e não conclusões.
 
+O interativo a seguir desenha o mapa de *hotspots* a partir da saída do comando 7 da Listagem C.3.
+Cada arquivo é posicionado pela frequência de mudança, contada como o número de *commits* que o
+alteraram na janela escolhida, e pelo tamanho, estimado como a soma das linhas adicionadas menos a
+das removidas em todo o histórico, aproximação da complexidade que Tornhill (2015) admite. A
+estimativa só é fiel quando o log começa na criação dos arquivos, e por isso os comandos devem ser
+executados sobre um clone com histórico completo. O exemplo pré-carregado usa caminhos do Mastodon
+v4.7.3 citados nos Capítulos 2 a 6, mas seus números são hipotéticos e servem apenas para
+ilustrar a leitura; a opção de ocultar arquivos gerados permite observar como esquemas, traduções e
+arquivos de travamento de dependências se apresentariam como *hotspots* falsos.
+
+<iframe src="../interativos/hotspots.html" title="Mapa de hotspots a partir do histórico do Git"
+  style="width:100%; height:660px; border:1px solid #2A4468; border-radius:10px;"
+  loading="lazy"></iframe>
+
 ## C.6 O roteiro de expedição
 
 ### C.6.1 Os dez passos
@@ -663,6 +677,4 @@ version 4.0. Los Alamitos: IEEE Computer Society, 2024.
 ## Material complementar
 
 !!! todo "Para desenvolver"
-    Roteiro guiado, em vídeo, da execução dos passos 1 a 7 sobre o repositório do Mastodon, e um
-    interativo que desenha o mapa de *hotspots* de uma *tag* a partir da saída do comando 7 da
-    Listagem C.3.
+    Roteiro guiado, em vídeo, da execução dos passos 1 a 7 sobre o repositório do Mastodon.

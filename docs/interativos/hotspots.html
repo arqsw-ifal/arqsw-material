@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa de hotspots</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  select,label.ck{background:var(--nav);color:var(--paper);border:1px solid var(--navL);border-radius:8px;padding:6px 8px;font:inherit;font-size:.8rem}
+  label.ck{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+  label.ck input{accent-color:var(--gold)}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px;min-width:0}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  .tag{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--gold);color:var(--nav2);margin-left:6px;text-transform:none;letter-spacing:0}
+  textarea{width:100%;height:250px;background:#1E3040;color:#A8D8A8;border:1px solid var(--navL);border-radius:9px;padding:8px;font-family:"JetBrains Mono",monospace;font-size:.7rem;line-height:1.4;resize:vertical}
+  svg{width:100%;height:auto;display:block}
+  svg text{fill:var(--muted);font-size:11px;font-family:inherit}
+  svg .ax{stroke:var(--navL);stroke-width:1.5}
+  svg .med{stroke:var(--navL);stroke-width:1}
+  svg circle{cursor:pointer;stroke:var(--nav2);stroke-width:1}
+  svg circle.sel{stroke:var(--paper);stroke-width:2.5}
+  .leg{display:flex;flex-wrap:wrap;gap:12px;font-size:.72rem;color:var(--muted);margin-top:4px}
+  .leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;font-size:.76rem;margin-top:10px}
+  th,td{padding:4px 6px;border-bottom:1px solid var(--navL);text-align:right}
+  th{color:var(--muted);font-weight:600}
+  td:nth-child(2),th:nth-child(2){text-align:left;font-family:"JetBrains Mono",monospace;word-break:break-all}
+  tr{cursor:pointer} tr.sel td{background:rgba(232,169,60,.14)} tr.hot td:first-child{color:var(--gold);font-weight:700}
+  .tabwrap{max-height:260px;overflow:auto}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .info code{font-size:.78rem}
+  .aviso{margin-top:8px;font-size:.74rem;color:var(--muted);border:1px solid var(--navL);border-radius:8px;padding:7px 9px}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Mapa de <span style="color:var(--tealL)">hotspots</span> a partir do <code>git log</code></h1>
+  <p class="sub">Cole a saída do comando 7 da Listagem C.3 (<code>git log --pretty=format:'[%h] %an %ad %s' --date=short --numstat</code>) e veja quais arquivos combinam <b>muitas mudanças</b> com <b>muito código</b> (Tornhill, 2015).</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="exemplo()">Carregar exemplo ilustrativo</button>
+    <button class="btn" onclick="analisar()">Desenhar mapa</button>
+    <button class="btn ghost" onclick="limpar()">Limpar</button>
+    <select id="janela" onchange="analisar()" title="Janela para contar revisões">
+      <option value="0">Revisões: todo o histórico</option>
+      <option value="12" selected>Revisões: últimos 12 meses</option>
+      <option value="6">Revisões: últimos 6 meses</option>
+    </select>
+    <label class="ck"><input type="checkbox" id="gerados" checked onchange="analisar()">ocultar gerados</label>
+    <label class="ck"><input type="checkbox" id="logy" checked onchange="analisar()">tamanho em escala log</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="rot">Saída do <code>git log</code> <span class="tag" id="rotulo">exemplo ilustrativo</span></div>
+      <textarea id="log" spellcheck="false" oninput="document.getElementById('rotulo').textContent='dados colados'"></textarea>
+      <div class="aviso"><b>Sobre o exemplo.</b> Os caminhos existem no Mastodon v4.7.3 e são citados nos Capítulos 2 a 6, mas
+        os <b>números são hipotéticos</b>: o log foi gerado pelo próprio interativo para ilustrar a leitura do mapa, e não
+        extraído do repositório. Para dados reais, execute o comando 7 numa cópia do repositório e cole o resultado.</div>
+    </div>
+    <div class="panel">
+      <div class="rot">Frequência de mudança × tamanho estimado</div>
+      <svg id="graf" viewBox="0 0 560 360" role="img" aria-label="Gráfico de bolhas dos arquivos"></svg>
+      <div class="leg"><span><i style="background:var(--gold)"></i>hotspot (10 maiores escores)</span>
+        <span><i style="background:var(--teal)"></i>demais arquivos</span><span>área da bolha = linhas alteradas na janela</span></div>
+      <div class="tabwrap"><table><thead><tr><th>#</th><th>Arquivo</th><th>Revisões</th><th>Linhas</th><th>Alteradas</th><th>Autores</th><th>Escore</th></tr></thead><tbody id="tab"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base em Tornhill (2015) e na Listagem C.3 do Apêndice C.</p>
+
+<script>
+const GERADOS=/(^|\/)(db\/schema\.rb|Gemfile\.lock|yarn\.lock|package-lock\.json|pnpm-lock\.yaml)$|^config\/locales\/|\/locales?\/|\.min\.(js|css)$|\.snap$|\.svg$/;
+// Exemplo: caminhos reais do Mastodon v4.7.3; [caminho, revisões em 12 meses, linhas, autores] HIPOTÉTICOS
+const EX=[
+ ['app/models/status.rb',38,620,14],['app/models/account.rb',34,560,12],['streaming/index.js',24,1350,7],
+ ['app/lib/feed_manager.rb',22,610,8],['app/models/user.rb',26,520,10],['app/lib/activitypub/activity/create.rb',20,470,9],
+ ['app/services/post_status_service.rb',18,260,8],['app/controllers/api/v1/statuses_controller.rb',16,230,7],
+ ['app/services/fan_out_on_write_service.rb',14,190,6],['app/models/concerns/account/interactions.rb',12,320,6],
+ ['app/helpers/json_ld_helper.rb',9,260,5],['app/lib/request.rb',8,330,4],['config/sidekiq.yml',7,70,4],
+ ['app/lib/activitypub/activity.rb',6,190,4],['app/workers/feed_insert_worker.rb',6,85,3],
+ ['app/workers/activitypub/delivery_worker.rb',5,75,3],['app/workers/push_update_worker.rb',4,35,2],
+ ['app/lib/delivery_failure_tracker.rb',3,100,2],['app/workers/distribution_worker.rb',3,20,2],['app/models/feed.rb',2,30,1],
+ ['db/schema.rb',60,1400,15],['config/locales/pt-BR.yml',45,1900,6],['Gemfile.lock',70,950,5]
+];
+function exemplo(){
+  let s=7; const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+  const commits=[]; const fim=new Date('2026-09-30');
+  const data=d=>new Date(fim-d*864e5).toISOString().slice(0,10);
+  EX.forEach(([p,rev,lin,aut],k)=>{
+    let liq=0; const mud=[];
+    for(let r=0;r<rev;r++){ const a=1+Math.floor(rnd()*30), d=Math.max(0,a-Math.floor(rnd()*7)+2); liq+=a-d; mud.push([a,d]); }
+    commits.push({dia:900+Math.floor(rnd()*900),autor:'dev'+String(1+k%9).padStart(2,'0'),files:[[Math.max(1,lin-liq),0,p]]});
+    mud.forEach(([a,d],r)=>commits.push({dia:Math.floor(rnd()*360),autor:'dev'+String(1+(k+r)%Math.max(1,aut)+k%5).padStart(2,'0'),files:[[a,d,p]]}));
+  });
+  // agrupa mudanças do mesmo dia em um mesmo commit, como num histórico real
+  const porDia={}; commits.forEach(c=>{const key=c.dia+c.autor+(c.dia>800?c.files[0][2]:''); (porDia[key]=porDia[key]||{dia:c.dia,autor:c.autor,files:[]}).files.push(...c.files);});
+  const lista=Object.values(porDia).sort((a,b)=>a.dia-b.dia);
+  document.getElementById('log').value=lista.map((c,i)=>
+    `[${(0x1a2b3c0+i*7919).toString(16).slice(-7)}] ${c.autor} ${data(c.dia)} Exemplo ilustrativo ${i+1}\n`+
+    c.files.map(f=>`${f[0]}\t${f[1]}\t${f[2]}`).join('\n')).join('\n\n');
+  document.getElementById('rotulo').textContent='exemplo ilustrativo · números hipotéticos';
+  analisar();
+}
+function caminho(p){
+  p=p.trim().replace(/\{([^{}]*) => ([^{}]*)\}/g,'$2');
+  if(p.includes(' => ')) p=p.split(' => ').pop();
+  return p.replace(/\/\/+/g,'/');
+}
+function parse(txt){
+  const commits=[]; let c=null;
+  for(const linha of txt.split(/\r?\n/)){
+    const h=linha.match(/^\[([0-9a-f]+)\]\s+(.*?)\s+(\d{4}-\d{2}-\d{2})\b/);
+    if(h){ c={autor:h[2],data:h[3],files:[]}; commits.push(c); continue; }
+    const n=linha.match(/^(\d+|-)\s+(\d+|-)\s+(.+)$/);
+    if(n&&c) c.files.push({a:n[1]==='-'?0:+n[1],d:n[2]==='-'?0:+n[2],bin:n[1]==='-',p:caminho(n[3])});
+  }
+  return commits;
+}
+let dados=[], sel=null;
+function analisar(){
+  const commits=parse(document.getElementById('log').value);
+  const meses=+document.getElementById('janela').value, ocultar=document.getElementById('gerados').checked;
+  const ultima=commits.reduce((m,c)=>c.data>m?c.data:m,'');
+  let corte=''; if(meses&&ultima){const d=new Date(ultima);d.setMonth(d.getMonth()-meses);corte=d.toISOString().slice(0,10);}
+  const F={};
+  commits.forEach(c=>c.files.forEach(f=>{
+    const x=F[f.p]=F[f.p]||{p:f.p,liq:0,rev:0,churn:0,autores:new Set(),bin:false};
+    x.liq+=f.a-f.d; x.bin=x.bin||f.bin;
+    if(c.data>=corte){x.rev++;x.churn+=f.a+f.d;x.autores.add(c.autor);}
+  }));
+  let todos=Object.values(F), excl=0;
+  dados=todos.filter(x=>{const ok=!x.bin&&x.liq>0&&x.rev>0&&!(ocultar&&GERADOS.test(x.p)); if(!ok)excl++; return ok;});
+  const mr=Math.max(1,...dados.map(x=>x.rev)), ml=Math.max(1,...dados.map(x=>x.liq));
+  dados.forEach(x=>x.score=(x.rev/mr)*(x.liq/ml));
+  dados.sort((a,b)=>b.score-a.score); dados.forEach((x,i)=>x.hot=i<10);
+  if(sel&&!dados.find(x=>x.p===sel)) sel=null;
+  document.getElementById('count').textContent=commits.length?`${commits.length} commits · ${dados.length} arquivos no mapa · ${excl} omitidos`:'';
+  desenha(); tabela(); info(commits.length,excl,meses);
+}
+function desenha(){
+  const svg=document.getElementById('graf'), W=560,H=360,L=52,R=14,T=26,B=40;
+  if(!dados.length){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle">Nenhum dado: cole a saída do comando 7 ou carregue o exemplo.</text>`;return;}
+  const logy=document.getElementById('logy').checked;
+  const mr=Math.max(...dados.map(x=>x.rev)), ml=Math.max(...dados.map(x=>x.liq)), mc=Math.max(...dados.map(x=>x.churn));
+  const X=v=>L+(v/mr)*(W-L-R), fy=v=>logy?Math.log10(Math.max(1,v))/Math.log10(Math.max(10,ml)):v/ml, Y=v=>H-B-fy(v)*(H-T-B);
+  const med=a=>{const s=[...a].sort((p,q)=>p-q);return s[Math.floor(s.length/2)];};
+  const mx=med(dados.map(x=>x.rev)), my=med(dados.map(x=>x.liq));
+  let h=`<line class="ax" x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}"/><line class="ax" x1="${L}" y1="${T}" x2="${L}" y2="${H-B}"/>`;
+  h+=`<line class="med" x1="${X(mx)}" y1="${T}" x2="${X(mx)}" y2="${H-B}"/><line class="med" x1="${L}" y1="${Y(my)}" x2="${W-R}" y2="${Y(my)}"/>`;
+  h+=`<text x="${W-R}" y="${T-12}" text-anchor="end" fill="#E8A93C">muda muito e é grande</text><text x="${L+6}" y="${H-B-6}">estável e pequeno</text>`;
+  [0,.25,.5,.75,1].forEach(t=>{const v=Math.round(t*mr);h+=`<text x="${X(v)}" y="${H-B+14}" text-anchor="middle">${v}</text>`;});
+  const ticks=logy?[1,10,100,1000,10000].filter(v=>v<=ml*1.5):[0,.25,.5,.75,1].map(t=>Math.round(t*ml));
+  ticks.forEach(v=>h+=`<text x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`);
+  h+=`<text x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">revisões (commits que alteraram o arquivo na janela)</text>`;
+  h+=`<text transform="translate(12 ${(T+H-B)/2}) rotate(-90)" text-anchor="middle">linhas estimadas (Σ+ − Σ−)</text>`;
+  [...dados].reverse().forEach(x=>{const r=4+14*Math.sqrt(x.churn/Math.max(1,mc));
+    h+=`<circle cx="${X(x.rev).toFixed(1)}" cy="${Y(x.liq).toFixed(1)}" r="${r.toFixed(1)}" fill="${x.hot?'#E8A93C':'#0F7A8C'}" fill-opacity=".78" class="${x.p===sel?'sel':''}" onclick="escolhe('${x.p}')"><title>${x.p}</title></circle>`;});
+  svg.innerHTML=h;
+}
+function tabela(){
+  document.getElementById('tab').innerHTML=dados.slice(0,25).map((x,i)=>
+    `<tr class="${x.hot?'hot':''} ${x.p===sel?'sel':''}" onclick="escolhe('${x.p}')"><td>${i+1}</td><td>${x.p}</td><td>${x.rev}</td><td>${x.liq}</td><td>${x.churn}</td><td>${x.autores.size}</td><td>${x.score.toFixed(2).replace('.',',')}</td></tr>`).join('');
+}
+function escolhe(p){sel=sel===p?null:p;desenha();tabela();info();}
+let ultimoInfo=[0,0,12];
+function info(n,excl,meses){
+  if(n!==undefined) ultimoInfo=[n,excl,meses]; [n,excl,meses]=ultimoInfo;
+  const el=document.getElementById('info');
+  if(!n){el.innerHTML=`Cole no quadro a saída do comando 7 da Listagem C.3, executado na raiz do repositório, e clique em <b>Desenhar mapa</b>. Cada bloco começa por <code>[hash] autor data assunto</code>, seguido de linhas <code>adicionadas⇥removidas⇥caminho</code>.`;return;}
+  const x=sel&&dados.find(d=>d.p===sel);
+  if(x){const pos=dados.indexOf(x)+1;
+    el.innerHTML=`<b>${x.p}</b>: ${x.rev} revisões na janela, cerca de ${x.liq} linhas, ${x.churn} linhas alteradas e ${x.autores.size} autor(es); posição ${pos} no escore.
+      ${x.hot?'É um <b>hotspot</b>: antes de alterá-lo, convém escrever testes de caracterização (Seção C.4) e ler o histórico com os comandos 5 e 6 da Listagem C.3.':'Não está entre os dez maiores escores; se for o ponto de mudança da tarefa, a leitura tende a ser menos arriscada.'}
+      ${x.autores.size===1?' Um único autor na janela sugere conhecimento concentrado (Seção C.5.3).':''}`;return;}
+  el.innerHTML=`<b>Como ler.</b> O eixo horizontal mede a <b>frequência de mudança</b>; o vertical, o <b>tamanho</b>, usado aqui como aproximação da complexidade, como admite Tornhill (2015).
+    As linhas medianas dividem o plano em quadrantes: o superior direito reúne os arquivos grandes que mudam muito, onde refatoração, testes de caracterização e leitura cuidadosa rendem mais.
+    O escore é o produto das duas grandezas normalizadas. O tamanho é estimado pela soma das linhas adicionadas menos as removidas em todo o histórico colado, e só é fiel se o log começar na criação dos arquivos.
+    ${excl?`Foram omitidos ${excl} arquivos: binários, removidos ou renomeados (tamanho líquido nulo), sem mudança na janela${document.getElementById('gerados').checked?' ou gerados, como esquemas, traduções e arquivos de travamento de dependências, que seriam <i>hotspots</i> falsos':''}.`:''}
+    Clique numa bolha ou numa linha da tabela para ver os detalhes. Os números são indicadores para orientar a leitura, e não conclusões.`;
+}
+function limpar(){document.getElementById('log').value='';document.getElementById('rotulo').textContent='dados colados';sel=null;analisar();}
+exemplo();
+</script>
+</body>
+</html>

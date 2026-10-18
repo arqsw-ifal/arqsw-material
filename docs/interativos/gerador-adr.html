@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de ADR</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--nav2); color:var(--paper); padding:14px;
+  }
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 14px; cursor:pointer; font:inherit; font-size:.86rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .count{color:var(--muted); font-size:.8rem; margin-left:auto}
+  .grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:12px}
+  @media(max-width:720px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--nav); border-radius:12px; padding:12px; min-width:0}
+  label{display:block; font-size:.74rem; color:var(--muted); margin:7px 0 2px}
+  label b{color:var(--gold); font-weight:700}
+  input,select,textarea{width:100%; background:var(--nav2); color:var(--paper); border:1px solid var(--navL); border-radius:7px; padding:5px 8px; font:inherit; font-size:.8rem}
+  textarea{resize:vertical; min-height:38px}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--tealL)}
+  .row2{display:grid; grid-template-columns:90px 1fr; gap:8px}
+  .row3{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .y{font-size:.82rem; line-height:1.5; background:var(--nav2); border-radius:9px; padding:9px 11px; margin-bottom:10px}
+  .y span{color:var(--gold); font-weight:600}
+  .y .vazio{color:var(--red); font-weight:400}
+  pre{margin:0; background:#1E3040; color:#A8D8A8; border-radius:9px; padding:10px 12px; font-family:"JetBrains Mono",monospace; font-size:.72rem; overflow:auto; line-height:1.45; white-space:pre-wrap; max-height:360px; font-variant-ligatures:none}
+  pre .c{color:#6B7A8F}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  .ok{color:var(--tealL)}
+</style>
+</head>
+<body>
+  <h1>Gerador de ADR a partir de uma <span style="color:var(--tealL)">declaração em Y</span></h1>
+  <p class="sub">Preencha as seis partes da declaração de Zdun <i>et al.</i> (2013); o esqueleto do ADR segue o modelo da Listagem B.3.</p>
+
+  <div class="toolbar">
+    <button class="btn ghost" onclick="load(0)">Exemplo: ADR-PT-02 (PeerTube)</button>
+    <button class="btn ghost" onclick="load(1)">Exemplo: ADR-MM-01 (Mattermost)</button>
+    <button class="btn ghost" onclick="load(-1)">Limpar</button>
+    <button class="btn" id="copy" onclick="copy()">Copiar Markdown</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <form class="panel" id="f" oninput="render()" onsubmit="return false">
+      <div class="row2">
+        <div><label for="num">Número</label><input id="num" placeholder="0001"></div>
+        <div><label for="titulo">Título (a decisão, não o problema)</label><input id="titulo" placeholder="Usar fila durável entre A e B"></div>
+      </div>
+      <div class="row3">
+        <div><label for="status">Status</label><select id="status">
+          <option>Pedido de comentários</option><option>Proposto</option><option>Aceito</option><option>Aceito (reconstruído)</option>
+          <option>Rejeitado</option><option>Depreciado</option><option>Substituído por</option></select></div>
+        <div><label for="data">Data</label><input id="data" placeholder="AAAA-MM-DD"></div>
+      </div>
+      <div id="subst" style="display:none"><label for="por">Substituído por (ADR)</label><input id="por" placeholder="ADR-0068"></div>
+      <label for="caso"><b>No contexto de</b> (caso de uso ou componente, sem artigo)</label><textarea id="caso" rows="1"></textarea>
+      <label for="interesse"><b>diante de</b> (interesse ou força)</label><textarea id="interesse" rows="1"></textarea>
+      <label for="opcao"><b>decidimos por</b> (opção escolhida)</label><textarea id="opcao" rows="1"></textarea>
+      <label for="alts"><b>e descartamos</b> (uma alternativa por linha)</label><textarea id="alts" rows="2"></textarea>
+      <label for="qualidade"><b>para alcançar</b> (qualidade ou benefício)</label><textarea id="qualidade" rows="1"></textarea>
+      <label for="consequencia"><b>aceitando</b> (desvantagem)</label><textarea id="consequencia" rows="1"></textarea>
+      <label for="conf">Conformidade (opcional: função de aptidão ou verificação manual)</label><textarea id="conf" rows="1"></textarea>
+      <label for="autor">Autor (opcional)</label><input id="autor">
+    </form>
+    <div class="panel">
+      <div class="y" id="y"></div>
+      <pre id="out"></pre>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const F=['num','titulo','status','data','por','caso','interesse','opcao','alts','qualidade','consequencia','conf','autor'];
+const EX=[
+ {num:'PT-02',titulo:'Permitir runners remotos de transcodificação',status:'Aceito (reconstruído)',data:'2023-06 (versão 5.2.0)',
+  caso:'transcodificação de vídeos',interesse:'competição por recursos com a API em servidores modestos',
+  opcao:'runners remotos que pedem tarefas por HTTP',
+  alts:'mais workers locais\nserviços de transcodificação de nuvem comerciais\nworkers remotos alimentados pela instância (modelo push)',
+  qualidade:'elasticidade do processamento a custo controlado',
+  consequencia:'um protocolo novo e a necessidade de confiar em quem opera o runner',
+  conf:'Monitorar jobs parados (a configuração padrão considera parado um job de vídeo sob demanda sem atualização por dois minutos), falhas por job e o tempo entre envio e publicação.',
+  autor:'reconstrução do autor do livro (Seção 4.4.6)'},
+ {num:'MM-01',titulo:'Executar plugins de servidor em processos separados',status:'Aceito (reconstruído)',data:'não documentada',
+  caso:'plugins de servidor do Mattermost',
+  interesse:'extensões de terceiros, de confiabilidade desconhecida, cuja falha fatal derrubaria o servidor e suas conexões WebSocket',
+  opcao:'executar cada plugin como subprocesso que se comunica por RPC, com a biblioteca go-plugin',
+  alts:'plugins compilados junto com o servidor\nbibliotecas carregadas dinamicamente no mesmo processo\nplugins como serviços remotos acessados por HTTP',
+  qualidade:'isolamento de falhas e instalação de plugins sem reiniciar o servidor',
+  consequencia:'o custo de serialização e de comunicação entre processos em cada hook e a obrigação de plugins sem estado em cluster',
+  conf:'O servidor só fala com plugins por meio das interfaces API e Hooks do pacote server/public/plugin, cujo código de transporte RPC é gerado automaticamente.',
+  autor:'reconstrução do autor do livro (Seção 4.3.8)'}];
+const $=id=>document.getElementById(id);
+const v=id=>$(id).value.trim();
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const lista=a=>a.length<2?(a[0]||''):a.slice(0,-1).join(', ')+' e '+a[a.length-1];
+const T=s=>`<!-- ${s} -->`;
+let md='';
+
+function yParts(){
+  const alts=v('alts').split('\n').map(s=>s.trim()).filter(Boolean);
+  return [['No contexto de ',v('caso')],[', diante de ',v('interesse')],[', decidimos por ',v('opcao')],
+          [' e descartamos ',lista(alts)],[', para alcançar ',v('qualidade')],[', aceitando ',v('consequencia')]];
+}
+function render(){
+  $('subst').style.display=v('status')==='Substituído por'?'block':'none';
+  const P=yParts(), alts=v('alts').split('\n').map(s=>s.trim()).filter(Boolean);
+  const vazios=P.filter(p=>!p[1]).length;
+  $('y').innerHTML='<b style="color:var(--tealL)">Declaração em Y: </b>'+P.map(([a,b])=>esc(a)+(b?`<span>${esc(b)}</span>`:'<span class="vazio">&lt;...&gt;</span>')).join('')+'.';
+  const ph=(x,d)=>x||`<${d}>`;
+  const status=v('status')==='Substituído por'?`Substituído por ${ph(v('por'),'ADR-MMMM')}`:v('status');
+  const yLine=P.map(([a,b])=>a+ph(b,'...')).join('')+'.';
+  const L=[];
+  L.push(`# ADR-${ph(v('num'),'NNNN')}: ${ph(v('titulo'),'título curto: a decisão, não o problema')}`,'',
+    `**Status:** ${status}`,`**Data:** ${ph(v('data'),'AAAA-MM-DD')}`,`**Resumo (declaração em Y):** ${yLine}`,'',
+    '## Contexto',`- Situação: ${ph(v('caso'),'...')}.`,`- Força principal: ${ph(v('interesse'),'...')}.`,
+    T('Complete: forças em jogo, em linguagem neutra; Top-3; restrições técnicas, de prazo, de equipe, legais; altitude e elemento C4.'),'',
+    '## Decisão',`Vamos adotar ${ph(v('opcao'),'...')}.`,T('Justificativa técnica e justificativa de negócio.'),'',
+    '## Alternativas consideradas');
+  if(alts.length) alts.forEach((a,i)=>L.push(`${i+1}. ${a}: ${T('o que é e por que não foi escolhida')}`));
+  else L.push(T('Para cada alternativa: o que é e por que não foi escolhida.'));
+  L.push('','## Consequências',`- Positiva: ${ph(v('qualidade'),'...')}.`,`- Negativa (trade-off aceito): ${ph(v('consequencia'),'...')}.`,
+    T('O que fica mais fácil e o que fica mais difícil? Que dívida técnica se contrai, e em que condição deve ser paga?'),'',
+    '## Conformidade', v('conf')||T('Função de aptidão (onde está, quando roda) ou verificação manual (quem, quando).'),'',
+    '## Notas',`- Autor: ${ph(v('autor'),'...')}`,`- ADRs relacionados: ${T('substitui, é substituído por, depende de')}`,
+    `- Última modificação: ${ph(v('data'),'AAAA-MM-DD')}`);
+  md=L.join('\n');
+  $('out').innerHTML=esc(md).replace(/&lt;!--.*?--&gt;/g,m=>`<span class="c">${m}</span>`);
+  const pend=(md.match(/<!--/g)||[]).length;
+  $('count').textContent=vazios?`${vazios} de 6 partes da declaração em Y vazias`:'declaração em Y completa';
+  const notas=[];
+  if(!v('conf')) notas.push('A seção de <b>conformidade</b> está vazia: sem ela, a decisão tende a ser violada aos poucos (Seção B.6).');
+  if(!alts.length) notas.push('Nenhuma <b>alternativa</b> descartada: uma decisão sem alternativas não é uma escolha registrada.');
+  if(v('status').includes('reconstruído')) notas.push('Status <b>reconstruído</b>: declare as fontes (tag, arquivo, documentação) e assinale as inferências (Seção B.9).');
+  if(v('status')==='Substituído por') notas.push('A substituição é <b>bidirecional</b>: o novo ADR deve registrar "Aceito; substitui ADR-'+esc(ph(v('num'),'NNNN'))+'".');
+  $('info').innerHTML=`<b>Esqueleto gerado.</b> Restam <b>${pend}</b> comentários a substituir por análise. `
+    +'A declaração em Y resume a decisão; contexto, justificativas e alternativas ainda pedem texto próprio. '+notas.join(' ');
+}
+function load(i){
+  F.forEach(k=>{ $(k).value = i<0 ? (k==='status'?'Proposto':'') : (EX[i][k]||(k==='status'?'Proposto':'')); });
+  render();
+}
+async function copy(){
+  const b=$('copy');
+  try{ await navigator.clipboard.writeText(md); }
+  catch(e){ const t=document.createElement('textarea'); t.value=md; document.body.appendChild(t); t.select(); try{document.execCommand('copy');}catch(_){} t.remove(); }
+  b.textContent='Copiado ✓'; setTimeout(()=>b.textContent='Copiar Markdown',1600);
+}
+load(0);
+</script>
+</body>
+</html>

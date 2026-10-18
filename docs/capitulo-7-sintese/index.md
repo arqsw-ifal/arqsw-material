@@ -457,6 +457,21 @@ flowchart TD
 
 Fonte: adaptado de Richards e Ford (2020, p. 270-271).
 
+O interativo a seguir percorre a Figura 7.2 a partir das partes de um sistema e do Top-3 de cada
+uma. Duas partes são tratadas como o mesmo quantum quando compartilham a maior parte do Top-3 e o
+mesmo nível de criticidade, ou quando compartilham um banco com transações entre si; os estilos da
+família resultante são ordenados pelas tendências da Tabela D.11, e as diferenças de ritmo indicam
+os pontos de assincronia, os ADRs e as *fitness functions* a escrever. Os sete sistemas vêm
+pré-carregados com o Top-3 da Tabela 7.1, redistribuído entre as partes quando o texto as
+distingue, o que permite confrontar a sugestão com o estilo real.
+As divergências são instrutivas, pois revelam os fatores que a heurística não captura, como o
+isomorfismo do PeerTube com *pipes and filters* e a escala variável do ThingsBoard. Trata-se de
+uma heurística didática, e não de um procedimento de decisão.
+
+<iframe src="../interativos/escolha-de-estilo.html" title="As três determinações na escolha de um estilo"
+  style="width:100%; height:660px; border:1px solid #2A4468; border-radius:10px;"
+  loading="lazy"></iframe>
+
 O resultado do processo, segundo os autores, é uma topologia que combina o estilo escolhido e
 suas hibridizações, ADRs para as partes do desenho que exigiram mais esforço e *fitness functions*
 para proteger os princípios e as características operacionais mais importantes. Os três produtos

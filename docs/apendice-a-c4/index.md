@@ -686,7 +686,13 @@ version 4.0. Los Alamitos: IEEE Computer Society, 2024.
 
 ## Material complementar
 
+O interativo a seguir percorre os quatro níveis do C4 numa instância Mastodon, reproduzindo as
+Figuras 3.2.4, 4.2.1 e 5.2.1 e trechos literais das listagens da Seção 6.2. A cada descida, o leitor
+escolhe o elemento a detalhar, que permanece destacado no nível superior, conforme o princípio da
+consistência representacional (RICHARDS; FORD, 2020, p. 315). Ao lado de cada diagrama, indicam-se os
+itens da Tabela A.1 que se aplicam àquele nível; as linhas seguem a convenção da Seção A.7.3.
+
+<iframe src="../interativos/niveis-c4.html" title="Os quatro níveis do C4 numa instância Mastodon" style="width:100%; height:720px; border:1px solid #2A4468; border-radius:10px;" loading="lazy"></iframe>
+
 !!! todo "Para desenvolver"
-    Interativo que alterna entre os níveis do C4 de um dos sete sistemas, preservando a consistência
-    representacional (o elemento detalhado permanece destacado no nível superior), e vídeo curto
-    sobre as regras práticas da Tabela A.1.
+    Vídeo curto sobre as regras práticas da Tabela A.1.

@@ -520,6 +520,15 @@ exige mais de meia página, é provável que ele esteja descrevendo a arquitetur
 que pesam sobre esta decisão. A Listagem D.3, no Apêndice D, mostra um ADR completo escrito com este
 modelo para o *kata* Silicon Sandwiches.
 
+O interativo a seguir parte de uma declaração em Y (ZDUN *et al.*, 2013) e gera o esqueleto de um
+ADR no modelo da Listagem B.3, com as seis partes da declaração distribuídas pelas seções de contexto,
+decisão, alternativas e consequências. Os trechos que exigem análise própria permanecem como
+comentários a substituir, o que evidencia que a declaração resume a decisão, mas não dispensa a
+justificativa. Dois exemplos pré-carregados reproduzem o ADR-PT-02 do PeerTube (Seção 4.4.6) e o
+ADR-MM-01 do Mattermost (Seção 4.3.8).
+
+<iframe src="../interativos/gerador-adr.html" title="Gerador de ADR a partir de uma declaração em Y" style="width:100%; height:660px; border:1px solid #2A4468; border-radius:10px;" loading="lazy"></iframe>
+
 ## Síntese do apêndice
 
 A concepção da arquitetura como conjunto de decisões, formulada por Jansen e Bosch (2005), Kruchten
@@ -632,4 +641,4 @@ p. 46-53, 2013.
 
 !!! todo "Para desenvolver"
     Vídeo curto sobre o ciclo de vida de um ADR, com a substituição do ADR 42 pelo ADR 68 de Richards
-    e Ford, e um interativo que gera o esqueleto de um ADR a partir de uma declaração em Y.
+    e Ford.

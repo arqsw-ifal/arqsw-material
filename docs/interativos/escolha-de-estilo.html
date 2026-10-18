@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escolha de estilo</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  select,input[type=text]{background:var(--nav2);color:var(--paper);border:1px solid var(--navL);border-radius:7px;padding:5px 6px;font:inherit;font-size:.78rem;min-width:0;width:100%}
+  .toolbar select{width:auto;background:var(--nav);font-size:.84rem;padding:7px 8px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px;min-width:0}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  .parte{background:var(--nav2);border:1px solid var(--navL);border-radius:10px;padding:8px;margin-bottom:8px}
+  .parte .cab{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .parte .cab b{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--gold)}
+  .x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem}
+  .x:hover{color:var(--red)}
+  .tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:5px}
+  @media(max-width:480px){.tres{grid-template-columns:1fr}}
+  .mini{font-size:.62rem;color:var(--muted);display:block;margin-bottom:2px}
+  .det{border-left:3px solid var(--navL);padding:4px 0 6px 10px;margin-bottom:10px;font-size:.8rem;line-height:1.4}
+  .det h3{font-size:.82rem;margin:0 0 3px;color:var(--tealL)}
+  .det .res{display:inline-block;font-weight:700;color:var(--nav2);background:var(--gold);border-radius:999px;padding:1px 9px;font-size:.74rem;margin:2px 0}
+  .q{display:inline-block;font-size:.7rem;border:1px solid var(--teal);border-radius:6px;padding:1px 6px;margin:2px 3px 0 0}
+  .est{display:grid;grid-template-columns:110px 1fr 36px;gap:8px;align-items:center;font-size:.76rem;margin:3px 0}
+  .bar{height:10px;background:var(--navL);border-radius:5px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--tealL))}
+  .est.top .bar i{background:var(--gold)} .est.fora{opacity:.45}
+  .n{font-family:"JetBrains Mono",monospace;color:var(--gold);text-align:right}
+  ul.l{margin:2px 0 0 1.1em;padding:0} ul.l li{margin:2px 0}
+  .aviso{margin-top:8px;font-size:.74rem;color:var(--muted);border:1px solid var(--navL);border-radius:8px;padding:7px 9px}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)} .info .div{color:var(--red);font-weight:700} .info .conv{color:var(--tealL);font-weight:700}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>As três determinações na <span style="color:var(--tealL)">escolha de um estilo</span></h1>
+  <p class="sub">Defina as partes do sistema e o Top-3 de cada uma. O roteiro da Figura 7.2 decide monólito ou distribuído, onde residem os dados e onde a comunicação deve ser assíncrona.</p>
+
+  <div class="toolbar">
+    <select id="preset" onchange="carrega(this.value)" title="Sistemas pré-carregados"></select>
+    <button class="btn" onclick="novaParte()">+ Parte</button>
+    <button class="btn ghost" onclick="carrega('vazio')">Em branco</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="rot">Partes do sistema e Top-3 de cada uma</div>
+      <div id="partes"></div>
+      <div class="aviso"><b>Heurística didática.</b> O roteiro simplifica Richards e Ford (2020, p. 270-271): duas partes formam o mesmo quantum quando compartilham ao menos duas características do Top-3 e o mesmo nível de criticidade, ou quando compartilham um banco com transações entre si. As notas dos estilos são as tendências da Tabela D.11, com "—" tratado como 3, e a forma do problema acrescenta 1 ponto ao estilo isomorfo. Nos sistemas pré-carregados, o Top-3 vem da Tabela 7.1; quando o texto distingue partes com exigências diferentes, ele foi redistribuído entre elas pelo autor, com base nas seções citadas. O resultado é ponto de partida para a discussão, e não uma decisão.</div>
+    </div>
+    <div class="panel" id="saida"></div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base na Figura 7.2, nas Tabelas 7.1 e D.11 e em Richards e Ford (2020, p. 270-271).</p>
+
+<script>
+const ESTILOS=['Camadas','Pipeline','Microkernel','Serviços','Eventos','Space-based','SOA','Microsserviços'];
+const MONO=[0,1,2], DISTR=[3,4,5,6,7];
+const D11={ // Tabela D.11 convertida na escala do comparador (null = "—")
+ 'Custo e simplicidade':[4,4,4,4,2,2,2,2],'Implantabilidade':[1,3,3,4,null,null,1,4],'Testabilidade':[2,3,3,4,2,1,1,4],
+ 'Confiabilidade':[3,3,3,4,null,null,null,3],'Desempenho':[2,null,3,null,5,5,1,2],'Escalabilidade':[1,1,2,3,5,5,3,5],
+ 'Elasticidade':[1,1,2,2,null,5,3,5],'Tolerância a falhas':[1,1,2,4,5,null,null,4],'Capacidade evolutiva':[null,3,3,4,5,null,1,5]};
+// Características (Apêndice D, Tabelas D.1 e D.11, e as que aparecem na Tabela 7.1): linhas da D.11 e fitness function típica
+const CAR={
+ 'Custo e simplicidade':[['Custo e simplicidade'],'número de unidades implantáveis não excede o previsto no ADR de topologia'],
+ 'Desempenho':[['Desempenho'],'teste de carga no pipeline: p95 da operação-chave abaixo do limite do cenário de qualidade'],
+ 'Escalabilidade':[['Escalabilidade'],'teste de carga com 10 vezes os usuários: a vazão cresce ao adicionar nós'],
+ 'Elasticidade':[['Elasticidade'],'ensaio de pico: a capacidade acompanha a demanda em poucos minutos'],
+ 'Disponibilidade':[['Tolerância a falhas','Confiabilidade'],'monitor sintético contínuo comparado ao SLO (Seção D.2.3)'],
+ 'Tolerância a falhas':[['Tolerância a falhas'],'injeção de falhas: a queda de um nó não interrompe a operação-chave'],
+ 'Recuperabilidade':[['Confiabilidade'],'restauração periódica de backup dentro do tempo-alvo'],
+ 'Confiabilidade/safety':[['Confiabilidade'],'testes de falha segura em simulação antes de cada versão',1],
+ 'Determinismo temporal':[[],'medição do pior tempo de execução e do jitter do laço crítico',1],
+ 'Durabilidade':[['Confiabilidade'],'teste de integridade após falha no meio da gravação'],
+ 'Consistência dos dados':[[],'teste de invariantes: pedido, pagamento e estoque nunca divergem'],
+ 'Extensibilidade':[['Capacidade evolutiva'],'ArchUnit: extensões dependem só da API pública do núcleo'],
+ 'Modificabilidade':[['Capacidade evolutiva','Testabilidade'],'ArchUnit: sem ciclos entre módulos e limite de complexidade'],
+ 'Testabilidade':[['Testabilidade'],'tempo da suíte e cobertura mínima verificados no pipeline'],
+ 'Implantabilidade':[['Implantabilidade'],'implantação automatizada de cada unidade em menos de N minutos'],
+ 'Interoperabilidade':[[],'testes de conformidade com o protocolo externo (por exemplo, ActivityPub)'],
+ 'Segurança':[[],'varredura de dependências e testes de autorização no pipeline'],
+ 'Privacidade':[[],'teste que impede dados pessoais em logs e eventos'],
+ 'Conformidade legal':[[],'toda operação sobre dado pessoal gera trilha de auditoria (LGPD)'],
+ 'Portabilidade':[[],'build e testes em todas as plataformas-alvo'],
+};
+const RITMO={imediato:'imediato (alguém espera a resposta)',tolerante:'tolerante a atraso',rajadas:'chega em rajadas'};
+const DADOS={compartilhado:'banco compartilhado, com transações entre partes',proprio:'dados próprios',natureza:'dados de natureza distinta (séries, objetos, cache)'};
+const FORMA={req:['requisição-resposta',0,3],seq:['sequência de transformações',1,1],ext:['núcleo + extensões',2,2],evt:['fluxo de eventos',4,4]};
+const P=(nome,top,ritmo,dados,forma)=>({nome,top,ritmo,dados,forma});
+const SIS={
+ mastodon:{nome:'Mastodon',fam:'mono',est:['Camadas'],real:'monólito em camadas com jobs assíncronos (Sidekiq); 1 quantum por instância',
+  partes:[P('Web e API',['Custo e simplicidade','Interoperabilidade','Desempenho'],'imediato','compartilhado','req'),
+          P('Fanout e federação (workers)',['Custo e simplicidade','Interoperabilidade','Desempenho'],'tolerante','compartilhado','req')],
+  porque:'a simplicidade operacional encabeça o Top-3 porque voluntários mantêm instâncias; a escala vem da federação, e não da distribuição de cada instância (Seção 7.1.2). A assincronia aparece só no fanout, como amortecedor (Seção 7.1.3).'},
+ mattermost:{nome:'Mattermost',fam:'mono',est:['Camadas','Microkernel'],real:'núcleo monolítico com difusão orientada a eventos e traços de microkernel; 1 quantum',
+  partes:[P('Núcleo e mensagens',['Segurança','Desempenho','Disponibilidade'],'imediato','compartilhado','evt'),
+          P('Plugins de servidor',['Segurança','Extensibilidade','Disponibilidade'],'imediato','compartilhado','ext')],
+  porque:'o mesmo binário, banco e versão em todos os nós formam um quantum; a difusão por eventos atende à latência de entrega, e os plugins em processos separados protegem a disponibilidade contra falhas de extensões (Seções 4.3 e 7.1.2).'},
+ peertube:{nome:'PeerTube',fam:'distr',est:['Pipeline'],real:'pipes and filters por filas no processamento; 1 quantum com workers locais, 2 ou mais com runners remotos',
+  partes:[P('Reprodução e catálogo',['Custo e simplicidade','Desempenho','Disponibilidade'],'imediato','compartilhado','req'),
+          P('Transcodificação',['Custo e simplicidade','Elasticidade','Escalabilidade'],'rajadas','proprio','seq')],
+  porque:'a disponibilidade é assimétrica: a reprodução não pode parar, o processamento pode atrasar. O isomorfismo aponta pipes and filters, um estilo monolítico na Tabela D.11, que o PeerTube distribui ao executar filtros nos runners remotos (Seções 4.4 e 7.1.2).'},
+ nextcloud:{nome:'Nextcloud',fam:'mono',est:['Microkernel'],real:'microkernel (núcleo lib/ + apps), com clientes de sincronização; 1 quantum',
+  partes:[P('Núcleo e apps',['Durabilidade','Extensibilidade','Segurança'],'imediato','compartilhado','ext')],
+  porque:'a extensibilidade define o produto, e o microkernel é o estilo cujos pontos fortes coincidem com ela; todos os apps compartilham processo e banco (Seção 7.1.2).'},
+ saleor:{nome:'Saleor',fam:'distr',est:[],real:'monólito modular headless com apps externas; vários quanta, acoplados por webhooks síncronos no checkout',
+  partes:[P('Vitrine',['Elasticidade','Desempenho','Escalabilidade'],'imediato','compartilhado','req'),
+          P('Checkout, pedido e estoque',['Consistência dos dados','Disponibilidade','Segurança'],'imediato','compartilhado','req'),
+          P('Apps (pagamento, impostos, frete)',['Modificabilidade','Interoperabilidade','Implantabilidade'],'imediato','proprio','ext')],
+  porque:'vitrine e checkout têm características diferentes, mas pedido, pagamento e estoque compartilham transações, e o banco faz parte do quantum: o núcleo permanece um monólito modular. Os subdomínios genéricos saem para apps externas, e a chamada síncrona no checkout exige disjuntor (Seções 4.6, 6.6 e 7.1.2).'},
+ thingsboard:{nome:'ThingsBoard',fam:'mono',est:['Eventos'],real:'orientado a eventos com fila como espinha dorsal; o mesmo código implanta-se como monólito (1 quantum) ou microsserviços',
+  partes:[P('Transportes e ingestão',['Escalabilidade','Disponibilidade','Segurança'],'rajadas','natureza','evt'),
+          P('Motor de regras e persistência',['Escalabilidade','Disponibilidade','Segurança'],'tolerante','natureza','evt')],
+  porque:'a fila sustenta a disponibilidade de aceitação, e a telemetria vai para um banco de séries temporais mesmo no monólito. As duas topologias para o mesmo código são um contrafactual institucionalizado: a escala real decide quando distribuir (Seções 4.7 e 7.1.4).'},
+ px4:{nome:'PX4',fam:'distr',est:[],real:'arquitetura unitária com publish/subscribe interno (uORB) no controlador de voo; computador de missão e solo são outros quanta',
+  partes:[P('Controlador de voo',['Confiabilidade/safety','Determinismo temporal','Tolerância a falhas'],'imediato','proprio','evt'),
+          P('Computador de missão (Top-3 inferido)',['Modificabilidade','Desempenho','Interoperabilidade'],'tolerante','proprio','evt')],
+  porque:'a partição por criticidade separa o que exige determinismo do que é complexo e tolerante a atrasos; dentro do controlador, um único espaço de endereçamento com tópicos uORB, que nenhum estilo distribuído da Tabela D.11 descreve (Seções 4.8 e 7.2.4).'},
+ vazio:{nome:'Sistema próprio',partes:[P('Parte A',['Desempenho','Disponibilidade','Segurança'],'imediato','compartilhado','req')]}
+};
+let partes=[], atual='mastodon';
+const opts=(obj,v)=>Object.entries(obj).map(([k,t])=>`<option value="${k}" ${k===v?'selected':''}>${Array.isArray(t)?t[0]:t}</option>`).join('');
+const carOpts=v=>Object.keys(CAR).map(c=>`<option ${c===v?'selected':''}>${c}</option>`).join('');
+document.getElementById('preset').innerHTML=Object.entries(SIS).map(([k,s])=>`<option value="${k}">${k==='vazio'?'Em branco':s.nome}</option>`).join('');
+function carrega(k){atual=k;document.getElementById('preset').value=k;partes=SIS[k].partes.map(p=>({...p,top:[...p.top]}));render();}
+function novaParte(){partes.push(P('Parte '+String.fromCharCode(65+partes.length),['Desempenho','Escalabilidade','Elasticidade'],'tolerante','proprio','req'));marcaProprio();render();}
+function marcaProprio(){atual='vazio';document.getElementById('preset').value='vazio';}
+function muda(i,campo,v,j){if(j!==undefined)partes[i].top[j]=v;else partes[i][campo]=v;marcaProprio();render();}
+function remove(i){partes.splice(i,1);marcaProprio();render();}
+function editor(){
+  document.getElementById('partes').innerHTML=partes.map((p,i)=>`<div class="parte">
+    <div class="cab"><b>${String.fromCharCode(65+i)}</b><input type="text" value="${p.nome}" onchange="muda(${i},'nome',this.value)" aria-label="Nome da parte">
+      ${partes.length>1?`<button class="x" title="Remover parte" onclick="remove(${i})">✕</button>`:''}</div>
+    <div class="tres">${[0,1,2].map(j=>`<label><span class="mini">${j+1}ª característica</span><select onchange="muda(${i},'',this.value,${j})">${carOpts(p.top[j])}</select></label>`).join('')}</div>
+    <div class="tres"><label><span class="mini">Ritmo</span><select onchange="muda(${i},'ritmo',this.value)">${opts(RITMO,p.ritmo)}</select></label>
+      <label><span class="mini">Dados</span><select onchange="muda(${i},'dados',this.value)">${opts(DADOS,p.dados)}</select></label>
+      <label><span class="mini">Forma do problema</span><select onchange="muda(${i},'forma',this.value)">${opts(FORMA,p.forma)}</select></label></div></div>`).join('');
+}
+const crit=p=>p.top.some(c=>CAR[c][2]);
+function analisa(){
+  const n=partes.length, pai=partes.map((_,i)=>i), raiz=i=>pai[i]===i?i:(pai[i]=raiz(pai[i])), une=(a,b)=>{pai[raiz(a)]=raiz(b);};
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    const comum=new Set(partes[i].top.filter(c=>partes[j].top.includes(c))).size;
+    if(comum>=2&&crit(partes[i])===crit(partes[j]))une(i,j);}
+  const gCar=new Set(partes.map((_,i)=>raiz(i))).size;
+  const critSplit=n>1&&partes.some(crit)&&!partes.every(crit);
+  const comp=partes.map((p,i)=>i).filter(i=>partes[i].dados==='compartilhado');
+  comp.slice(1).forEach(i=>une(i,comp[0]));
+  const grupos={}; partes.forEach((_,i)=>(grupos[raiz(i)]=grupos[raiz(i)]||[]).push(i));
+  const quanta=Object.values(grupos), fam=quanta.length>1?'distr':'mono';
+  const linhas=[]; partes.forEach(p=>new Set(p.top).forEach(c=>linhas.push(...CAR[c][0])));
+  const bonus=ESTILOS.map(()=>0); partes.forEach(p=>{const f=FORMA[p.forma];bonus[fam==='mono'?f[1]:f[2]]+=1/n;});
+  const nota=ESTILOS.map((e,k)=>{const v=linhas.map(l=>D11[l][k]??3);return (v.length?v.reduce((a,b)=>a+b,0)/v.length:3)+bonus[k];});
+  const fila=(fam==='mono'?MONO:DISTR).slice().sort((a,b)=>nota[b]-nota[a]);
+  const outra=(fam==='mono'?DISTR:MONO).slice().sort((a,b)=>nota[b]-nota[a])[0];
+  const async=partes.map((p,i)=>i).filter(i=>partes[i].ritmo!=='imediato');
+  const sincEntre=quanta.length>1&&quanta.filter(q=>q.some(i=>partes[i].ritmo==='imediato')).length>1;
+  return {quanta,fam,gCar,critSplit,comp,nota,fila,outra,async,sincEntre,linhas,
+    seq:fam==='distr'&&partes.some(p=>p.forma==='seq')};
+}
+const nomeP=i=>`<b>${String.fromCharCode(65+i)}</b> ${partes[i].nome}`;
+function render(){
+  editor(); const r=analisa(), s=SIS[atual];
+  document.getElementById('count').textContent=`${partes.length} parte${partes.length>1?'s':''} · ${r.quanta.length} ${r.quanta.length>1?'quanta':'quantum'}`;
+  const top=ESTILOS[r.fila[0]];
+  let h=`<div class="rot">Percurso da Figura 7.2</div>
+  <div class="det"><h3>1. Um único conjunto de características basta?</h3>
+    ${r.gCar===1?'Sim: as partes compartilham o essencial do Top-3.':`Não: há ${r.gCar} conjuntos distintos de características${r.critSplit?', incluindo uma <b>partição por criticidade</b> (Seção 7.2.4)':''}.`}
+    ${r.quanta.length<r.gCar?` Porém as partes ${r.comp.map(nomeP).join(', ')} compartilham banco com transações, e o banco faz parte do quantum: restam <b>${r.quanta.length}</b>. Separá-las exigiria separar os dados.`:''}<br>
+    <span class="res">${r.fam==='mono'?'Monólito':'Distribuído'} · ${r.quanta.length} ${r.quanta.length>1?'quanta':'quantum'}</span><br>
+    ${r.quanta.map((q,k)=>`<span class="q">Q${k+1}: ${q.map(i=>String.fromCharCode(65+i)).join(' + ')}</span>`).join('')}</div>
+  <div class="det"><h3>2. Onde residem os dados?</h3>
+    ${r.quanta.map((q,k)=>{const d=q.map(i=>partes[i].dados);return `Q${k+1}: ${d.includes('compartilhado')?'um banco relacional comum':d.includes('natureza')?'armazenamentos separados por natureza do dado':'banco próprio do quantum'}`;}).join('; ')}.
+    ${partes.some(p=>p.dados==='natureza')?' Separar dados por natureza é possível mesmo dentro de um monólito, como a telemetria do ThingsBoard.':''}</div>
+  <div class="det"><h3>3. Há diferença de ritmo entre as partes?</h3>
+    ${r.async.length?`Sim. <span class="res">Assíncrona no ponto necessário</span><ul class="l">${r.async.map(i=>`<li>${nomeP(i)}: ${partes[i].ritmo==='rajadas'?'fila na entrada, como amortecedor de picos':'trabalho entregue por fila ou evento, fora da requisição'}</li>`).join('')}</ul>Nas demais interações, síncrona por padrão.`
+      :'Não. <span class="res">Comunicação síncrona</span> por padrão (RICHARDS; FORD, 2020, p. 271).'}
+    ${r.sincEntre?' Há quanta com chamadas síncronas entre si: as características ficam amarradas, e um disjuntor com tempo limite torna-se necessário.':''}</div>
+  <div class="rot">Estilos ${r.fam==='mono'?'monolíticos':'distribuídos'} pela Tabela D.11 (+ forma do problema)</div>
+  ${ESTILOS.map((e,k)=>({e,k})).sort((a,b)=>r.nota[b.k]-r.nota[a.k]).map(({e,k})=>`<div class="est ${k===r.fila[0]?'top':''} ${r.fila.includes(k)?'':'fora'}"><span>${e}</span><span class="bar"><i style="width:${Math.min(100,r.nota[k]*100/6)}%"></i></span><span class="n">${r.nota[k].toFixed(1).replace('.',',')}</span></div>`).join('')}
+  ${r.seq?'<div class="mini" style="margin-top:4px">A forma "sequência de transformações" aponta para pipeline, estilo monolítico na Tabela D.11: considere filtros distribuídos por filas.</div>':''}
+  <div class="rot" style="margin-top:10px">ADRs a escrever</div><ul class="l" style="font-size:.78rem">
+    <li>Estilo e topologia: ${top}, ${r.quanta.length} ${r.quanta.length>1?'quanta':'quantum'}; alternativa descartada: ${ESTILOS[r.outra]}.</li>
+    ${r.critSplit?'<li>Partição por criticidade e fronteira entre as partes críticas e as demais.</li>':''}
+    <li>Arquitetura de dados: ${r.quanta.length<r.gCar?'banco compartilhado apesar das características distintas, e o custo disso':'quem persiste o quê e como os dados fluem'}.</li>
+    ${r.async.map(i=>`<li>Fronteira síncrono/assíncrono em ${partes[i].nome}: fila, idempotência e consistência eventual.</li>`).join('')}
+    ${r.sincEntre?'<li>Chamadas síncronas entre quanta e sua proteção (disjuntor, tempo limite).</li>':''}</ul>
+  <div class="rot" style="margin-top:10px">Fitness functions</div><ul class="l" style="font-size:.78rem">
+    <li>${r.fam==='mono'?'ArchUnit: módulos por domínio só se acessam por interfaces públicas, preservando a extração futura (Seção 7.2.6).':'Nenhum quantum acessa o banco de outro; testes de contrato entre quanta.'}</li>
+    ${r.async.length?'<li>Consumidor idempotente: reprocessar a mesma mensagem não duplica o efeito; alerta para fila acima do limite.</li>':''}
+    ${[...new Set(partes.flatMap(p=>p.top))].map(c=>`<li>${c}: ${CAR[c][1]}.</li>`).join('')}</ul>`;
+  document.getElementById('saida').innerHTML=h;
+  info(r,s,top);
+}
+function info(r,s,top){
+  const el=document.getElementById('info');
+  if(!s.fam){el.innerHTML=`Sugestão: <b>${r.fam==='mono'?'monólito':'arquitetura distribuída'}</b>, com <b>${top}</b> como estilo candidato. Para comparar com um caso real, escolha um dos sete sistemas na barra de ferramentas; ao editar um sistema pré-carregado, a comparação é desativada.`;return;}
+  const famOk=s.fam===r.fam, estOk=!s.est.length||s.est.includes(top);
+  const nomeFam=f=>f==='mono'?'monólito':'distribuído';
+  el.innerHTML=`<b>${s.nome}</b>, estilo real (Tabela 7.1): ${s.real}.<br>
+    ${famOk&&estOk?`<span class="conv">Convergência.</span> A heurística sugere ${nomeFam(r.fam)} e ${top}, como no sistema real.`
+      :`<span class="div">Divergência.</span> A heurística sugere ${nomeFam(r.fam)} e ${top}; ${!famOk?`o sistema real é ${nomeFam(s.fam)} no número de quanta`:`o estilo real não corresponde a ${top}`}${!s.est.length?', e o estilo real não tem coluna própria na Tabela D.11':''}.`}
+    Por quê: ${s.porque}`;
+}
+carrega('mastodon');
+</script>
+</body>
+</html>
