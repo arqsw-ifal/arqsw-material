@@ -20,7 +20,7 @@ de mensagens**. Para criar um tópico, escreve-se um arquivo `.msg` em *CamelCas
 tópico cujo nome é a versão em *snake_case* do nome do arquivo; e toda mensagem deve conter o campo
 `timestamp`, necessário ao registro em log (PX4, 2026a).
 
-**Listagem 6.8.1** – Definição da mensagem de atitude.
+**Listagem 6.8.1** – Código real (mensagem uORB, PX4 v1.17.0): definição da mensagem de atitude.
 
 ```text
 # This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
@@ -70,7 +70,7 @@ exemplo em `vehicle_status`. Não há agregados nem repositórios no sentido de 
 
 ## 6.8.2 Publicação tipada
 
-**Listagem 6.8.2** – A classe `uORB::Publication<T>`.
+**Listagem 6.8.2** – Código real (C++, PX4 v1.17.0): a classe `uORB::Publication<T>`.
 
 ```cpp
 template<typename T>
@@ -119,7 +119,7 @@ não conhece nenhum assinante: entrega os dados ao `Manager`, que os copia para 
 
 ## 6.8.3 Assinatura com *callback*: o tópico como gatilho de agendamento
 
-**Listagem 6.8.3** – A chegada de uma nova mensagem agenda o módulo assinante.
+**Listagem 6.8.3** – Código real (C++, PX4 v1.17.0): a chegada de uma nova mensagem agenda o módulo assinante.
 
 ```cpp
 // Subscription with callback that schedules a WorkItem
@@ -161,7 +161,7 @@ A *callback* não executa o controlador: apenas chama `ScheduleNow()` sobre o it
 será executado pela *thread* da fila correspondente, com a prioridade dela (Seção 5.8.3). É o elo
 entre o fluxo de dados e o agendamento. O controlador de atitude declara assim suas dependências.
 
-**Listagem 6.8.4** – Dependências declaradas do controlador de atitude.
+**Listagem 6.8.4** – Código real (C++, PX4 v1.17.0): dependências declaradas do controlador de atitude.
 
 ```cpp
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -198,7 +198,7 @@ e o construtor associa o módulo à fila `nav_and_controllers`
 
 ## 6.8.4 O ciclo do controlador de atitude
 
-**Listagem 6.8.5** – Início do ciclo do controlador de atitude, com o intervalo de tempo limitado.
+**Listagem 6.8.5** – Código real (C++, PX4 v1.17.0): início do ciclo do controlador de atitude, com o intervalo de tempo limitado.
 
 ```cpp
 	// run controller on attitude updates
@@ -228,7 +228,7 @@ chamada a outro módulo e nenhuma espera.
 
 ## 6.8.5 Redundância no código do estimador
 
-**Listagem 6.8.6** – Cada instância do EKF2 publica em um tópico próprio quando há redundância.
+**Listagem 6.8.6** – Código real (C++, PX4 v1.17.0): cada instância do EKF2 publica em um tópico próprio quando há redundância.
 
 ```cpp
 EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
@@ -260,7 +260,7 @@ Os modos de voo são **constantes numéricas** definidas na mensagem `VehicleSta
 36-67](https://github.com/PX4/PX4-Autopilot/blob/v1.17.0/msg/versioned/VehicleStatus.msg#L36-L67)),
 e não classes com comportamento. Os requisitos de cada modo são registrados em forma de tabela.
 
-**Listagem 6.8.7** – Requisitos do modo de controle de posição.
+**Listagem 6.8.7** – Código real (C++, PX4 v1.17.0): requisitos do modo de controle de posição.
 
 ```cpp
 	// NAVIGATION_STATE_POSCTL
@@ -279,7 +279,7 @@ O efeito de cada modo sobre os controladores também é expresso como dado: uma 
 efetivo em sinalizadores publicados em `vehicle_control_mode`, que indicam quais laços da cascata
 devem estar ativos.
 
-**Listagem 6.8.8** – O modo de voo traduzido em sinalizadores de controle.
+**Listagem 6.8.8** – Código real (C++, PX4 v1.17.0): o modo de voo traduzido em sinalizadores de controle.
 
 ```cpp
 	switch (nav_state) {
@@ -308,7 +308,7 @@ quando `flag_control_attitude_enabled` está ativo
 290](https://github.com/PX4/PX4-Autopilot/blob/v1.17.0/src/modules/mc_att_control/mc_att_control_main.cpp#L290)).
 A Listagem 6.8.9 mostra o ponto em que a máquina de *failsafe* decide o modo efetivo.
 
-**Listagem 6.8.9** – O modo efetivo resulta da ação de *failsafe* aplicada sobre a intenção do usuário.
+**Listagem 6.8.9** – Código real (C++, PX4 v1.17.0): o modo efetivo resulta da ação de *failsafe* aplicada sobre a intenção do usuário.
 
 ```cpp
 	uint8_t updated_user_intented_mode = _failsafe.update(hrt_absolute_time(), state, mode_change_requested,
@@ -339,7 +339,7 @@ o operador pediu; `nav_state` guarda o que o veículo faz, calculado por `modeFr
 ação de *failsafe* selecionada. A escala de severidade das ações está codificada na **ordem de
 declaração** de uma enumeração (Listagem 6.8.10).
 
-**Listagem 6.8.10** – Ações de *failsafe*: a ordem de declaração é a ordem de precedência.
+**Listagem 6.8.10** – Código real (C++, PX4 v1.17.0): ações de *failsafe*: a ordem de declaração é a ordem de precedência.
 
 ```cpp
 	enum class Action : uint8_t {
@@ -375,7 +375,7 @@ a uma comparação de inteiros, como em `selectedAction() > FailsafeBase::Action
 
 ## 6.8.7 *Strategy* na alocação de controle
 
-**Listagem 6.8.11** – Seleção do algoritmo de alocação: duas estratégias sob uma mesma abstração.
+**Listagem 6.8.11** – Código real (C++, PX4 v1.17.0): seleção do algoritmo de alocação: duas estratégias sob uma mesma abstração.
 
 ```cpp
 			switch (method) {
@@ -484,7 +484,7 @@ A Listagem 6.8.12 reproduz, em Java 17, a essência do uORB: tópicos tipados, u
 guarda a última amostra e notifica assinantes, e módulos que não se conhecem. O código é didático e
 não reproduz as garantias de tempo real do original.
 
-**Listagem 6.8.12** – Barramento *publish/subscribe* com tópicos tipados (didático).
+**Listagem 6.8.12** – Modelo didático em Java: barramento *publish/subscribe* com tópicos tipados.
 
 ```java
 package br.edu.ifal.arqsw.voo.barramento;
@@ -567,7 +567,7 @@ leitura. `ControleAtitude` depende apenas do barramento e das mensagens: não co
 publica a atitude nem o controlador de taxa que consome seu resultado. A Listagem 6.8.13 transforma
 o ADR-PX4-001 em teste automatizado.
 
-**Listagem 6.8.13** – *Fitness function*: módulos não dependem uns dos outros.
+**Listagem 6.8.13** – Modelo didático em Java (ArchUnit): módulos não dependem uns dos outros.
 
 ```java
 package br.edu.ifal.arqsw.voo;

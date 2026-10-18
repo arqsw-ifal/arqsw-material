@@ -381,7 +381,7 @@ protocolo: o intervalo inicial de retransmissão é sorteado entre `ACK_TIMEOUT`
 `ACK_TIMEOUT × ACK_RANDOM_FACTOR` e dobra a cada tentativa (SHELBY; HARTKE; BORMANN, 2014, seção
 4.2). A Listagem 4.7.1 implementa o *Full Jitter* em Java 17.
 
-**Listagem 4.7.1** – Atraso de reconexão com *backoff* exponencial e *Full Jitter*.
+**Listagem 4.7.1** – Modelo didático em Java: atraso de reconexão com *backoff* exponencial e *Full Jitter*.
 
 ```java
 import java.util.random.RandomGenerator;

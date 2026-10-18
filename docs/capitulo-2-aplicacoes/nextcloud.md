@@ -82,7 +82,7 @@ Fonte: elaborado pelo autor (2026), com base em Nextcloud (2026b) e no repositó
 (NEXTCLOUD, 2026c). Em uma máquina Linux sem servidor web prévio, o início rápido documentado é o
 seguinte.
 
-**Listagem 2.5.1** – Início rápido do Nextcloud All-in-One.
+**Listagem 2.5.1** – Comandos (shell, Nextcloud): início rápido do Nextcloud All-in-One.
 
 ```bash
 sudo docker run \

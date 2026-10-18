@@ -35,7 +35,7 @@ O modelo de entidades do ThingsBoard vive no módulo `common/data`, compartilhad
 demais módulos (ver o "núcleo compartilhado" da [Seção 5.7](../capitulo-5-10-mil-pes/thingsboard.md)).
 A Listagem 6.7.1 mostra o início da classe `Device`.
 
-**Listagem 6.7.1** – Início da classe `Device`.
+**Listagem 6.7.1** – Código real (Java, ThingsBoard v4.3.1.6): início da classe `Device`.
 
 ```java
 public class Device extends BaseDataWithAdditionalInfo<DeviceId> implements HasLabel, HasTenantId, HasCustomerId, HasOtaPackage, HasVersion, ExportableEntity<DeviceId> {
@@ -75,7 +75,7 @@ não codificada em entidades.
 
 A mensagem que circula pelo motor de regras é a classe `TbMsg`, cujo início está na Listagem 6.7.2.
 
-**Listagem 6.7.2** – Campos da mensagem interna do motor de regras.
+**Listagem 6.7.2** – Código real (Java, ThingsBoard v4.3.1.6): campos da mensagem interna do motor de regras.
 
 ```java
 public final class TbMsg implements Serializable {
@@ -132,7 +132,7 @@ separação é a tradução tática do ADR 4.7-C, que separou entidades e série
 
 A Listagem 6.7.3 reproduz o início da interface que todo nó de regra implementa.
 
-**Listagem 6.7.3** – Início da interface `TbNode`.
+**Listagem 6.7.3** – Código real (Java, ThingsBoard v4.3.1.6): início da interface `TbNode`.
 
 ```java
 public interface TbNode {
@@ -158,7 +158,7 @@ configuração e relações de saída, com padrão `Success` e `Failure`
 ([`RuleNode.java#L16-L40`](https://github.com/thingsboard/thingsboard/blob/v4.3.1.6/rule-engine/rule-engine-api/src/main/java/org/thingsboard/rule/engine/api/RuleNode.java#L16-L40)).
 A Listagem 6.7.4 mostra um nó concreto.
 
-**Listagem 6.7.4** – O nó `TbMsgTypeFilterNode`.
+**Listagem 6.7.4** – Código real (Java, ThingsBoard v4.3.1.6): o nó `TbMsgTypeFilterNode`.
 
 ```java
 public class TbMsgTypeFilterNode implements TbNode {
@@ -184,7 +184,7 @@ Fonte: ThingsBoard, *tag* v4.3.1.6,
 Quando um nó chama `tellNext`, o ator da cadeia resolve as relações de saída. A Listagem 6.7.5
 mostra o núcleo dessa decisão.
 
-**Listagem 6.7.5** – Resolução das relações de saída na cadeia de regras.
+**Listagem 6.7.5** – Código real (Java, ThingsBoard v4.3.1.6): resolução das relações de saída na cadeia de regras.
 
 ```java
             List<RuleNodeRelation> relationsByTypes = ruleNodeRelations.stream()
@@ -252,7 +252,7 @@ depuração mais difícil, mitigada por eventos de depuração por nó.
 
 A Listagem 6.7.6 mostra o início da interface de adaptação do transporte MQTT.
 
-**Listagem 6.7.6** – Início da interface `MqttTransportAdaptor`.
+**Listagem 6.7.6** – Código real (Java, ThingsBoard v4.3.1.6): início da interface `MqttTransportAdaptor`.
 
 ```java
 public interface MqttTransportAdaptor {
@@ -270,7 +270,7 @@ Fonte: ThingsBoard, *tag* v4.3.1.6,
 A Listagem 6.7.7 mostra o uso no tratador MQTT. O último argumento é o *callback* que enviará o
 `PUBACK`.
 
-**Listagem 6.7.7** – O tratador MQTT adapta a mensagem e a entrega ao serviço de transporte.
+**Listagem 6.7.7** – Código real (Java, ThingsBoard v4.3.1.6): o tratador MQTT adapta a mensagem e a entrega ao serviço de transporte.
 
 ```java
             } else if (topicName.equals(MqttTopics.DEVICE_TELEMETRY_SHORT_TOPIC)) {
@@ -303,7 +303,7 @@ da plataforma ignora protocolos.
 
 A Listagem 6.7.8 reproduz o laço de processamento da caixa de correio de um ator.
 
-**Listagem 6.7.8** – O laço de processamento da caixa de correio.
+**Listagem 6.7.8** – Código real (Java, ThingsBoard v4.3.1.6): o laço de processamento da caixa de correio.
 
 ```java
     private void processMailbox() {
@@ -360,7 +360,7 @@ já delega a um processador.
 
 A Listagem 6.7.9 mostra o consumo de um lote pelo motor de regras.
 
-**Listagem 6.7.9** – Processamento de um lote pelo consumidor do motor de regras.
+**Listagem 6.7.9** – Código real (Java, ThingsBoard v4.3.1.6): processamento de um lote pelo consumidor do motor de regras.
 
 ```java
         TbRuleEngineSubmitStrategy submitStrategy = getSubmitStrategy(queue);
@@ -419,7 +419,7 @@ dados entre objetos e banco, mantendo-os independentes entre si. *No ThingsBoard
 conhece as colunas e converte-se em `Device` pelo método `toDevice`, cujo início está na Listagem
 6.7.10; `JpaDeviceDao` usa essa conversão sobre um repositório Spring Data.
 
-**Listagem 6.7.10** – Mapeamento da entidade JPA para a classe de dados.
+**Listagem 6.7.10** – Código real (Java, ThingsBoard v4.3.1.6): mapeamento da entidade JPA para a classe de dados.
 
 ```java
     protected Device toDevice() {
@@ -457,7 +457,7 @@ A subida parte de um trecho de código e pergunta que componente ele realiza, qu
 e que característica arquitetural essa decisão protege (Seção 1.11). A pergunta é: **como o código
 isola um inquilino "barulhento" dos demais?**
 
-**Listagem 6.7.11** – Verificação de limites de taxa no serviço de transporte.
+**Listagem 6.7.11** – Código real (Java, ThingsBoard v4.3.1.6): verificação de limites de taxa no serviço de transporte.
 
 ```java
         var rateLimitedPair = rateLimitService.checkLimits(tenantId, gatewayId, deviceId, dataPoints, isGateway);
@@ -511,7 +511,7 @@ telemetria com *Chain of Responsibility***, em que as regras não dependam do tr
 HTTP). A Listagem 6.7.12 apresenta o núcleo de uma solução em Java 17, inspirada na separação entre
 transportes e motor de regras do ThingsBoard.
 
-**Listagem 6.7.12** – Motor de regras com *Chain of Responsibility*, independente do transporte.
+**Listagem 6.7.12** – Modelo didático em Java: motor de regras com *Chain of Responsibility*, independente do transporte.
 
 ```java
 // pacote br.edu.ifal.telemetria.regras -- não importa nada de "transporte"
@@ -576,7 +576,7 @@ as importações de `java.util`.
 A regra arquitetural é verificada por uma *fitness function* com ArchUnit (Listagem 6.7.13), que
 comporá a parte de arquitetura da nota.
 
-**Listagem 6.7.13** – *Fitness function*: regras não dependem do transporte.
+**Listagem 6.7.13** – Modelo didático em Java (ArchUnit): regras não dependem do transporte.
 
 ```java
 @AnalyzeClasses(packages = "br.edu.ifal.telemetria")

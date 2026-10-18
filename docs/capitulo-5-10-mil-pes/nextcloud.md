@@ -197,7 +197,7 @@ a **sincronização diferencial** (*delta sync*), transferindo apenas os blocos 
 Dropbox como referência para o tamanho máximo de bloco, 4 MB, valor confirmado por Cowling (2016).
 A Listagem 5.5.1 mostra a versão mais simples da ideia.
 
-**Listagem 5.5.1** – Sincronização diferencial com blocos de tamanho fixo (didático).
+**Listagem 5.5.1** – Modelo didático em Java: sincronização diferencial com blocos de tamanho fixo.
 
 ```java
 import java.security.MessageDigest;
@@ -319,7 +319,7 @@ flowchart TD
 
 Fonte: elaborado pelo autor (2026), com base em Xu (2020, cap. 15), Goldberg (2020) e no código do cliente Nextcloud.
 
-**Listagem 5.5.2** – Detecção de conflito por comparação em três vias (didático).
+**Listagem 5.5.2** – Modelo didático em Java: detecção de conflito por comparação em três vias.
 
 ```java
 public enum Acao { NADA, ENVIAR, BAIXAR, ATUALIZAR_BASE, CONFLITO }

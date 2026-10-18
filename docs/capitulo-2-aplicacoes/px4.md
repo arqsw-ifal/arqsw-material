@@ -95,7 +95,7 @@ e controla um veículo modelado em um simulador de física. A documentação a d
 rápida, fácil e, sobretudo, segura de testar mudanças no código antes de voar no mundo real
 (PX4, 2026h). Os passos básicos, em Linux, são os da Listagem 2.8.1.
 
-**Listagem 2.8.1** – Obtenção do código e execução de um quadricóptero simulado no Gazebo.
+**Listagem 2.8.1** – Comandos (shell, PX4): obtenção do código e execução de um quadricóptero simulado no Gazebo.
 
 ```sh
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive

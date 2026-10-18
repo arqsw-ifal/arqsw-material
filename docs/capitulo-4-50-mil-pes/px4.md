@@ -256,7 +256,7 @@ assinados no computador de missão como se fossem tópicos do ROS 2 (PX4, 2026b)
 *proxy* do cliente no espaço de dados DDS. O cliente é gerado em tempo de compilação a partir das
 definições de mensagens e de um arquivo que lista os tópicos expostos (Listagem 4.8.1).
 
-**Listagem 4.8.1** – Tópicos expostos ao ROS 2: a atitude sai do PX4; o *setpoint* de trajetória entra.
+**Listagem 4.8.1** – Código real (YAML, PX4 v1.17.0): tópicos expostos ao ROS 2: a atitude sai do PX4; o *setpoint* de trajetória entra.
 
 ```yaml
 publications:

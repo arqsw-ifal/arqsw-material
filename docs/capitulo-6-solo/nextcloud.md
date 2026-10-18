@@ -91,7 +91,7 @@ funções de arquivo do PHP, as operações que todo armazenamento deve oferecer
 `opendir`, `stat`, `file_get_contents`, `file_put_contents`, `unlink`, `rename`, `copy`, `fopen`,
 `hash`, `free_space`, `getETag` e outras.
 
-**Listagem 6.5.1** – Início da interface pública de armazenamento.
+**Listagem 6.5.1** – Código real (PHP, Nextcloud v35.0.2): início da interface pública de armazenamento.
 
 ```php
 /**
@@ -140,7 +140,7 @@ cap. 4). O núcleo espera um `IStorage`; o SDK da Amazon oferece `putObject` e `
 *buckets* e chaves; a biblioteca SMB oferece operações sobre compartilhamentos de rede. Cada classe
 de `apps/files_external/lib/Lib/Storage/` traduz o contrato para o serviço externo.
 
-**Listagem 6.5.2** – O *Adapter* para S3 traduz `mkdir` em `putObject`.
+**Listagem 6.5.2** – Código real (PHP, Nextcloud v35.0.2): o *Adapter* para S3 traduz `mkdir` em `putObject`.
 
 ```php
 	#[\Override]
@@ -199,7 +199,7 @@ No segundo nível, o *app* `files_external` mantém seu próprio registro de *ba
 `Application` implementa também `IBackendProvider` e, na fase de `boot`, registra-se no serviço de
 *backends*.
 
-**Listagem 6.5.3** – O *app* `files_external` como registro de *backends*.
+**Listagem 6.5.3** – Código real (PHP, Nextcloud v35.0.2): o *app* `files_external` como registro de *backends*.
 
 ```php
 	#[\Override]
@@ -248,7 +248,7 @@ e repassa cada operação a ele: `mkdir` chama `$this->getWrapperStorage()->mkdi
 por diante. O diretório `Wrapper/` contém *wrappers* para disponibilidade, máscara de permissões,
 codificação de nomes, criptografia, isolamento em subdiretório (`Jail`) e cota.
 
-**Listagem 6.5.4** – O *wrapper* de cota decide antes de delegar.
+**Listagem 6.5.4** – Código real (PHP, Nextcloud v35.0.2): o *wrapper* de cota decide antes de delegar.
 
 ```php
 	#[\Override]
@@ -273,7 +273,7 @@ segue a mesma estrutura. A montagem da cadeia ocorre na configuração do sistem
 usuário: o `SetupManager` registra, com nome e prioridade, funções que recebem um armazenamento e
 devolvem o mesmo armazenamento ou um *wrapper* sobre ele.
 
-**Listagem 6.5.5** – Registro do *wrapper* de cota para as pastas pessoais.
+**Listagem 6.5.5** – Código real (PHP, Nextcloud v35.0.2): registro do *wrapper* de cota para as pastas pessoais.
 
 ```php
 		$quotaIncludeExternal = $this->config->getSystemValue('quota_include_external_storage', false);
@@ -301,7 +301,7 @@ responsabilidades opcionais, uma solução por herança exigiria uma subclasse p
 com *decorators*, bastam dez *Adapters* e cinco *wrappers*, compostos em tempo de execução. A
 Listagem 6.5.6 reproduz a ideia em Java.
 
-**Listagem 6.5.6** – *Decorator* de cota sobre um contrato de armazenamento (didático).
+**Listagem 6.5.6** – Modelo didático em Java: *Decorator* de cota sobre um contrato de armazenamento.
 
 ```java
 public interface Armazenamento {                       // contrato do núcleo
@@ -338,7 +338,7 @@ Fonte: elaborado pelo autor (2026), com base em Gamma *et al.* (1994) e no códi
 
 ## 6.5.7 O contrato de *locking*
 
-**Listagem 6.5.7** – Contrato público de *locking*.
+**Listagem 6.5.7** – Código real (PHP, Nextcloud v35.0.2): contrato público de *locking*.
 
 ```php
 interface ILockingProvider {
@@ -393,7 +393,7 @@ A detecção de mudanças descrita na Seção 5.5.5 é implementada na classe `P
 arquivo muda, o método `propagateChange` calcula os caminhos das pastas ancestrais e atualiza, em
 uma única instrução SQL sobre a tabela `filecache`, a data de modificação e a *ETag* de todas elas.
 
-**Listagem 6.5.8** – Atualização das pastas ancestrais com uma nova *ETag*.
+**Listagem 6.5.8** – Código real (PHP, Nextcloud v35.0.2): atualização das pastas ancestrais com uma nova *ETag*.
 
 ```php
 		$parentHashes = array_map('md5', $parents);
@@ -421,7 +421,7 @@ confiáveis.
 
 ## 6.5.9 A cópia em conflito no cliente
 
-**Listagem 6.5.9** – Geração do nome da cópia em conflito no cliente *desktop*.
+**Listagem 6.5.9** – Código real (C++, Nextcloud Desktop v35.0.0): geração do nome da cópia em conflito no cliente *desktop*.
 
 ```cpp
 QString Utility::makeConflictFileName(
@@ -517,7 +517,7 @@ O exercício prático deste sistema, previsto em `atividades/README.md`, pede um
 verificada com ArchUnit, é que o núcleo não dependa de nenhum *plug-in*. A Listagem 6.5.10 mostra o
 esqueleto do núcleo, com o contrato e o registro.
 
-**Listagem 6.5.10** – Núcleo, contrato e registro de um microkernel de armazenamento (didático).
+**Listagem 6.5.10** – Modelo didático em Java: núcleo, contrato e registro de um microkernel de armazenamento.
 
 ```java
 package app.nucleo;
@@ -556,7 +556,7 @@ O `ServiceLoader`, mecanismo padrão da plataforma Java, cumpre o papel que no N
 código-fonte. Cada *plug-in* fica em um pacote próprio, como `app.plugin.s3`, seguindo a convenção
 `app.plugin.<domínio>.<contexto>` sugerida por Richards e Ford (2020, p. 154).
 
-**Listagem 6.5.11** – Funções de aptidão do microkernel com ArchUnit (didático).
+**Listagem 6.5.11** – Modelo didático em Java (ArchUnit): funções de aptidão do microkernel.
 
 ```java
 import com.tngtech.archunit.junit.*;

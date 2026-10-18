@@ -24,7 +24,7 @@ pré-processa atributos (visibilidade, conteúdo sensível, agendamento), valida
 menções e citações, aplica verificações antispam e grava a publicação dentro de
 `ApplicationRecord.transaction`. Em seguida, executa o pós-processamento da Listagem 6.2.1.
 
-**Listagem 6.2.1** – Pós-processamento de uma publicação: tudo o que é caro vai para a fila.
+**Listagem 6.2.1** – Código real (Ruby, Mastodon v4.7.3): pós-processamento de uma publicação: tudo o que é caro vai para a fila.
 
 ```ruby
   def postprocess_status!
@@ -55,7 +55,7 @@ de entrada.
 
 O `DistributionWorker`, na Listagem 6.2.2, é um adaptador fino entre a fila e o serviço de *fanout*.
 
-**Listagem 6.2.2** – O *job* que dispara o *fanout* local.
+**Listagem 6.2.2** – Código real (Ruby, Mastodon v4.7.3): o *job* que dispara o *fanout* local.
 
 ```ruby
 class DistributionWorker
@@ -87,7 +87,7 @@ O [`FanOutOnWriteService`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/
 decide **para onde** a publicação vai. Seu método `call` (Listagem 6.2.3) separa três destinos:
 destinatários locais, seguidores de *hashtags* e *streams* públicos.
 
-**Listagem 6.2.3** – O método `call` do serviço de *fanout*.
+**Listagem 6.2.3** – Código real (Ruby, Mastodon v4.7.3): o método `call` do serviço de *fanout*.
 
 ```ruby
   def call(status, options = {})
@@ -113,7 +113,7 @@ O método `fan_out_to_local_recipients!` escolhe o caminho conforme a visibilida
 públicas, não listadas e privadas vão para todos os seguidores e listas; limitadas e diretas, apenas
 para os mencionados. A Listagem 6.2.4 mostra o coração do *fanout on write*.
 
-**Listagem 6.2.4** – Entrega a todos os seguidores locais, em lotes.
+**Listagem 6.2.4** – Código real (Ruby, Mastodon v4.7.3): entrega a todos os seguidores locais, em lotes.
 
 ```ruby
   def deliver_to_all_followers!
@@ -144,7 +144,7 @@ O [`FeedManager`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/lib/feed_
 encapsula todo o acesso às *timelines* no Redis. Suas primeiras linhas (Listagem 6.2.5) definem os
 limites estimados na Seção 3.2.3.
 
-**Listagem 6.2.5** – Limites das *timelines* em memória.
+**Listagem 6.2.5** – Código real (Ruby, Mastodon v4.7.3): limites das *timelines* em memória.
 
 ```ruby
 class FeedManager
@@ -168,7 +168,7 @@ A Listagem 6.2.6 mostra a inserção na *timeline* inicial: verifica de novo se 
 ativo, insere, apara a *timeline* e, só se houver um cliente conectado ao *streaming* para aquela
 *timeline*, enfileira um *job* que publica a atualização.
 
-**Listagem 6.2.6** – Inserção na *timeline* inicial.
+**Listagem 6.2.6** – Código real (Ruby, Mastodon v4.7.3): inserção na *timeline* inicial.
 
 ```ruby
   def push_to_home(account, status, update: false)
@@ -203,7 +203,7 @@ O [`Api::V1::Timelines::HomeController`](https://github.com/mastodon/mastodon/bl
 obtém as publicações de um `HomeFeed`, subclasse de `Feed`, cujo método de leitura está na Listagem
 6.2.7.
 
-**Listagem 6.2.7** – Leitura da *timeline*: uma faixa do conjunto ordenado e uma busca por IDs.
+**Listagem 6.2.7** – Código real (Ruby, Mastodon v4.7.3): leitura da *timeline*: uma faixa do conjunto ordenado e uma busca por IDs.
 
 ```ruby
   def from_redis(limit, max_id, since_id, min_id)
@@ -228,7 +228,7 @@ Redis devolve apenas IDs, e a resposta completa é montada a seguir, numa busca 
 O limiar que restringe o *fanout* aos usuários ativos está no módulo `User::Activity`, cujo
 comentário explicita o compromisso (Listagem 6.2.8).
 
-**Listagem 6.2.8** – O limiar de atividade que restringe o *fanout*.
+**Listagem 6.2.8** – Código real (Ruby, Mastodon v4.7.3): o limiar de atividade que restringe o *fanout*.
 
 ```ruby
   # The home and list feeds will be stored for this amount of time, and status
@@ -264,7 +264,7 @@ A Listagem 6.2.9 mostra como o *streaming* informa ao Rails que há alguém ouvi
 periodicamente uma chave `subscribed:<canal>` com expiração, que o método `push_update_required?` da
 Listagem 6.2.6 consulta.
 
-**Listagem 6.2.9** – Batimento de assinatura no servidor de *streaming*.
+**Listagem 6.2.9** – Código real (JavaScript, Mastodon v4.7.3): batimento de assinatura no servidor de *streaming*.
 
 ```javascript
   const subscriptionHeartbeat = channels => {
@@ -296,7 +296,7 @@ A recepção passa por `ActivityPub::InboxesController`, que enfileira o process
 `202`, e por `ActivityPub::ProcessActivityService`, que escolhe a classe que trata a atividade por
 meio da fábrica da Listagem 6.2.10.
 
-**Listagem 6.2.10** – Fábrica de atividades ActivityPub (trecho; o `case` prossegue até a linha 64).
+**Listagem 6.2.10** – Código real (Ruby, Mastodon v4.7.3): fábrica de atividades ActivityPub (trecho; o `case` prossegue até a linha 64).
 
 ```ruby
   class << self
@@ -334,7 +334,7 @@ O `ActivityPub::RawDistributionWorker` define o esqueleto da distribuição (Lis
 subclasse `ActivityPub::DistributionWorker` redefine as etapas `inboxes`, `payload` e `options`
 ([`distribution_worker.rb#L22-L40`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/workers/activitypub/distribution_worker.rb#L22-L40)).
 
-**Listagem 6.2.11** – Esqueleto da distribuição federada.
+**Listagem 6.2.11** – Código real (Ruby, Mastodon v4.7.3): esqueleto da distribuição federada.
 
 ```ruby
   def distribute!
@@ -356,7 +356,7 @@ para cada conta remota, usa-se a *sharedInbox* quando existe, URLs repetidas sã
 marcados como indisponíveis são excluídos. A Listagem 6.2.12 mostra a política de retentativa do
 `DeliveryWorker`.
 
-**Listagem 6.2.12** – Política de retentativa da entrega federada.
+**Listagem 6.2.12** – Código real (Ruby, Mastodon v4.7.3): política de retentativa da entrega federada.
 
 ```ruby
   STOPLIGHT_COOL_OFF_TIME = 60
@@ -407,7 +407,7 @@ distinguidas pelo domínio), `User` (credenciais e preferências de uma conta lo
 ([`status.rb#L77-L108`](https://github.com/mastodon/mastodon/blob/v4.7.3/app/models/status.rb#L77-L108)),
 validações e *callbacks*. A Listagem 6.2.13 mostra os *callbacks*.
 
-**Listagem 6.2.13** – *Callbacks* de ciclo de vida do modelo `Status`.
+**Listagem 6.2.13** – Código real (Ruby, Mastodon v4.7.3): *Callbacks* de ciclo de vida do modelo `Status`.
 
 ```ruby
   after_create_commit :trigger_create_webhooks
@@ -517,7 +517,7 @@ que o Mastodon não implementa no *fanout* local. O serviço depende apenas de t
 estilo da arquitetura hexagonal (Seção 1.8.2). O código é ilustrativo e simplificado; num sistema
 real, `aoPublicar` seria executado por um *job* assíncrono, como o `DistributionWorker`.
 
-**Listagem 6.2.14** – *Fanout* híbrido em Java (ilustrativo e simplificado).
+**Listagem 6.2.14** – Modelo didático em Java: *Fanout* híbrido.
 
 ```java
 package br.edu.ifal.arqsw.timeline.aplicacao;
@@ -595,7 +595,7 @@ função de aptidão (Apêndice E) com ArchUnit na Listagem 6.2.15. O limiar de 
 parâmetro, e não uma constante escondida, pela mesma razão que o Mastodon expõe `USER_ACTIVE_DAYS`:
 o ponto de corte entre *push* e *pull* depende de medições.
 
-**Listagem 6.2.15** – Função de aptidão: o serviço de *timeline* não acessa o "banco" diretamente.
+**Listagem 6.2.15** – Modelo didático em Java (ArchUnit): o serviço de *timeline* não acessa o "banco" diretamente.
 
 ```java
 @Test

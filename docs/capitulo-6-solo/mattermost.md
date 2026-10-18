@@ -36,7 +36,7 @@ O modelo do Mattermost reside em `server/public/model`, como estruturas Go compa
 API, pela aplicação, pela persistência e pelos *plugins*. A Listagem 6.3.1 mostra o início da
 estrutura `Post`, que representa uma mensagem.
 
-**Listagem 6.3.1** – Início da estrutura `Post` (Go, literal).
+**Listagem 6.3.1** – Código real (Go, Mattermost v11.11.1): início da estrutura `Post`.
 
 ```go
 type Post struct {
@@ -71,7 +71,7 @@ modelo aos formatos de transporte, discutido na [Seção 5.3.8](../capitulo-5-10
 entidade é de validação e preparação. A Listagem 6.3.2 mostra o método executado antes da
 gravação.
 
-**Listagem 6.3.2** – Preparação de uma mensagem antes da gravação (Go, literal).
+**Listagem 6.3.2** – Código real (Go, Mattermost v11.11.1): preparação de uma mensagem antes da gravação.
 
 ```go
 func (o *Post) PreSave() {
@@ -108,7 +108,7 @@ identificador com uma semente própria do processo e toma o resto da divisão pe
 que, segundo o comentário da função `hubStart`, é igual ao número de processadores, valor que
 testes de desempenho indicaram como ideal ([`web_hub.go#L124-L142`](https://github.com/mattermost/mattermost/blob/v11.11.1/server/channels/app/platform/web_hub.go#L124-L142)).
 
-**Listagem 6.3.3** – Seleção do *hub* de um usuário por *hash* (Go, literal).
+**Listagem 6.3.3** – Código real (Go, Mattermost v11.11.1): seleção do *hub* de um usuário por *hash*.
 
 ```go
 // GetHubForUserId returns the hub for a given user id.
@@ -138,7 +138,7 @@ Cada *hub*, ao receber um evento, consulta seu índice de conexões para encontr
 locais, pelo identificador da conexão, do usuário ou do canal, e entrega o evento a cada um por meio
 da função interna da Listagem 6.3.4.
 
-**Listagem 6.3.4** – Entrega de um evento a uma conexão, com descarte do consumidor lento (Go, literal).
+**Listagem 6.3.4** – Código real (Go, Mattermost v11.11.1): entrega de um evento a uma conexão, com descarte do consumidor lento.
 
 ```go
 broadcast := func(webConn *WebConn) {
@@ -177,7 +177,7 @@ A Listagem 6.3.5 é o ponto de entrada de toda publicação de evento: entrega a
 se há implementação de *cluster*, envia aos demais nós, escolhendo o modo confiável para os
 eventos cuja perda é cara.
 
-**Listagem 6.3.5** – Publicação de um evento e envio ao *cluster* (Go, literal).
+**Listagem 6.3.5** – Código real (Go, Mattermost v11.11.1): publicação de um evento e envio ao *cluster*.
 
 ```go
 func (ps *PlatformService) Publish(message *model.WebSocketEvent) {
@@ -227,7 +227,7 @@ diretórios públicos da versão estudada; quando ele é nulo, o servidor simple
 A Listagem 6.3.6 reúne as constantes que governam o *heartbeat* e a fila morta e o ponto da rotina
 de escrita em que cada evento recebe seu número de sequência.
 
-**Listagem 6.3.6** – Constantes de temporização e numeração dos eventos por conexão (Go, literal, dois trechos).
+**Listagem 6.3.6** – Código real (Go, Mattermost v11.11.1): constantes de temporização e numeração dos eventos por conexão (Go, literal, dois trechos).
 
 ```go
 writeWaitTime                  = 30 * time.Second
@@ -260,7 +260,7 @@ mecanismo de idempotência.
 
 ## 6.3.6 Idempotência na criação de mensagens
 
-**Listagem 6.3.7** – Início da deduplicação pela chave provisória enviada pelo cliente (Go, literal).
+**Listagem 6.3.7** – Código real (Go, Mattermost v11.11.1): início da deduplicação pela chave provisória enviada pelo cliente.
 
 ```go
 // deduplicateCreatePost attempts to make posting idempotent within a caching window.
@@ -282,7 +282,7 @@ erro, pois esperar por ela acrescentaria complexidade ao caminho principal
 ([`post.go#L132-L170`](https://github.com/mattermost/mattermost/blob/v11.11.1/server/channels/app/post.go#L132-L170)).
 O tempo de vida das chaves é de 30 segundos (linha 29 do mesmo arquivo).
 
-**Listagem 6.3.8** – Atualização de presença ao remover a última conexão de um usuário (Go, literal).
+**Listagem 6.3.8** – Código real (Go, Mattermost v11.11.1): atualização de presença ao remover a última conexão de um usuário.
 
 ```go
 conns := connIndex.ForUser(webConn.UserId)
@@ -326,7 +326,7 @@ A interface `store.Store` agrupa interfaces por tipo de objeto, como `Post()`, `
 ([`store.go#L25-L37`](https://github.com/mattermost/mattermost/blob/v11.11.1/server/channels/store/store.go#L25-L37)).
 A Listagem 6.3.9 mostra como o serviço de plataforma monta a implementação efetiva.
 
-**Listagem 6.3.9** – Composição das camadas do *store* (Go, literal).
+**Listagem 6.3.9** – Código real (Go, Mattermost v11.11.1): composição das camadas do *store*.
 
 ```go
 searchStore := searchlayer.NewSearchLayer(
@@ -380,7 +380,7 @@ A Listagem 6.3.10 mostra como o supervisor de cada *plugin* configura o cliente 
 `go-plugin` (HASHICORP, 2026): a saída padrão e a de erros do subprocesso vão para o *log* do
 servidor, e o *plugin* tem três segundos para iniciar.
 
-**Listagem 6.3.10** – Configuração do subprocesso de um *plugin* (Go, literal).
+**Listagem 6.3.10** – Código real (Go, Mattermost v11.11.1): configuração do subprocesso de um *plugin*.
 
 ```go
 clientConfig := &plugin.ClientConfig{
@@ -414,7 +414,7 @@ que estão ativos e o implementam ([`environment.go#L633-L658`](https://github.c
 
 ## 6.3.9 Comandos de barra como *Command*
 
-**Listagem 6.3.11** – A interface `CommandProvider` e o registro de comandos (Go, literal).
+**Listagem 6.3.11** – Código real (Go, Mattermost v11.11.1): a interface `CommandProvider` e o registro de comandos.
 
 ```go
 type CommandProvider interface {
@@ -438,7 +438,7 @@ acrescenta um emoticon ao texto e devolve uma resposta a ser publicada no canal
 ([`command_shrug.go#L20-L45`](https://github.com/mattermost/mattermost/blob/v11.11.1/server/channels/app/slashcommands/command_shrug.go#L20-L45)).
 A Listagem 6.3.12 mostra a ordem de resolução de um comando.
 
-**Listagem 6.3.12** – Ordem de resolução de um comando de barra (Go, literal).
+**Listagem 6.3.12** – Código real (Go, Mattermost v11.11.1): ordem de resolução de um comando de barra.
 
 ```go
 // Plugins can override built in and custom commands
@@ -536,7 +536,7 @@ assinantes concretos. A Listagem 6.3.13 é o ponto de partida: recria, em Java 1
 *hub* estudado. O código é ilustrativo e simplificado: omite concorrência, filas de envio e o
 *cluster*.
 
-**Listagem 6.3.13** – *Hub* de eventos com *Observer* (Java 17, ilustrativo).
+**Listagem 6.3.13** – Modelo didático em Java: *Hub* de eventos com *Observer*.
 
 ```java
 import java.util.List;
@@ -601,7 +601,7 @@ A correção verifica o comportamento com JUnit e a arquitetura com ArchUnit. A 
 mostra as funções de aptidão que garantem que os produtores não conheçam os assinantes concretos
 nem o *hub* concreto.
 
-**Listagem 6.3.14** – Funções de aptidão do exercício (Java 17, ArchUnit).
+**Listagem 6.3.14** – Modelo didático em Java (ArchUnit): funções de aptidão do exercício.
 
 ```java
 import com.tngtech.archunit.junit.AnalyzeClasses;

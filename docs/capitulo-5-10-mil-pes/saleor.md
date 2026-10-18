@@ -317,8 +317,7 @@ modo que cada nota técnica exige mudanças em todo o sistema. A alternativa é 
 publique um evento expresso em seus próprios termos e que o Faturamento o traduza (Listagem
 5.6.1).
 
-**Listagem 5.6.1** – Tradução do modelo de pedidos para o modelo fiscal (ilustrativa e
-simplificada).
+**Listagem 5.6.1** – Modelo didático em Java: tradução do modelo de pedidos para o modelo fiscal.
 
 ```java
 package br.edu.ifal.loja.faturamento.acl;

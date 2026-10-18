@@ -94,7 +94,7 @@ A documentação oficial recomenda o repositório `saleor-platform`, que reúne 
 Docker Compose todos os serviços necessários (SALEOR, 2026b). A sequência de comandos
 documentada é a seguinte:
 
-**Listagem 2.6.1** – Execução local do Saleor com Docker Compose.
+**Listagem 2.6.1** – Comandos (shell, Saleor): execução local do Saleor com Docker Compose.
 
 ```bash
 git clone https://github.com/saleor/saleor-platform.git

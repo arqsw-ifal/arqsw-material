@@ -63,7 +63,7 @@ A Listagem 6.4.1 mostra a função que decide o próximo estado. A ordem das con
 *pipeline* da Seção 5.4: transcodificar, se habilitado; depois mover para o armazenamento de
 objetos, se habilitado; por fim, publicar.
 
-**Listagem 6.4.1** – Regra de transição do estado do vídeo.
+**Listagem 6.4.1** – Código real (TypeScript, PeerTube v8.3.1): regra de transição do estado do vídeo.
 
 ```typescript
 export function buildNextVideoState (currentState?: VideoStateType) {
@@ -106,7 +106,7 @@ Listagem 6.4.2 mostra um exemplo: ao mudar de estado, o próprio objeto aplica a
 primeira publicação define as datas `publishedAt` e `firstPublishedAt`, e grava a si mesmo no
 banco, dentro da transação recebida.
 
-**Listagem 6.4.2** – Regra de domínio e persistência no mesmo objeto.
+**Listagem 6.4.2** – Código real (TypeScript, PeerTube v8.3.1): regra de domínio e persistência no mesmo objeto.
 
 ```typescript
   async setNewStateAndPublishedAt (options: {
@@ -151,7 +151,7 @@ modo que os validadores e o controlador posicionados depois dela executam uma ú
 do envio. Enquanto as partes chegam, o elo `uploadx.upload` trata a requisição sozinho e responde
 com 308; quando a última parte chega, passa a requisição adiante.
 
-**Listagem 6.4.3** – Montagem das rotas do *upload* retomável como cadeias de *middlewares*.
+**Listagem 6.4.3** – Código real (TypeScript, PeerTube v8.3.1): montagem das rotas do *upload* retomável como cadeias de *middlewares*.
 
 ```typescript
   router.post(
@@ -188,7 +188,7 @@ A mesma forma aparece na federação. Antes que o controlador examine qualquer a
 a requisição passa por um limitador de taxa, por um validador do cabeçalho de assinatura, pela
 verificação criptográfica da assinatura e pela validação estrutural da atividade (Listagem 6.4.4).
 
-**Listagem 6.4.4** – Cadeia de *middlewares* da caixa de entrada ActivityPub.
+**Listagem 6.4.4** – Código real (TypeScript, PeerTube v8.3.1): cadeia de *middlewares* da caixa de entrada ActivityPub.
 
 ```typescript
 inboxRouter.post(
@@ -211,7 +211,7 @@ cadeias do `express-validator`, executa-as em sequência e só chama `next()` se
 (Listagem 6.4.5). É uma cadeia dentro da cadeia, e um uso do padrão *Adapter* (GAMMA *et al.*,
 1994) a serviço do *Chain of Responsibility*.
 
-**Listagem 6.4.5** – Adaptador que integra funções assíncronas à cadeia do Express.
+**Listagem 6.4.5** – Código real (TypeScript, PeerTube v8.3.1): adaptador que integra funções assíncronas à cadeia do Express.
 
 ```typescript
 export function asyncMiddleware (fun: RequestPromiseHandler | RequestPromiseHandler[]) {
@@ -267,7 +267,7 @@ processamento para aquele `upload_id`. Se existir, recusa a requisição com 503
 terminar, apaga a sessão e o arquivo temporário (PEERTUBE, 2026,
 [`upload.ts#L89-L102`](https://github.com/Chocobozzz/PeerTube/blob/v8.3.1/server/core/controllers/api/videos/upload.ts#L89-L102)).
 
-**Listagem 6.4.6** – Detecção de requisição duplicada no fim do *upload* retomável.
+**Listagem 6.4.6** – Código real (TypeScript, PeerTube v8.3.1): detecção de requisição duplicada no fim do *upload* retomável.
 
 ```typescript
     const uploadId = req.query.upload_id
@@ -306,7 +306,7 @@ com sucesso (BULLMQ, 2026); fazendo cada *job* pai do anterior, o PeerTube obté
 estrita (PEERTUBE, 2026,
 [`job-queue.ts#L415-L433`](https://github.com/Chocobozzz/PeerTube/blob/v8.3.1/server/core/lib/job-queue/job-queue.ts#L415-L433)).
 
-**Listagem 6.4.7** – Os primeiros filtros do *pipeline* de um vídeo recém-criado.
+**Listagem 6.4.7** – Código real (TypeScript, PeerTube v8.3.1): os primeiros filtros do *pipeline* de um vídeo recém-criado.
 
 ```typescript
   const jobs: (CreateJobTypeAndPayload & CreateJobOptions)[] = [
@@ -349,7 +349,7 @@ acrescenta o *job* `transcoding-job-builder` quando o vídeo está em `TO_TRANSC
 A Listagem 6.4.8 mostra as opções comuns de fila: tentativas por tipo, recuo exponencial a partir
 de um minuto, prioridade e deduplicação opcional.
 
-**Listagem 6.4.8** – Opções comuns a todos os *jobs*.
+**Listagem 6.4.8** – Código real (TypeScript, PeerTube v8.3.1): opções comuns a todos os *jobs*.
 
 ```typescript
   private buildJobOptions (type: JobType, options: CreateJobOptions = {}): JobsOptions {
@@ -393,7 +393,7 @@ A subclasse `TranscodingJobQueueBuilder` transforma o DAG em fluxos do BullMQ; a
 PostgreSQL, ligados ao *job* pai. A escolha é feita por uma pequena função de fábrica (Listagem
 6.4.9).
 
-**Listagem 6.4.9** – Escolha da subclasse que materializa o DAG.
+**Listagem 6.4.9** – Código real (TypeScript, PeerTube v8.3.1): escolha da subclasse que materializa o DAG.
 
 ```typescript
 function getJobBuilder () {
@@ -422,7 +422,7 @@ específico registra o novo arquivo e a *playlist*, verifica se ainda falta algu
 caso, move o vídeo para o próximo estado (PEERTUBE, 2026,
 [`vod-hls-transcoding-job-handler.ts#L96-L141`](https://github.com/Chocobozzz/PeerTube/blob/v8.3.1/server/core/lib/runners/job-handlers/vod-hls-transcoding-job-handler.ts#L96-L141)).
 
-**Listagem 6.4.10** – Método-modelo que conclui um *job* de *runner*.
+**Listagem 6.4.10** – Código real (TypeScript, PeerTube v8.3.1): método-modelo que conclui um *job* de *runner*.
 
 ```typescript
   async complete (options: {
@@ -471,7 +471,7 @@ usuário: o *runner* se identifica pelo próprio *token*, verificado pelo elo
 `getRunnerFromTokenValidator`. Quando há trabalho novo, a instância apenas avisa os *runners*
 conectados por Socket.IO; quem inicia a transferência é sempre o *runner*.
 
-**Listagem 6.4.11** – Rotas pelas quais um *runner* pede e aceita *jobs*.
+**Listagem 6.4.11** – Código real (TypeScript, PeerTube v8.3.1): rotas pelas quais um *runner* pede e aceita *jobs*.
 
 ```typescript
 runnerJobsRouter.post(
@@ -517,7 +517,7 @@ parâmetros passar ao ffmpeg? O tipo `EncoderOptionsBuilder` é a interface da e
 função que o implementa é uma estratégia concreta. A Listagem 6.4.12 mostra a tabela padrão, que
 associa a cada codificador e modo uma estratégia chamada `default`.
 
-**Listagem 6.4.12** – Tabela de estratégias de codificação padrão.
+**Listagem 6.4.12** – Código real (TypeScript, PeerTube v8.3.1): tabela de estratégias de codificação padrão.
 
 ```typescript
 export function getDefaultAvailableEncoders () {
@@ -583,7 +583,7 @@ A Listagem 6.4.13 mostra as opções que o PeerTube passa ao ffmpeg em toda tran
 sob demanda: segmentos de quatro segundos, *playlist* completa do tipo VOD, segmentos em MP4
 fragmentado e um único arquivo por resolução (`single_file`), endereçado por intervalos de bytes.
 
-**Listagem 6.4.13** – Opções comuns do ffmpeg para HLS sob demanda.
+**Listagem 6.4.13** – Código real (TypeScript, PeerTube v8.3.1): opções comuns do ffmpeg para HLS sob demanda.
 
 ```typescript
   private addCommonHLSVODCommandOptions (command: FfmpegCommand, outputPath: string) {
@@ -605,7 +605,7 @@ construção de uma linha `EXT-X-STREAM-INF` por resolução, com os atributos `
 `RESOLUTION`, `FRAME-RATE` e `CODECS` definidos pela RFC 8216 (PANTOS; MAY, 2017). É essa linha
 que permite ao reprodutor escolher a variante adequada à banda medida.
 
-**Listagem 6.4.14** – Montagem de uma entrada da *playlist* mestre HLS.
+**Listagem 6.4.14** – Código real (TypeScript, PeerTube v8.3.1): montagem de uma entrada da *playlist* mestre HLS.
 
 ```typescript
         const bandwidth = 'BANDWIDTH=' + video.getBandwidthBits(file)
@@ -637,7 +637,7 @@ e rejeita o segmento se os valores divergirem (Listagem 6.4.15). Se o segmento a
 JSON, situação comum em transmissões ao vivo, o validador espera meio segundo, baixa o JSON de novo
 e tenta outra vez, até dez vezes.
 
-**Listagem 6.4.15** – Validação do resumo SHA-256 de um segmento recebido.
+**Listagem 6.4.15** – Código real (TypeScript, PeerTube v8.3.1): validação do resumo SHA-256 de um segmento recebido.
 
 ```typescript
     const calculatedSha = await this.sha256Hex(data)
@@ -706,7 +706,7 @@ A Listagem 6.4.16 define o contrato. `Tarefa` é a mensagem que trafega nos cano
 Seção 4.4.3. `Pipeline` é o conector: conhece apenas a interface e encadeia os filtros na ordem
 dada. Os filtros concretos não se conhecem.
 
-**Listagem 6.4.16** – *Pipeline* de transcodificação didático em Java 17.
+**Listagem 6.4.16** – Modelo didático em Java: *Pipeline* de transcodificação.
 
 ```java
 import java.util.ArrayList;
@@ -774,7 +774,7 @@ outra implementação de `Filtro`. A regra impede que um filtro chame diretament
 transformaria o *pipeline* em uma cadeia rígida de chamadas e eliminaria a possibilidade de
 reordenar, substituir ou distribuir os filtros.
 
-**Listagem 6.4.17** – Função de aptidão em ArchUnit: filtros não se conhecem.
+**Listagem 6.4.17** – Modelo didático em Java (ArchUnit): filtros não se conhecem.
 
 ```java
 import com.tngtech.archunit.core.importer.ImportOption;

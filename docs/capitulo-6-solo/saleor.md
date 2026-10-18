@@ -29,7 +29,7 @@ saldo de cada item e o pagamento durante a chamada ao provedor, que pode durar s
 Listagem 6.6.1 mostra, em Java, o agregado `Pedido` com referência ao pagamento só por
 identidade.
 
-**Listagem 6.6.1** – O agregado `Pedido`, com referências a outros agregados por identidade.
+**Listagem 6.6.1** – Modelo didático em Java: o agregado `Pedido`, com referências a outros agregados por identidade.
 
 ```java
 package br.edu.ifal.loja.pedido.dominio;
@@ -87,7 +87,7 @@ em pedido em **três transações sucessivas**: a primeira trava o *checkout*, m
 conversão, valida os dados e reserva o estoque; a segunda processa o pagamento; a terceira cria
 o pedido, aloca o estoque e apaga o *checkout*. A Listagem 6.6.2 mostra o início da primeira.
 
-**Listagem 6.6.2** – Bloqueio do *checkout* e marcação de processamento.
+**Listagem 6.6.2** – Código real (Python, Saleor 3.23.42): bloqueio do *checkout* e marcação de processamento.
 
 ```python
     with transaction_with_commit_on_errors():
@@ -110,7 +110,7 @@ E o desvio para `get_by_checkout_token` é um mecanismo de **idempotência**: se
 não existe, uma execução anterior o converteu em pedido, e a função devolve esse pedido em vez
 de falhar ou criar outro (Listagem 6.6.3).
 
-**Listagem 6.6.3** – Recuperação do pedido já criado a partir do *token* do *checkout*.
+**Listagem 6.6.3** – Código real (Python, Saleor 3.23.42): recuperação do pedido já criado a partir do *token* do *checkout*.
 
 ```python
 class OrderQueryset(models.QuerySet["Order"]):
@@ -125,7 +125,7 @@ O bloqueio semântico tem prazo de validade, o que impede que uma saga interromp
 carrinho para sempre (Listagem 6.6.4). O prazo vem da configuração
 `CHECKOUT_COMPLETION_LOCK_TIME`, cujo valor padrão em `settings.py` é de 3 minutos.
 
-**Listagem 6.6.4** – O bloqueio semântico expira.
+**Listagem 6.6.4** – Código real (Python, Saleor 3.23.42): o bloqueio semântico expira.
 
 ```python
     def is_checkout_locked(self) -> bool:
@@ -143,7 +143,7 @@ Fonte: Saleor (2026), [`saleor/checkout/models.py`, linhas 379-386](https://gith
 A decisão mais interessante está entre a primeira e a segunda transação, e o comentário dos
 desenvolvedores a explica (Listagem 6.6.5).
 
-**Listagem 6.6.5** – O pagamento é processado fora da transação que reserva o estoque.
+**Listagem 6.6.5** – Código real (Python, Saleor 3.23.42): o pagamento é processado fora da transação que reserva o estoque.
 
 ```python
     # Process payments out of transaction to unlock stock rows for another user,
@@ -176,7 +176,7 @@ a cobrança, o pivô; a criação do pedido e a alocação definitiva, as etapas
 transações, atual, repete o padrão de bloqueio e retorno idempotente em
 `create_order_from_checkout` (Listagem 6.6.6).
 
-**Listagem 6.6.6** – O mesmo padrão em `create_order_from_checkout`.
+**Listagem 6.6.6** – Código real (Python, Saleor 3.23.42): o mesmo padrão em `create_order_from_checkout`.
 
 ```python
     with transaction.atomic():
@@ -194,7 +194,7 @@ Se o estoque se revelar insuficiente, se um vale-presente não puder ser aplicad
 pagamento falhar, a saga precisa desfazer o que já foi feito. O Saleor concentra as
 compensações numa única função (Listagem 6.6.7).
 
-**Listagem 6.6.7** – A função de compensação do *checkout*.
+**Listagem 6.6.7** – Código real (Python, Saleor 3.23.42): a função de compensação do *checkout*.
 
 ```python
 def _complete_checkout_fail_handler(
@@ -243,7 +243,7 @@ CNPJ (BANCO CENTRAL DO BRASIL, 2025).
 No Saleor, `TransactionItem` e `TransactionEvent` têm um campo `idempotency_key` protegido por
 restrição de unicidade (Listagem 6.6.8).
 
-**Listagem 6.6.8** – Unicidade da chave de idempotência em `TransactionItem`.
+**Listagem 6.6.8** – Código real (Python, Saleor 3.23.42): unicidade da chave de idempotência em `TransactionItem`.
 
 ```python
         constraints = [
@@ -266,7 +266,7 @@ constitui um novo pedido, com nova chave (`saleor/graphql/schema.graphql`). É a
 **intenção** e **tentativa**. As tentativas não são hipotéticas: a tarefa que entrega os
 *webhooks* assíncronos repete automaticamente (Listagem 6.6.9).
 
-**Listagem 6.6.9** – Entrega de *webhooks* assíncronos com repetição automática.
+**Listagem 6.6.9** – Código real (Python, Saleor 3.23.42): entrega de *webhooks* assíncronos com repetição automática.
 
 ```python
 @app.task(
@@ -282,7 +282,7 @@ Fonte: Saleor (2026), [`saleor/webhook/transport/asynchronous/transport.py`, lin
 A Listagem 6.6.10 mostra, em Java, o lado do servidor da técnica, com a mesma proteção por
 restrição de unicidade.
 
-**Listagem 6.6.10** – Serviço de cobrança idempotente (ilustrativo e simplificado).
+**Listagem 6.6.10** – Modelo didático em Java: serviço de cobrança idempotente.
 
 ```java
 public final class ServicoDeCobranca {
@@ -332,7 +332,7 @@ No mecanismo de pagamentos legado, o módulo `saleor/payment/interface.py` defin
 que formam a linguagem comum entre o núcleo e qualquer *gateway*: `PaymentData`, com os dados
 de entrada, e `GatewayResponse`, com o resultado (Listagem 6.6.11).
 
-**Listagem 6.6.11** – `GatewayResponse`: a linguagem comum entre o núcleo e os provedores.
+**Listagem 6.6.11** – Código real (Python, Saleor 3.23.42): `GatewayResponse`: a linguagem comum entre o núcleo e os provedores.
 
 ```python
 @dataclass
@@ -371,7 +371,7 @@ O `PluginsManager` (`saleor/plugins/manager.py`) percorre, para cada operação 
 anterior (`previous_value`). Os mesmos métodos trazem um aviso de depreciação (Listagem
 6.6.12).
 
-**Listagem 6.6.12** – Aviso de depreciação no gerenciador de *plug-ins*.
+**Listagem 6.6.12** – Código real (Python, Saleor 3.23.42): aviso de depreciação no gerenciador de *plug-ins*.
 
 ```python
     # Note: this method is deprecated and will be removed in a future release.
@@ -395,7 +395,7 @@ substituem os métodos de *plug-in* estão em `WebhookEventSyncType` (Listagem 6
 é, em si, uma destilação: impostos, cobrança e frete são os subdomínios que o núcleo declara
 genéricos.
 
-**Listagem 6.6.13** – Eventos síncronos: impostos, pagamento e frete delegados a *apps*.
+**Listagem 6.6.13** – Código real (Python, Saleor 3.23.42): eventos síncronos: impostos, pagamento e frete delegados a *apps*.
 
 ```python
     CHECKOUT_CALCULATE_TAXES = "checkout_calculate_taxes"
@@ -422,7 +422,7 @@ objetos ao do banco. O ***Data Mapper*** é uma camada que transfere dados entre
 mantendo-os independentes: os objetos de domínio não sabem sequer que há um banco (FOWLER, 2002,
 cap. 10). A Listagem 6.6.14 contrasta os dois estilos.
 
-**Listagem 6.6.14** – *Active Record* e *Data Mapper* para o mesmo conceito de estoque.
+**Listagem 6.6.14** – Modelo didático em Java: *Active Record* e *Data Mapper* para o mesmo conceito de estoque.
 
 ```java
 // ---- Active Record: o objeto conhece a tabela e se persiste ----
