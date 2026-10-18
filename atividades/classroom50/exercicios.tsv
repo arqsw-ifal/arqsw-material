@@ -1,0 +1,11 @@
+slug	nome	template	prazo
+ex01-pedidos-camadas	[Cap. 3] Pedidos em camadas (refatoracao + ArchUnit)	arqsw-ex01-pedidos-camadas	-
+ex-frete-strategy	[Sec. 1.6.3 / Ap. E] Frete: do switch ao Strategy (refatoracao + ArchUnit)	arqsw-ex-frete-strategy	-
+ex-mastodon-timeline	[Sec. 6.2] Mastodon: timeline com fanout hibrido e cache (portas + ArchUnit)	arqsw-ex-mastodon-timeline	-
+ex-mattermost-hub	[Sec. 6.3] Mattermost: hub de eventos com Observer (ArchUnit)	arqsw-ex-mattermost-hub	-
+ex-peertube-pipeline	[Sec. 6.4] PeerTube: pipeline de transcodificacao com pipes and filters (ArchUnit)	arqsw-ex-peertube-pipeline	-
+ex-nextcloud-microkernel	[Sec. 6.5] Microkernel de armazenamento (Adapter + Decorator + ArchUnit)	arqsw-ex-nextcloud-microkernel	-
+ex-saleor-contextos	[Sec. 6.6] Contextos Pedido e Pagamento com ACL e idempotencia (ArchUnit)	arqsw-ex-saleor-contextos	-
+ex-thingsboard-regras	[Sec. 6.7] Motor de regras de telemetria (Chain of Responsibility + Strategy + ArchUnit)	arqsw-ex-thingsboard-regras	-
+ex-px4-barramento	[Sec. 6.8] Barramento publish/subscribe com topicos tipados (PX4 + ArchUnit)	arqsw-ex-px4-barramento	-
+ex-limitador-de-taxa	[Ap. F] Limitador de taxa com Strategy e relogio injetavel (ArchUnit)	arqsw-ex-limitador-de-taxa	-

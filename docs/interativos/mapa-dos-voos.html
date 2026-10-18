@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa dos voos</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .wrap{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:900px){.wrap{grid-template-columns:1fr 240px}}
+  .wrap>*{min-width:0}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .mapa{display:grid;grid-template-columns:118px repeat(6,minmax(0,1fr));gap:4px;font-size:.72rem}
+  .cab{color:var(--muted);text-align:center;padding:4px 2px;line-height:1.2;display:flex;align-items:flex-end;justify-content:center}
+  .cab.grupo{color:var(--tealL);font-weight:700;align-items:center}
+  .lin{color:var(--paper);font-weight:600;padding:6px 4px;display:flex;align-items:center;line-height:1.2}
+  .cel{background:var(--nav2);border:1px solid #1c2e48;border-radius:8px;min-height:54px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;padding:3px}
+  .par .c{display:none}
+  .par{border-radius:999px;padding:3px 8px;font-size:.7rem;font-weight:700;cursor:pointer;border:2px solid var(--gold);background:var(--gold);color:var(--nav2);white-space:nowrap}
+  .par.sec{background:transparent;color:var(--gold)}
+  .par.sel{box-shadow:0 0 0 3px rgba(111,195,208,.6)}
+  .par.apaga{opacity:.25}
+  .leg{display:flex;flex-wrap:wrap;gap:12px;font-size:.72rem;color:var(--muted);margin-top:8px}
+  .leg span{display:inline-flex;gap:5px;align-items:center}
+  .ficha h2{font-size:.98rem;margin:0 0 2px}
+  .ficha .real{color:var(--tealL);font-size:.8rem;margin-bottom:8px}
+  .ficha dl{margin:0;font-size:.78rem}
+  .ficha dt{font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:7px}
+  .ficha dd{margin:1px 0 0}
+  .ficha a{display:inline-block;margin-top:10px;color:var(--nav2);background:var(--tealL);border-radius:8px;padding:6px 12px;font-weight:700;text-decoration:none;font-size:.8rem}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+  @media(max-width:640px){.mapa{grid-template-columns:78px repeat(6,minmax(0,1fr));font-size:.62rem}.par{padding:2px 5px;font-size:.6rem}.par .l{display:none}.par .c{display:inline}.cab{writing-mode:vertical-rl;transform:rotate(180deg);min-height:90px}.cab.grupo{writing-mode:horizontal-tb;transform:none;min-height:0}}
+</style>
+</head>
+<body>
+  <h1>Mapa dos voos: os <span style="color:var(--tealL)">sete pares</span></h1>
+  <p class="sub">Colunas: estilo dominante, do monólito ao embarcado. Linhas: característica prioritária, segundo o dilema central de cada par (Tabela 2.1). Clique em um par para ver sua ficha.</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="mapa" id="mapa"></div>
+      <div class="leg"><span><i class="par" style="cursor:default">par</i> característica principal</span><span><i class="par sec" style="cursor:default">par</i> segunda característica do dilema</span></div>
+    </div>
+    <div class="panel ficha" id="ficha"></div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base nas Tabelas 2.1, 3.1 e 7.1. O agrupamento das características em linhas e a ordem das colunas são interpretações do autor para fins de visualização; a posição de cada par não é uma medida.</p>
+
+<script>
+// colunas: estilo dominante (Tabela 2.1), do monólito ao embarcado
+const COLS=[
+  ['Camadas','monolítico'],
+  ['Monólito modular','monolítico'],
+  ['Microkernel','monolítico'],
+  ['Pipeline','processamento por filas'],
+  ['Orientado a eventos','eventos e difusão'],
+  ['Embarcado pub/sub','tempo real'],
+];
+// linhas: agrupamento das características dos dilemas centrais (interpretação do autor)
+const LINS=['Desempenho, vazão e latência','Custo e elasticidade','Consistência e durabilidade','Modificabilidade e extensibilidade','Segurança e privacidade'];
+const P=[
+ {s:'2.2',g:'Mastodon',r:'Twitter/X',slug:'mastodon',
+  frase:'Queremos uma rede social de mensagens curtas, sem um dono único.',
+  col:0,lin:[0],ling:'Ruby, JavaScript',est:'Camadas, jobs assíncronos, federação',
+  dil:'Latência de leitura em escala',top3:'simplicidade operacional; interoperabilidade; desempenho de leitura da timeline'},
+ {s:'2.3',g:'Mattermost',r:'Slack, WhatsApp',slug:'mattermost',
+  frase:'O jurídico não aceita mais que as conversas fiquem em servidores de terceiros.',
+  col:4,lin:[0,4],ling:'Go, TypeScript',est:'Orientado a eventos',
+  dil:'Tempo real e soberania de dados',top3:'segurança e privacidade, com soberania de dados; latência de entrega; disponibilidade'},
+ {s:'2.4',g:'PeerTube',r:'YouTube, Netflix',slug:'peertube',
+  frase:'Queremos um YouTube nosso, para as aulas do instituto.',
+  col:3,lin:[1],ling:'TypeScript',est:'Pipeline, CDN, P2P',
+  dil:'Custo de processamento e entrega',top3:'custo; desempenho de entrega; elasticidade do processamento'},
+ {s:'2.5',g:'Nextcloud',r:'Dropbox, Google Drive',slug:'nextcloud',
+  frase:'Queremos uma pasta sincronizada para cada pessoa da universidade.',
+  col:2,lin:[2,3],ling:'PHP, C++ (cliente)',est:'Microkernel, sincronização',
+  dil:'Consistência e extensibilidade',top3:'durabilidade e confiabilidade; extensibilidade; segurança e privacidade'},
+ {s:'2.6',g:'Saleor',r:'Mercado Livre, Amazon',slug:'saleor',
+  frase:'Tudo o que fazemos de diferente na loja alugada exige gambiarras.',
+  col:1,lin:[3,2],ling:'Python',est:'Monólito modular, DDD',
+  dil:'Modificabilidade e consistência financeira',top3:'elasticidade; consistência dos dados financeiros e de estoque; modificabilidade e integração'},
+ {s:'2.7',g:'ThingsBoard',r:'AWS IoT',slug:'thingsboard',
+  frase:'Nossos clientes querem ver os sensores num painel e receber alarmes.',
+  col:4,lin:[0],ling:'Java',est:'Eventos, atores, microsserviços',
+  dil:'Vazão de telemetria',top3:'escalabilidade; disponibilidade de aceitação; segurança'},
+ {s:'2.8',g:'PX4 Autopilot',r:'DJI',slug:'px4',
+  frase:'Precisamos de um único software de voo para toda a linha de veículos.',
+  col:5,lin:[4,0],ling:'C++',est:'Embarcado de tempo real, publish/subscribe',
+  dil:'Determinismo e segurança física',top3:'segurança (safety); determinismo temporal; tolerância a falhas'},
+];
+let i=0,timer=null,filtroLin=null;
+function render(){
+  const a=P[i];
+  let h='<div></div>'+COLS.map(([c,g])=>`<div class="cab">${c}</div>`).join('');
+  LINS.forEach((l,li)=>{
+    h+=`<div class="lin" onclick="filtroLin=filtroLin===${li}?null:${li};render()" style="cursor:pointer">${l}</div>`;
+    COLS.forEach((c,ci)=>{
+      const aqui=P.map((p,k)=>({p,k})).filter(({p})=>p.col===ci&&p.lin.includes(li));
+      h+=`<div class="cel">${aqui.map(({p,k})=>`<span class="par ${p.lin[0]!==li?'sec':''} ${k===i?'sel':''} ${filtroLin!==null&&!p.lin.includes(filtroLin)?'apaga':''}" onclick="i=${k};render()" title="${p.r} × ${p.g}"><span class="l">${p.g.split(' ')[0]}</span><span class="c">${p.s}</span></span>`).join('')}</div>`;
+    });
+  });
+  document.getElementById('mapa').innerHTML=h;
+  document.getElementById('ficha').innerHTML=`<h2>${a.s} ${a.g}</h2><div class="real">sistema real: ${a.r}</div>
+    <dl><dt>Estilo dominante</dt><dd>${a.est}</dd><dt>Dilema central</dt><dd>${a.dil}</dd>
+    <dt>Top-3 (Capítulo 3)</dt><dd>${a.top3}</dd><dt>Primeira frase do cliente (Tabela 3.1, resumo)</dt><dd>“${a.frase}”</dd>
+    <dt>Linguagens principais</dt><dd>${a.ling}</dd></dl>
+    <a href="../capitulo-2-aplicacoes/${a.slug}/" target="_top">Ler a Seção ${a.s} →</a>`;
+  document.getElementById('count').textContent=`par ${i+1} de ${P.length}`;
+  const viz=P.filter((p,k)=>k!==i&&(p.col===a.col||p.lin[0]===a.lin[0])).map(p=>p.g.split(' ')[0]);
+  let t=`<b>${a.r} × ${a.g}</b>: ${a.dil.toLowerCase()}. `;
+  t+=viz.length?`Compartilha coluna ou linha com <b>${viz.join(', ')}</b>, o que permite comparar como o mesmo estilo atende a outra característica, ou como outra arquitetura atende à mesma característica. `
+               :`Não divide coluna nem linha principal com outro par, o que reforça o critério de diversidade de estilos e de características dominantes (Seção 2.1.2). `;
+  if(a.g==='Mattermost'||a.g==='ThingsBoard') t+=`Mattermost e ThingsBoard ocupam a mesma célula: ambos são orientados a eventos e priorizam desempenho, mas um difunde mensagens a pessoas em tempo real e o outro absorve a vazão de telemetria de dispositivos.`;
+  if(filtroLin!==null) t+=` Filtro ativo: <b>${LINS[filtroLin]}</b> (clique na linha novamente para remover).`;
+  document.getElementById('info').innerHTML=t;
+}
+function go(d){i=Math.max(0,Math.min(P.length-1,i+d));render();}
+function reset(){stop();i=0;filtroLin=null;render();}
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById('auto').textContent='▶ Auto';}}
+function toggleAuto(){
+  if(timer){stop();return;}
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{if(i>=P.length-1){stop();return;}go(1);},4000);
+}
+render();
+</script>
+</body>
+</html>

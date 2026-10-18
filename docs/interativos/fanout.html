@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fanout no Mastodon</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 12px; cursor:pointer; font:inherit; font-size:.84rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media(max-width:640px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--nav); border-radius:12px; padding:12px}
+  .panel h2{font-size:.85rem; margin:0 0 8px; color:var(--tealL)}
+  label{display:block; font-size:.78rem; color:var(--muted); margin:6px 0 2px}
+  label b{color:var(--paper)}
+  input[type=range]{width:100%; accent-color:var(--teal)}
+  .dots{display:grid; grid-template-columns:repeat(20,1fr); gap:3px; margin-top:6px}
+  .dot{aspect-ratio:1; border-radius:50%; background:var(--navL); transition:background .25s, box-shadow .25s}
+  .dot.act{background:var(--teal)}
+  .dot.hit{background:var(--gold); box-shadow:0 0 6px var(--gold)}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:.7rem; color:var(--muted); margin-top:6px}
+  .legend i{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle}
+  .metric{display:flex; justify-content:space-between; gap:8px; font-size:.8rem; padding:5px 0; border-bottom:1px solid var(--navL)}
+  .metric span:last-child{font-family:"JetBrains Mono",monospace; color:var(--gold); text-align:right}
+  .bar{height:9px; background:var(--nav2); border-radius:5px; margin:3px 0 8px; overflow:hidden}
+  .bar div{height:100%; background:var(--teal); width:0; transition:width .5s}
+  .bar.r div{background:var(--gold)}
+  .log{font-family:"JetBrains Mono",monospace; font-size:.72rem; background:#1E3040; color:#A8D8A8; border-radius:9px; padding:8px 10px; min-height:64px; margin-top:8px; line-height:1.45; overflow:auto; max-height:120px}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem; color:var(--muted); margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Fanout: o custo de entregar uma publicação de <span style="color:var(--tealL)">celebridade</span></h1>
+  <p class="sub">Compare <b>on write</b>, <b>on read</b>, o híbrido <b>por autor</b> (Xu) e o híbrido <b>por leitor</b> do Mastodon, que só alcança seguidores locais ativos.</p>
+
+  <div class="toolbar" id="modes">
+    <button class="btn" data-m="write">Fanout on write</button>
+    <button class="btn" data-m="read">Fanout on read</button>
+    <button class="btn" data-m="autor">Híbrido por autor</button>
+    <button class="btn" data-m="leitor">Mastodon: por leitor</button>
+  </div>
+  <div class="toolbar">
+    <button class="btn" onclick="publicar()">✉ Celebridade publica</button>
+    <button class="btn ghost" onclick="lerAtivo()">Leitor ativo abre a timeline</button>
+    <button class="btn ghost" onclick="lerInativo()">Leitor inativo volta</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Parâmetros</h2>
+      <label>Seguidores locais da celebridade: <b id="vN"></b></label>
+      <input type="range" id="N" min="1000" max="200000" step="1000" value="50000">
+      <label>USER_ACTIVE_DAYS (padrão 7): <b id="vD"></b></label>
+      <input type="range" id="D" min="1" max="30" value="7">
+      <label>Contas seguidas pelo leitor: <b id="vF"></b></label>
+      <input type="range" id="F" min="20" max="1000" step="10" value="300">
+      <label>Inserções por segundo dos <i>workers</i>: <b id="vT"></b></label>
+      <input type="range" id="T" min="500" max="10000" step="500" value="2000">
+      <div class="dots" id="dots"></div>
+      <div class="legend"><span><i style="background:var(--teal)"></i>ativo (entrou há ≤ D dias)</span><span><i style="background:var(--navL)"></i>inativo</span><span><i style="background:var(--gold)"></i>recebeu FeedInsertWorker</span></div>
+      <div class="nota">Cada ponto representa 1/200 dos seguidores locais. Os dias desde o último acesso são uma amostra hipotética.</div>
+    </div>
+    <div class="panel">
+      <h2>Custos por publicação e por leitura</h2>
+      <div class="metric"><span>Jobs de escrita (FeedInsertWorker)</span><span id="mW"></span></div>
+      <div class="bar"><div id="bW"></div></div>
+      <div class="metric"><span>Atraso até a última timeline local</span><span id="mL"></span></div>
+      <div class="metric"><span>Consultas por leitura da timeline</span><span id="mR"></span></div>
+      <div class="bar r"><div id="bR"></div></div>
+      <div class="metric"><span>Timelines mantidas no Redis (≤ 800 IDs)</span><span id="mM"></span></div>
+      <div class="metric"><span>Trabalho desperdiçado com inativos</span><span id="mX"></span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+// amostra determinística de "dias desde o último acesso" para 200 seguidores
+let seed=42; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const DIAS=Array.from({length:200},()=>{ const r=rnd(); return r<.35? Math.floor(rnd()*3) : r<.6? 3+Math.floor(rnd()*8) : 11+Math.floor(rnd()*120); });
+const LIMIAR_CELEB=10000; // limiar ilustrativo do híbrido por autor (Xu não fixa um valor)
+let modo='leitor', ops=0, busy=false;
+
+const INFO={
+  write:`<b>Fanout on write (push).</b> A timeline de cada seguidor é pré-computada na escrita: a leitura vira uma consulta ao cache, mas a escrita custa um job por seguidor, inclusive pelos inativos. Com uma celebridade, o custo da escrita explode (XU, 2020, cap. 11).`,
+  read:`<b>Fanout on read (pull).</b> A escrita grava só a publicação; a timeline é montada sob demanda, consultando todas as contas seguidas e mesclando os resultados. Não há desperdício nem problema da celebridade, mas a leitura fica lenta e variável.`,
+  autor:`<b>Híbrido por autor (Xu).</b> Push para a maioria dos autores e pull para celebridades: a leitura junta o cache com as publicações das poucas celebridades seguidas. O limiar de ${fmt(LIMIAR_CELEB)} seguidores usado aqui é ilustrativo. O Twitter combinava as duas divisões (HOFF, 2013).`,
+  leitor:`<b>Mastodon: híbrido por leitor.</b> O FanOutOnWriteService enfileira um FeedInsertWorker apenas para seguidores <b>locais</b> que entraram nos últimos <code>USER_ACTIVE_DAYS</code> dias (padrão 7, escopo <code>followers_for_local_distribution</code>). Não há limiar de celebridade. O leitor inativo que volta recebe <code>206 Partial Content</code> enquanto o RegenerationWorker reconstrói sua timeline a partir do PostgreSQL, uma única vez; depois ele volta ao regime de push. O critério ataca o desperdício com inativos, não o problema da celebridade.`
+};
+
+function params(){
+  const N=+$('N').value, D=+$('D').value, F=+$('F').value, T=+$('T').value;
+  const fracAtivos=DIAS.filter(d=>d<D).length/200;
+  return {N,D,F,T,fracAtivos,ativos:Math.round(N*fracAtivos)};
+}
+function custos(p){
+  const celeb=p.N>=LIMIAR_CELEB;
+  let w,r,mem,desp,rTxt;
+  switch(modo){
+    case 'write': w=p.N; r=2; mem=p.N; desp=p.N-p.ativos; rTxt='2 (faixa no Redis + busca por ID)'; break;
+    case 'read':  w=0; r=p.F+1; mem=0; desp=0; rTxt=`${fmt(p.F+1)} (uma por conta seguida + mescla)`; break;
+    case 'autor': w=celeb?0:p.N; r=celeb?3:2; mem=p.N; desp=celeb?0:p.N-p.ativos; rTxt=celeb?'3 (cache + pull da celebridade)':'2 (cache)'; break;
+    case 'leitor':w=p.ativos; r=2; mem=p.ativos; desp=0; rTxt='2 (ZREVRANGEBYSCORE + busca por ID)'; break;
+  }
+  return {w,r,mem,desp,rTxt,lat:w/p.T};
+}
+function render(){
+  const p=params(), c=custos(p);
+  $('vN').textContent=fmt(p.N); $('vD').textContent=p.D+' dias'; $('vF').textContent=fmt(p.F); $('vT').textContent=fmt(p.T)+'/s';
+  document.querySelectorAll('#modes .btn').forEach(b=>b.classList.toggle('on',b.dataset.m===modo));
+  $('mW').textContent=c.w? fmt(c.w)+' jobs' : '0 (grava só a publicação)';
+  $('bW').style.width=Math.min(100,c.w/2000)+'%';
+  $('mL').textContent=c.w? c.lat.toFixed(1).replace('.',',')+' s' : '—';
+  $('mR').textContent=c.rTxt; $('bR').style.width=Math.min(100,c.r/10)+'%';
+  $('mM').textContent=c.mem? fmt(c.mem) : 'nenhuma';
+  $('mX').textContent=c.desp? fmt(c.desp)+' jobs para inativos' : 'nenhum';
+  $('count').textContent=`ativos em ${p.D} dias: ${Math.round(p.fracAtivos*100)}% · ${fmt(p.ativos)} contas · operações: ${ops}`;
+  $('info').innerHTML=INFO[modo];
+  const dots=$('dots'); if(!dots.children.length) DIAS.forEach(()=>{ const d=document.createElement('div'); d.className='dot'; dots.appendChild(d); });
+  [...dots.children].forEach((el,k)=>{ el.classList.toggle('act', DIAS[k]<p.D); });
+}
+function log(t){ const l=$('log'); l.innerHTML=t+'<br>'+l.innerHTML; }
+function alvoDoFanout(p){
+  if(modo==='read') return [];
+  if(modo==='autor' && p.N>=LIMIAR_CELEB) return [];
+  return DIAS.map((d,k)=>({d,k})).filter(x=> modo==='leitor'? x.d<p.D : true).map(x=>x.k);
+}
+function publicar(){
+  if(busy) return; ops++; const p=params(), c=custos(p), alvo=alvoDoFanout(p), dots=[...$('dots').children];
+  dots.forEach(d=>d.classList.remove('hit'));
+  log(`POST /api/v1/statuses → INSERT status; 200 ao cliente antes do fanout`);
+  if(!alvo.length){ log(modo==='read'? 'on read: nada a distribuir; os leitores farão o pull' : 'celebridade acima do limiar: sem push; leitores farão pull'); render(); return; }
+  log(`DistributionWorker → FanOutOnWriteService: ${fmt(c.w)} FeedInsertWorker em lotes (push_bulk)`);
+  busy=true; let i=0;
+  const t=setInterval(()=>{
+    for(let k=0;k<6 && i<alvo.length;k++,i++) dots[alvo[i]].classList.add('hit');
+    if(i>=alvo.length){ clearInterval(t); busy=false; log(`ZADD feed:home:&lt;id&gt; concluído em ~${c.lat.toFixed(1).replace('.',',')} s`); }
+  },40);
+  render();
+}
+function lerAtivo(){
+  ops++; const p=params();
+  if(modo==='read') log(`leitura: ${fmt(p.F)} consultas ao PostgreSQL + mescla por data (lenta e variável)`);
+  else if(modo==='autor' && p.N>=LIMIAR_CELEB) log('leitura: faixa no cache + pull das publicações da celebridade + mescla');
+  else log('GET /api/v1/timelines/home → ZREVRANGEBYSCORE (IDs, "unhydrated") + Status.where(id: …)');
+  render();
+}
+function lerInativo(){
+  ops++; const p=params();
+  if(modo!=='leitor'){ log(modo==='read'? 'inativo lê como qualquer leitor: pull completo' : 'timeline já existia: foi mantida (e paga) mesmo sem acesso'); render(); return; }
+  log('usuário inativo entra: regenerate_feed! → RegenerationWorker');
+  log('API responde 206 Partial Content enquanto a timeline é reconstruída');
+  log(`PrecomputeFeedService → FeedManager#populate_home: percorre ${fmt(p.F)} contas seguidas no PostgreSQL`);
+  log('pull feito uma vez: o leitor volta a receber push');
+  render();
+}
+function reset(){ ops=0; $('log').innerHTML=''; [...$('dots').children].forEach(d=>d.classList.remove('hit')); ['N','D','F','T'].forEach(id=>$(id).value=$(id).defaultValue); render(); }
+document.querySelectorAll('#modes .btn').forEach(b=>b.onclick=()=>{ modo=b.dataset.m; [...$('dots').children].forEach(d=>d.classList.remove('hit')); render(); });
+['N','D','F','T'].forEach(id=>$(id).oninput=render);
+render();
+log('Escolha um modelo e clique em “Celebridade publica”. Valores iniciais: 50.000 seguidores locais e 2.000 inserções/s, como na Seção 3.2.4.');
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+/*
+ * Tema dos slides - Arquitetura de Software (ARQSW, IFAL-Maceio)
+ * Identidade visual: navy / teal / dourado, alinhada ao site MkDocs.
+ * Aplicar depois do reveal.css e do theme/white.css (sobrescreve o tema base).
+ */
+
+:root {
+  --nav:        #1A2E4A;  /* navy base       */
+  --nav-dark:   #12203A;  /* navy escuro     */
+  --nav-light:  #2A4468;  /* navy claro      */
+  --teal:       #0F7A8C;  /* acento teal     */
+  --teal-light: #6FC3D0;
+  --gold:       #E8A93C;  /* destaque dourado*/
+  --paper:      #F4F6F9;  /* texto claro     */
+  --code-bg:    #1E3040;
+  --code-fg:    #A8D8A8;
+}
+
+.reveal-viewport {
+  background: var(--nav-dark);
+}
+
+.reveal {
+  font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--paper);
+  font-size: 34px;
+}
+
+.reveal .slides section {
+  text-align: left;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3 {
+  font-family: "Schibsted Grotesk", system-ui, sans-serif;
+  color: var(--paper);
+  text-transform: none;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.reveal h1 { font-size: 2.1em; }
+.reveal h2 { font-size: 1.5em; }
+.reveal h3 { font-size: 1.15em; color: var(--teal-light); }
+
+/* Barra dourada sob os titulos de secao */
+.reveal h2 {
+  border-bottom: 3px solid var(--gold);
+  padding-bottom: 0.2em;
+  margin-bottom: 0.6em;
+}
+
+.reveal a { color: var(--teal-light); }
+.reveal strong { color: var(--gold); }
+.reveal em { color: var(--teal-light); font-style: normal; }
+
+/* Slide de titulo */
+.reveal section.titulo { text-align: center; }
+.reveal section.titulo h1 { color: var(--paper); margin-bottom: 0.2em; }
+.reveal section.titulo .subtitulo { color: var(--teal-light); font-size: 1.1em; }
+.reveal section.titulo .rodape {
+  color: #9FB0C4; font-size: 0.7em; margin-top: 1.4em;
+}
+
+/* Codigo */
+.reveal pre {
+  width: 100%;
+  box-shadow: none;
+  font-size: 0.62em;
+}
+.reveal pre code {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-radius: 8px;
+  padding: 1em 1.2em;
+  max-height: 520px;
+}
+.reveal code:not(pre code) {
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color: var(--gold);
+  background: rgba(255,255,255,0.06);
+  padding: 0.06em 0.35em;
+  border-radius: 5px;
+  font-size: 0.9em;
+}
+
+/* Tabelas */
+.reveal table { font-size: 0.8em; }
+.reveal table th {
+  color: var(--gold);
+  border-bottom: 2px solid var(--gold);
+}
+.reveal table td { border-color: var(--nav-light); }
+
+/* Listas com marcador dourado */
+.reveal ul li::marker { color: var(--gold); }
+.reveal ol li::marker { color: var(--teal-light); }
+.reveal li { margin: 0.25em 0; }
+
+/* Caixa de destaque (admonition-like) */
+.reveal .caixa {
+  background: rgba(15,122,140,0.12);
+  border-left: 4px solid var(--teal);
+  border-radius: 6px;
+  padding: 0.7em 1em;
+  font-size: 0.85em;
+}
+.reveal .caixa.dourada {
+  background: rgba(232,169,60,0.12);
+  border-left-color: var(--gold);
+}
+
+/* Fluxo simples do pipeline (chips) */
+.reveal .pipeline {
+  display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center;
+  font-family: "JetBrains Mono", monospace; font-size: 0.7em;
+}
+.reveal .pipeline .etapa {
+  background: var(--nav-light); color: var(--paper);
+  padding: 0.4em 0.7em; border-radius: 6px; border: 1px solid var(--teal);
+}
+.reveal .pipeline .seta { color: var(--gold); font-weight: bold; }
+
+/* Rodape com progresso/creditos */
+.reveal .slide-number { color: var(--paper); background: transparent; }
+.reveal .progress { color: var(--gold); }
+
+/* Duas colunas */
+.reveal .colunas { display: flex; gap: 1.2em; }
+.reveal .colunas > div { flex: 1; }

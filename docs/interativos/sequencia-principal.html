@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A sequência principal</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .btn.on{background:var(--teal)}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .ctl{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  svg{width:100%;height:auto;display:block;touch-action:none}
+  svg text{font-family:"Schibsted Grotesk",system-ui,sans-serif}
+  .pt{cursor:grab}
+  table{width:100%;border-collapse:collapse;font-size:.76rem}
+  th{color:var(--muted);font-weight:400;text-align:right;padding:4px;border-bottom:1px solid var(--navL)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:5px 4px;text-align:right;font-family:"JetBrains Mono",monospace;border-bottom:1px solid var(--navL)}
+  td.z{font-family:inherit;font-size:.7rem;text-align:left}
+  .dor{color:#F0A08F} .inu{color:var(--gold)} .ok{color:var(--tealL)}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Abstração × instabilidade: a <span style="color:var(--tealL)">sequência principal</span></h1>
+  <p class="sub">Os quatro pacotes do exercício-modelo, antes e depois da refatoração (Tabela E.3). Arraste os pontos para explorar as zonas do plano.</p>
+
+  <div class="toolbar">
+    <button class="btn on" id="bL" onclick="carrega('legado')">Legado</button>
+    <button class="btn" id="bS" onclick="carrega('solucao')">Solução</button>
+    <label class="ctl"><input type="checkbox" id="arch" onchange="carrega(versao)"> A do domínio como relatado pelo ArchUnit (0,40)</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel"><svg id="svg" viewBox="0 0 360 360"></svg></div>
+    <div class="panel">
+      <table><thead><tr><th>Pacote</th><th>Ca</th><th>Ce</th><th>I</th><th>A</th><th>D</th><th>Região</th></tr></thead><tbody id="tab"></tbody></table>
+      <p class="nota">I = Ce / (Ce + Ca); A = Na / Nc; D = |A + I − 1|. Os pacotes <code>web</code>, <code>aplicacao</code> e <code>infra</code> têm uma única classe concreta (A = 0); <code>dominio</code> tem uma interface entre quatro tipos (A = 0,25). Pontos arrastados exibem "—" em Ca e Ce, porque a posição deixa de vir da medição.</p>
+      <table style="margin-top:8px">
+        <thead><tr><th>Região (Tabela E.2)</th><th style="text-align:left">Diagnóstico</th></tr></thead>
+        <tbody>
+          <tr><td class="z dor">Zona de dor</td>
+              <td class="z">concreto e muito usado: rígido e caro de mudar</td></tr>
+          <tr><td class="z inu">Zona de inutilidade</td>
+              <td class="z">abstrato e não usado: generalidade especulativa</td></tr>
+          <tr><td class="z ok">Polo estável da reta</td>
+              <td class="z">abstrações estáveis, extensíveis por implementação</td></tr>
+          <tr><td class="z ok">Polo instável da reta</td>
+              <td class="z">detalhes concretos fáceis de trocar (adaptadores)</td></tr>
+        </tbody>
+      </table>
+      <p class="nota">Para fins de classificação, este interativo considera "zona" a região
+        com D &gt; 0,5 no quadrante correspondente e "sequência principal" a faixa com D ≤ 0,2.
+        Os limiares são convenções didáticas, e não valores de Martin.</p>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base em Martin (2017, cap. 14), Richards e Ford (2020, p. 44-48) e na Tabela E.3, medida com o ArchUnit 1.3.0.</p>
+
+<script>
+// [pacote, Ca, Ce, A] medidos na Tabela E.3; A contado nas classes de cada pacote
+const DADOS={
+  legado:[
+    ["web",0,2,0],['aplicacao',0,1,0],['dominio',3,1,0.25],['infra',2,1,0]],
+  solucao:[['web',0,1,0],['aplicacao',1,1,0],['dominio',2,0,0.25],['infra',0,1,0]]
+};
+const CORES={web:'#6FC3D0',aplicacao:'#9FB0C4',dominio:'#E8A93C',infra:'#C0503F'};
+const P0=40,P1=330,sx=v=>P0+v*(P1-P0),sy=v=>P1-v*(P1-P0);
+let versao='legado',pk=[],drag=null;
+const svg=document.getElementById('svg'),f2=v=>v.toFixed(2).replace('.',',');
+
+function carrega(v){
+  versao=v;
+  document.getElementById("bL").classList.toggle("on",v==="legado");
+  document.getElementById('bS').classList.toggle('on',v==='solucao');
+  const arch=document.getElementById('arch').checked;
+  pk=DADOS[v].map(([n,ca,ce,a])=>({n,ca,ce,I:ce/(ce+ca),A:n==='dominio'&&arch?0.40:a,man:false}));
+  render();
+}
+function regiao(p){
+  const D=Math.abs(p.A+p.I-1);
+  if(p.I<0.5&&p.A<0.5&&D>0.5) return ['zona de dor','dor'];
+  if(p.I>0.5&&p.A>0.5&&D>0.5) return ['zona de inutilidade','inu'];
+  if(D<=0.2) return ['sequência principal','ok'];
+  return ['afastado da sequência',''];
+}
+function render(){
+  let h=`<defs><radialGradient id="gd" cx="0" cy="1" r="0.8"><stop offset="0" stop-color="#C0503F" stop-opacity=".55"/><stop offset="1" stop-color="#C0503F" stop-opacity="0"/></radialGradient>
+   <radialGradient id="gi" cx="1" cy="0" r="0.8"><stop offset="0" stop-color="#E8A93C" stop-opacity=".45"/><stop offset="1" stop-color="#E8A93C" stop-opacity="0"/></radialGradient></defs>`;
+  h+=`<rect x="${P0}" y="${sy(1)}" width="${P1-P0}" height="${P1-P0}" fill="#12203A" stroke="#2A4468"/>`;
+  h+=`<rect x="${P0}" y="${sy(1)}" width="${P1-P0}" height="${P1-P0}" fill="url(#gd)"/><rect x="${P0}" y="${sy(1)}" width="${P1-P0}" height="${P1-P0}" fill="url(#gi)"/>`;
+  for(let v=0;v<=1.001;v+=0.25)h+=`<line x1="${sx(v)}" x2="${sx(v)}" y1="${sy(0)}" y2="${sy(1)}" stroke="#2A4468" stroke-width=".5"/><line x1="${sx(0)}" x2="${sx(1)}" y1="${sy(v)}" y2="${sy(v)}" stroke="#2A4468" stroke-width=".5"/><text x="${sx(v)}" y="${P1+14}" fill="#9FB0C4" font-size="10" text-anchor="middle">${f2(v)}</text><text x="${P0-6}" y="${sy(v)+3}" fill="#9FB0C4" font-size="10" text-anchor="end">${f2(v)}</text>`;
+  h+=`<line x1="${sx(0)}" y1="${sy(1)}" x2="${sx(1)}" y2="${sy(0)}" stroke="#6FC3D0" stroke-width="2"/>`;
+  h+=`<text x="${sx(0.62)}" y="${sy(0.45)}" fill="#6FC3D0" font-size="11" transform="rotate(45 ${sx(0.62)} ${sy(0.45)})">sequência principal (A + I = 1)</text>`;
+  h+=`<text x="${sx(0.03)}" y="${sy(0.04)}" fill="#F0A08F" font-size="11" font-weight="700">zona de dor</text><text x="${sx(0.97)}" y="${sy(0.94)}" fill="#E8A93C" font-size="11" font-weight="700" text-anchor="end">zona de inutilidade</text>`;
+  h+=`<text x="${(P0+P1)/2}" y="${P1+28}" fill="#F4F6F9" font-size="11" text-anchor="middle">Instabilidade I</text><text x="12" y="${(P0+P1)/2}" fill="#F4F6F9" font-size="11" text-anchor="middle" transform="rotate(-90 12 ${(P0+P1)/2})">Abstração A</text>`;
+  const usados={};
+  pk.forEach((p,k)=>{
+    const key=f2(p.I)+f2(p.A),off=(usados[key]=(usados[key]||0)+1)-1;
+    h+=`<g class="pt" data-k="${k}"><circle cx="${sx(p.I)}" cy="${sy(p.A)}" r="9" fill="${CORES[p.n]}" stroke="#12203A" stroke-width="2"/><text x="${sx(p.I)+(p.I>0.8?-12:12)}" y="${sy(p.A)+4+off*13}" fill="${CORES[p.n]}" font-size="11.5" font-weight="700" text-anchor="${p.I>0.8?'end':'start'}">${p.n}</text></g>`;
+  });
+  svg.innerHTML=h;
+  document.getElementById('tab').innerHTML=pk.map(p=>{const [z,c]=regiao(p);return `<tr><td style="color:${CORES[p.n]}">${p.n}</td><td>${p.man?'—':p.ca}</td><td>${p.man?'—':p.ce}</td><td>${f2(p.I)}</td><td>${f2(p.A)}</td><td>${f2(Math.abs(p.A+p.I-1))}</td><td class="z ${c}">${z}</td></tr>`;}).join('');
+  document.getElementById('count').textContent=versao==='legado'?'código entregue ao aluno':'solução de referência';
+  info();
+}
+function info(){
+  const d=pk.find(p=>p.n==='dominio'), D=Math.abs(d.A+d.I-1);
+  let h;
+  if(pk.some(p=>p.man)) h=`Posição explorada manualmente. Próximo de (0, 0), um pacote é <b>concreto e estável</b>: muitos dependem dele, e mudar dói. Próximo de (1, 1), é <b>abstrato e ninguém o usa</b>: generalidade especulativa. Sobre a reta, a abstração acompanha a estabilidade, como pede o princípio das abstrações estáveis (SAP).`;
+  else if(versao==='legado') h=`No legado, <code>dominio</code> (I = 0,25) depende de <code>infra</code> (I = 0,33), dependência que aponta para um pacote <b>menos</b> estável e viola o SDP, além de formar um ciclo. A distância do domínio é <b>D = ${f2(D)}</b>.`;
+  else h=`Na solução, todas as setas apontam no sentido da estabilidade, e o domínio chega a I = 0. Mesmo assim, sua distância <b>piora</b> para <b>D = ${f2(D)}</b>: pela régua de Martin, um pacote totalmente estável deveria ser abstrato, ao passo que, no DDD, o núcleo é feito de entidades concretas e ricas em comportamento. A zona de dor só é problema para componentes <b>voláteis</b>, ressalva que nenhuma métrica captura.`;
+  if(document.getElementById('arch').checked&&!pk.some(p=>p.man)) h+=` Com A = 0,40, valor que o ArchUnit relatou ao contar o tipo <i>array</i> gerado para o <code>enum</code>, os números mudam: convenções de contagem importam em sistemas pequenos.`;
+  document.getElementById('info').innerHTML=h;
+}
+function ponto(ev){const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());
+  return{I:Math.min(1,Math.max(0,(q.x-P0)/(P1-P0))),A:Math.min(1,Math.max(0,(P1-q.y)/(P1-P0)))};}
+svg.addEventListener('pointerdown',ev=>{const g=ev.target.closest('.pt');if(!g)return;drag=+g.dataset.k;svg.setPointerCapture(ev.pointerId);});
+svg.addEventListener("pointermove",ev=>{
+  if(drag===null) return;
+  const q=ponto(ev);
+  Object.assign(pk[drag],q,{man:true});
+  render();
+});
+svg.addEventListener("pointerup",()=>{
+  drag=null;
+});
+carrega('legado');
+</script>
+</body>
+</html>

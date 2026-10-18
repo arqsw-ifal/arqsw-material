@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do zero a milhões de usuários</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .grid{display:grid;grid-template-columns:1fr 250px;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:14px}
+  .titulo{font-weight:700;font-size:.92rem;margin-bottom:8px}
+  .titulo span{color:var(--gold)}
+  .diagram{display:grid;gap:6px;min-height:250px;align-content:start}
+  .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .box{background:var(--nav2);border:1px solid var(--navL);border-radius:9px;padding:6px 9px;min-width:92px;max-width:180px;text-align:center;font-size:.74rem;line-height:1.25}
+  .box b{display:block;font-size:.78rem}
+  .box small{color:var(--muted)}
+  .box.db{border-radius:14px 14px 9px 9px}
+  .box.ext{background:transparent;border-color:var(--muted);color:var(--muted)}
+  .box.novo{border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(232,169,60,.3)}
+  .arrow{text-align:center;color:var(--tealL);font-size:.72rem}
+  .ficha div{margin-bottom:9px;font-size:.8rem}
+  .ficha .rot{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .ficha .bom{color:var(--tealL);font-weight:700}
+  .ficha .mau{color:#E89A8C;font-weight:700}
+  .ficha .fal{color:var(--gold);font-weight:700}
+  .meter{margin-top:10px;border-top:1px solid var(--navL);padding-top:10px;font-size:.78rem}
+  .meter select{background:var(--nav2);color:var(--paper);border:1px solid var(--navL);border-radius:6px;font:inherit;padding:2px}
+  .big{font-family:"JetBrains Mono",monospace;font-size:1.25rem;color:var(--gold);font-weight:700;margin:4px 0}
+  .formula{font-family:"JetBrains Mono",monospace;font-size:.7rem;color:var(--muted);word-break:break-word}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Do zero a <span style="color:var(--tealL)">milhões de usuários</span></h1>
+  <p class="sub">Cada passo resolve um gargalo concreto, melhora uma característica e expõe o sistema a pelo menos uma falácia da computação distribuída (Tabela F.3).</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="titulo" id="titulo"></div>
+      <div class="diagram" id="diagram"></div>
+    </div>
+    <div class="panel ficha">
+      <div><span class="rot">Característica que melhora</span><span class="bom" id="melhora"></span></div>
+      <div><span class="rot">Novo problema</span><span class="mau" id="problema"></span></div>
+      <div><span class="rot">Falácias mais expostas</span><span class="fal" id="falacia"></span></div>
+      <div class="meter">
+        Disponibilidade de cada componente:
+        <select id="disp" onchange="render()">
+          <option value="0.99">99%</option><option value="0.999" selected>99,9%</option><option value="0.9999">99,99%</option>
+        </select>
+        <div class="big" id="total"></div>
+        <div id="parada"></div>
+        <div class="formula" id="formula"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: adaptado de Xu (2020, cap. 1), com a lente das falácias de Richards e Ford (2020, cap. 9). O medidor aplica as regras de composição da Seção F.3.4 (série: produto das disponibilidades; paralelo: produto das indisponibilidades) e supõe falhas independentes, hipótese que o próprio texto qualifica como frágil.</p>
+
+<script>
+const box=(t,s,c='')=>`<div class="box ${c}"><b>${t}</b><small>${s}</small></div>`;
+const row=(...b)=>`<div class="row">${b.filter(Boolean).join('')}</div>`;
+const arrow=t=>`<div class="arrow">${t}</div>`;
+const N=(k,n)=>k===n?'novo':'';
+
+function diagram(k){
+  let h=row(box('Usuários','web e móveis','ext'), box(k>=8?'GeoDNS':'DNS', k>=8?'data center mais próximo':'resolve o domínio','ext '+N(k,8)), k>=6?box('CDN','arquivos estáticos','ext '+N(k,6)):'');
+  h+=arrow('↓ HTTP');
+  if(k>=3) h+=row(box('Balanceador de carga','IP público',N(k,3)))+arrow('↓ endereços privados');
+  if(k===1) h+=row(box('Servidor único','web + banco + cache'));
+  else if(k===2) h+=row(box('Servidor web','aplicação','novo'));
+  else { const st=k>=7?'sem estado':'sessão em memória', c=N(k,3)||N(k,7); h+=row(box('Web 1',st,c),box('Web 2',st,c)); }
+  const mid=[k>=5?box('Cache','memória',N(k,5)):'', k>=7?box('Sessões','armazenamento compartilhado',N(k,7)):'', k>=9?box('Fila','mensagens',N(k,9)):'', k>=9?box('Workers','consumidores',N(k,9)):''];
+  if(mid.some(Boolean)) h+=arrow('↓')+row(...mid);
+  if(k>=2){
+    h+=arrow('↓ rede');
+    if(k===2||k===3) h+=row(box('Banco de dados','servidor próprio','db '+N(k,2)));
+    else if(k<11) h+=row(box('Primário','escritas','db '+N(k,4)),box('Réplica','leituras','db '+N(k,4)),box('Réplica','leituras','db '+N(k,4)));
+    else h+=row(box('Shard 0','primário + réplicas','db novo'),box('Shard 1','primário + réplicas','db novo'),box('Shard …','user_id % n','db novo'));
+  }
+  const fim=[k>=10?box('Registros, métricas','e automação',N(k,10)):'', k>=8?box('Data center 2','replicação assíncrona','ext '+N(k,8)):''];
+  if(fim.some(Boolean)) h+=arrow('· · ·')+row(...fim);
+  return h;
+}
+
+const STEPS=[
+ {t:'Servidor único',m:'Simplicidade',p:'Ponto único de falha; teto de capacidade',f:'Nenhuma (não há rede interna)',
+  i:`Tudo roda em uma máquina: um artefato, um registro de erros, transações locais. Para um produto que ainda procura usuários, é frequentemente a escolha correta, e o alerta de Xu contra o <b>excesso de engenharia</b> aplica-se aqui.`},
+ {t:'Camada web e camada de dados separadas',m:'Escalabilidade independente das camadas',p:'Chamadas remotas ao banco; dois pontos únicos de falha',f:'A rede é confiável; a latência é zero',
+  i:`As camadas lógicas passam a ocupar máquinas distintas. O projeto lógico não muda, mas a chamada ao banco, antes local, <b>atravessa a rede</b>: o banco pode estar saudável e inalcançável.`},
+ {t:'Balanceador de carga e escala horizontal',m:'Disponibilidade da camada web; escala horizontal',p:'Balanceador como SPOF; sessões em memória',f:'A topologia nunca muda',
+  i:`Servidores entram e saem do grupo por falha, implantação ou ajuste de capacidade. Se a sessão estiver na memória de um servidor, requisições consecutivas podem cair em servidores diferentes, problema resolvido apenas no passo 7.`},
+ {t:'Replicação primário-réplica',m:'Disponibilidade dos dados; escala de leitura',p:'Atraso de replicação; promoção com perda de escritas',f:'A latência é zero',
+  i:`O primário aceita escritas e as réplicas atendem leituras. Enquanto a propagação não termina, há <b>duas versões da verdade</b>: o usuário altera o perfil e, ao recarregar, lê o valor antigo na réplica.`},
+ {t:'Cache',m:'Desempenho',p:'Dados obsoletos; gravação obsoleta; efeito manada',f:'A rede é confiável (invalidações perdidas)',
+  i:`Resultados caros ficam em memória. Na estratégia <i>cache-aside</i>, a falha do cache recai sobre o banco, por isso o medidor não o coloca em série; o preço é a coerência entre cópia e origem.`},
+ {t:'Rede de distribuição de conteúdo (CDN)',m:'Latência para arquivos estáticos',p:'Custo; invalidação; dependência de terceiro',f:'O custo de transporte é zero; há um único administrador',
+  i:`A CDN é um cache <i>read-through</i> operado por terceiros na borda da rede. Parte crítica do caminho de cada requisição passa a ser administrada por outra empresa.`},
+ {t:'Camada web sem estado',m:'Elasticidade',p:'Armazenamento de sessões como gargalo ou SPOF',f:'A latência é zero; a largura de banda é infinita',
+  i:`A sessão sai dos servidores, e qualquer servidor atende qualquer requisição. O medidor mostra o custo: o armazenamento de sessões entra <b>em série</b> no caminho de quase toda requisição.`},
+ {t:'Vários data centers',m:'Disponibilidade geográfica',p:'Sincronização de dados entre regiões; testes e implantação',f:'Praticamente todas',
+  i:`O geoDNS desvia o tráfego para o data center mais próximo ou para o sobrevivente. A redundância entre regiões eleva a disponibilidade calculada, mas o incidente do GitHub de 2018 (Seção F.2.8) mostra que a hipótese de independência é frágil.`},
+ {t:'Filas de mensagens',m:'Desacoplamento; absorção de picos',p:'Consistência eventual; entregas duplicadas',f:'A rede é confiável',
+  i:`A fila transforma uma rajada em um fluxo constante de trabalho. O produtor não sabe quando, e se, o trabalho foi feito, o que exige consumidores <b>idempotentes</b>.`},
+ {t:'Registros, métricas e automação',m:'Observabilidade; operabilidade',p:'Volume e dispersão dos registros',f:'Há um único administrador',
+  i:`Com dezenas de servidores, os registros precisam ser agregados e as métricas acompanhadas em três níveis: servidor, camadas e negócio. A causa raiz de uma falha deixa de estar em um único arquivo.`},
+ {t:'Sharding',m:'Escalabilidade de escrita e de volume',p:'Resharding; problema da celebridade; junções e transações',f:'A topologia nunca muda',
+  i:`O banco é dividido por uma chave de particionamento, como <code>user_id % 4</code>. Passar de 4 para 5 shards com função módulo muda o destino de cerca de 80% das chaves; o <i>hashing</i> consistente reduz essa migração.`},
+];
+
+function avail(k,a){
+  const p2=1-(1-a)**2, dc=a*p2*p2*a;
+  const T=[[a,'A (um servidor)'],[a*a,'A_web × A_banco'],[a*p2*a,'A_bal × [1−(1−A)²]_web × A_banco'],
+   [a*p2*p2,'A_bal × [1−(1−A)²]_web × [1−(1−A)²]_banco'],[a*p2*p2,'igual ao passo 4: cache fora do caminho crítico'],
+   [a*p2*p2,'igual ao passo 4: CDN serve só estáticos'],[dc,'A_bal × web² × banco² × A_sessões'],
+   [1-(1-dc)**2,'1 − (1 − A_dc)², com A_dc do passo 7'],[1-(1-dc)**2,'igual ao passo 8: fila fora do caminho síncrono'],
+   [1-(1-dc)**2,'igual ao passo 8'],[1-(1-dc)**2,'igual ao passo 8: cada requisição atinge um shard replicado']];
+  return T[k-1];
+}
+const pct=v=>(v*100).toFixed(v>0.99999?5:3).replace('.',',')+'%';
+function down(v){const h=(1-v)*365.25*24; return h>=1?h.toFixed(1).replace('.',',')+' h/ano':(h*60>=1?(h*60).toFixed(1).replace('.',',')+' min/ano':(h*3600).toFixed(1).replace('.',',')+' s/ano');}
+
+let i=0,timer=null;
+function render(){
+  const s=STEPS[i],k=i+1,a=parseFloat(document.getElementById('disp').value);
+  document.getElementById('titulo').innerHTML=`Passo ${k}: <span>${s.t}</span>`;
+  document.getElementById('diagram').innerHTML=diagram(k);
+  document.getElementById('melhora').textContent=s.m;
+  document.getElementById('problema').textContent=s.p;
+  document.getElementById('falacia').textContent=s.f;
+  const [v,f]=avail(k,a);
+  document.getElementById('total').textContent=pct(v);
+  document.getElementById('parada').textContent='indisponibilidade esperada ≈ '+down(v);
+  document.getElementById('formula').textContent=f;
+  document.getElementById('info').innerHTML=s.i;
+  document.getElementById('count').textContent=`passo ${k} de ${STEPS.length}`;
+}
+function go(d){i=Math.max(0,Math.min(STEPS.length-1,i+d));render();}
+function reset(){stop();i=0;render();}
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById('auto').textContent='▶ Auto';}}
+function toggleAuto(){
+  if(timer){stop();return;}
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{if(i>=STEPS.length-1){stop();return;}go(1);},5000);
+}
+i=Math.min(STEPS.length-1,Math.max(0,(+location.hash.replace(/\D/g,"")||1)-1));render();
+</script>
+</body>
+</html>

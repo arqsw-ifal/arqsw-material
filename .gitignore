@@ -1,0 +1,11 @@
+site/
+.cache/
+__pycache__/
+*.pyc
+.venv/
+
+# artefatos de compilacao Java
+target/
+*.class
+target-compile.log
+.DS_Store

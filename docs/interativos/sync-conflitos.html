@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sincronização e conflitos</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:6px 11px; cursor:pointer; font:inherit; font-size:.82rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .panel{background:var(--nav); border-radius:12px; padding:12px}
+  .panel h2{font-size:.85rem; margin:0 0 8px; color:var(--tealL)}
+  .blocks{display:grid; grid-template-columns:repeat(8,1fr); gap:5px; margin:6px 0}
+  .blk{background:var(--nav2); border:1px solid var(--navL); border-radius:7px; padding:6px 2px; text-align:center; font-family:"JetBrains Mono",monospace; font-size:.62rem; cursor:pointer; overflow:hidden}
+  .blk b{display:block; font-size:.7rem; color:var(--paper)}
+  .blk.mud{border:2px solid var(--gold); color:var(--gold)}
+  .blk.env{background:rgba(232,169,60,.25)}
+  .lbl{font-size:.74rem; color:var(--muted)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px}
+  @media(max-width:640px){ .row2,.tri{grid-template-columns:1fr !important} .blocks{grid-template-columns:repeat(4,1fr)} }
+  .metric{display:flex; justify-content:space-between; font-size:.8rem; padding:4px 0; border-bottom:1px solid var(--navL)}
+  .metric span:last-child{font-family:"JetBrains Mono",monospace; color:var(--gold)}
+  .tri{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+  .dev{background:var(--nav2); border:1px solid var(--navL); border-radius:10px; padding:10px; font-size:.76rem}
+  .dev.srv{border-color:var(--teal)}
+  .dev h3{margin:0 0 6px; font-size:.84rem}
+  .kv{display:flex; justify-content:space-between; gap:6px; padding:2px 0}
+  .kv span:last-child{font-family:"JetBrains Mono",monospace; color:var(--tealL); text-align:right; word-break:break-all}
+  .file{margin-top:6px; padding:5px 7px; border-radius:6px; background:rgba(15,122,140,.18); font-family:"JetBrains Mono",monospace; font-size:.68rem; word-break:break-all}
+  .file.cf{background:rgba(192,80,63,.25); border:1px solid var(--red)}
+  .dev .btn{margin-top:6px; padding:4px 8px; font-size:.74rem}
+  .tree{margin-top:10px; display:grid; gap:4px; font-size:.76rem}
+  .tree div{padding:4px 8px; border-radius:6px; background:var(--nav2); border:1px solid var(--navL); color:var(--muted)}
+  .tree div.on{border-color:var(--gold); color:var(--paper)}
+  .tree div.end{border:2px solid var(--gold); color:var(--gold); font-weight:700}
+  .tree div.cf{border:2px solid var(--red); color:#ffb4a8; font-weight:700}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  code{font-family:"JetBrains Mono",monospace; color:var(--tealL); font-size:.92em}
+  .hide{display:none}
+</style>
+</head>
+<body>
+  <h1>Sincronização no <span style="color:var(--tealL)">Nextcloud</span>: blocos e conflitos</h1>
+  <p class="sub">Na primeira aba, quanto transferir a cada mudança; na segunda, o que fazer quando dois dispositivos editam o mesmo arquivo sem que uma edição conheça a outra.</p>
+
+  <div class="toolbar">
+    <button class="btn on" id="tB" onclick="aba('B')">1. Blocos e sincronização diferencial</button>
+    <button class="btn" id="tC" onclick="aba('C')">2. Conflito em três vias</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <!-- ABA BLOCOS -->
+  <div id="abaB" class="panel">
+    <h2>relatorio.pdf · 8 blocos de 4 MB (32 MB)</h2>
+    <div class="lbl">Cliente: hash de cada bloco (clique num bloco para editá-lo)</div>
+    <div class="blocks" id="bLocal"></div>
+    <div class="lbl">Servidor de blocos: hashes já armazenados</div>
+    <div class="blocks" id="bSrv"></div>
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn ghost" onclick="inserirInicio()">Inserir 1 byte no início</button>
+      <button class="btn" onclick="enviar()">Sincronizar</button>
+      <button class="btn ghost" onclick="resetB()">Reiniciar</button>
+    </div>
+    <div class="row2">
+      <div><div class="lbl">Blocos endereçados por conteúdo (Xu; Dropbox)</div>
+        <div class="metric"><span>Blocos a enviar</span><span id="xb"></span></div>
+        <div class="metric"><span>Bytes transferidos</span><span id="xm"></span></div></div>
+      <div><div class="lbl">Nextcloud: <i>chunked upload</i> do arquivo inteiro</div>
+        <div class="metric"><span>Partes (5 MB a 5 GB)</span><span id="nb"></span></div>
+        <div class="metric"><span>Bytes transferidos</span><span id="nm"></span></div></div>
+    </div>
+  </div>
+
+  <!-- ABA CONFLITO -->
+  <div id="abaC" class="panel hide">
+    <div class="tri">
+      <div class="dev" id="dN"></div>
+      <div class="dev srv" id="dS"></div>
+      <div class="dev" id="dM"></div>
+    </div>
+    <div class="toolbar" style="margin-top:10px">
+      <button class="btn ghost" onclick="resetC()">Reiniciar</button>
+      <span class="lbl">Experimente: editar nos dois dispositivos sem sincronizar e depois sincronizar ambos.</span>
+    </div>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const h=s=>{ let x=2166136261; for(const c of s){ x^=c.charCodeAt(0); x=Math.imul(x,16777619)>>>0; } return x.toString(16).padStart(8,'0').slice(0,6); };
+const BS=8; // caracteres por bloco no modelo (cada bloco representa 4 MB)
+let conteudo, servidor, enviados=null, modoAba='B';
+
+function resetB(){ conteudo='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-+'; servidor=new Set(blocos().map(h)); enviados=null; renderB(); }
+function blocos(){ const r=[]; for(let i=0;i<conteudo.length;i+=BS) r.push(conteudo.slice(i,i+BS)); return r.slice(0,8); }
+function editar(k){ const a=conteudo.split(''); const p=k*BS+3; a[p]=a[p]==='#'?'*':'#'; conteudo=a.join(''); enviados=null; renderB(); }
+function inserirInicio(){ conteudo=('!'+conteudo).slice(0,64); enviados=null; renderB(); }
+function enviar(){ enviados=blocos().map((b,i)=>servidor.has(h(b))?-1:i).filter(i=>i>=0); blocos().forEach(b=>servidor.add(h(b))); renderB(); }
+function renderB(){
+  const bl=blocos(), pend=bl.map((b,i)=>servidor.has(h(b))?-1:i).filter(i=>i>=0);
+  $('bLocal').innerHTML=bl.map((b,i)=>`<div class="blk ${pend.includes(i)?'mud':''} ${enviados&&enviados.includes(i)?'env':''}" onclick="editar(${i})"><b>#${i}</b>${h(b)}</div>`).join('');
+  const srv=[...servidor].slice(-8);
+  $('bSrv').innerHTML=srv.map(x=>`<div class="blk" style="cursor:default">${x}</div>`).join('');
+  const n=enviados?enviados.length:pend.length, tudo=n>0;
+  $('xb').textContent=`${n} de 8`; $('xm').textContent=`${n*4} MB`;
+  $('nb').textContent= tudo? '7 partes de 5 MB' : '0'; $('nm').textContent= tudo? '32 MB' : '0 MB';
+  $('count').textContent= enviados? `última sincronização: ${enviados.length} bloco(s) enviado(s)` : `${pend.length} bloco(s) alterado(s) aguardando`;
+  $('info').innerHTML=`<b>Blocos imutáveis endereçados por hash.</b> Com blocos de até 4 MB, como no Dropbox (XU, 2020, cap. 15; COWLING, 2016), o cliente envia só os blocos cujo hash o servidor ainda não tem: retomada, sincronização diferencial e deduplicação. A inserção de um único byte no início, porém, desloca o alinhamento e altera todos os blocos seguintes; o rsync contorna isso com um <i>checksum</i> rolante. O Nextcloud não tem repositório de blocos: o <i>chunked upload</i> divide o envio em partes de 5 MB a 5 GB apenas para retomar envios interrompidos, e o arquivo vai inteiro. Perde-se banda, ganha-se independência do armazenamento (SMB, S3 de terceiros recebem arquivos comuns).`;
+}
+
+// ---------- CONFLITO ----------
+let S, D, ultima=null;
+function resetC(){
+  S={conteudo:'v1', etag:'e1', n:1, extras:[]};
+  D={N:{nome:'Notebook', local:'v1', base:{etag:'e1',hash:'v1'}, ed:0}, M:{nome:'Celular', local:'v1', base:{etag:'e1',hash:'v1'}, ed:0}};
+  ultima=null; renderC();
+}
+function editarD(k, igual){ const d=D[k]; d.ed++; d.local = igual? 'v1+mesma correção' : `${d.local}+${k==='N'?'nb':'cel'}${d.ed}`; ultima=null; renderC(); }
+function sincronizar(k){
+  const d=D[k];
+  const mudouLocal = d.local!==d.base.hash, mudouServidor = S.etag!==d.base.etag;
+  let acao;
+  if(!mudouLocal && !mudouServidor) acao='NADA';
+  else if(mudouLocal && !mudouServidor){ acao='ENVIAR'; S.n++; S.conteudo=d.local; S.etag='e'+S.n; }
+  else if(!mudouLocal){ acao='BAIXAR'; d.local=S.conteudo; }
+  else if(d.local===S.conteudo) acao='ATUALIZAR_BASE';
+  else {
+    acao='CONFLITO';
+    const nomeCf='relatorio (conflicted copy ana 2026-10-18 143000).docx';
+    S.extras.push({nome:nomeCf, de:d.nome, conteudo:d.local});
+    d.local=S.conteudo;
+  }
+  d.base={etag:S.etag, hash:d.local};
+  ultima={k, acao, mudouLocal, mudouServidor};
+  renderC();
+}
+function devHTML(k){
+  const d=D[k], cf=S.extras.filter(x=>x.de===d.nome);
+  return `<h3>💻 ${d.nome} (ana)</h3>
+    <div class="kv"><span>conteúdo local</span><span>${d.local}</span></div>
+    <div class="kv"><span><i>journal</i>: ETag base</span><span>${d.base.etag}</span></div>
+    <div class="kv"><span><i>journal</i>: hash base</span><span>${d.base.hash}</span></div>
+    <div class="file">relatorio.docx</div>
+    ${cf.map(x=>`<div class="file cf">${x.nome}<br>conteúdo: ${x.conteudo}</div>`).join('')}
+    <button class="btn" onclick="editarD('${k}')">Editar</button>
+    <button class="btn ghost" onclick="editarD('${k}',true)">Editar igual</button>
+    <button class="btn" onclick="sincronizar('${k}')">Sincronizar</button>`;
+}
+function renderC(){
+  $('dN').innerHTML=devHTML('N'); $('dM').innerHTML=devHTML('M');
+  $('dS').innerHTML=`<h3>☁ Servidor</h3>
+    <div class="kv"><span>conteúdo</span><span>${S.conteudo}</span></div>
+    <div class="kv"><span>ETag</span><span>${S.etag}</span></div>
+    <div class="file">relatorio.docx</div>
+    <div class="lbl" style="margin-top:6px">PUT grava em arquivo parcial, move ao destino e propaga nova ETag às pastas ancestrais.</div>`;
+  const u=ultima, on=c=>c?'on':'';
+  let t='<div class="'+(u?'on':'')+'">Para cada arquivo: comparar local, base sincronizada (<i>journal</i>) e servidor</div>';
+  if(u){
+    t+=`<div class="on">${D[u.k].nome}: mudou localmente? <b>${u.mudouLocal?'sim':'não'}</b> (hash local ≠ hash da base)</div>`;
+    t+=`<div class="on">Mudou no servidor? <b>${u.mudouServidor?'sim':'não'}</b> (ETag do servidor ≠ ETag da base)</div>`;
+    if(u.mudouLocal&&u.mudouServidor) t+=`<div class="on">Conteúdos idênticos? <b>${u.acao==='ATUALIZAR_BASE'?'sim':'não'}</b></div>`;
+    const txt={NADA:'Nada a fazer',ENVIAR:'Enviar ao servidor (nova ETag)',BAIXAR:'Baixar do servidor',ATUALIZAR_BASE:'Atualizar a base sem transferir',
+      CONFLITO:'Conflito: o arquivo do servidor fica com o nome original; a versão local vira a cópia em conflito'}[u.acao];
+    t+=`<div class="${u.acao==='CONFLITO'?'cf':'end'}">→ ${u.acao}: ${txt}</div>`;
+  }
+  $('tree').innerHTML=t;
+  $('count').textContent=`ETag do servidor: ${S.etag} · cópias em conflito: ${S.extras.length}`;
+  $('info').innerHTML=`<b>Comparação em três vias.</b> “O último a gravar vence” descartaria em silêncio o trabalho de um dos dispositivos e dependeria de relógios. O cliente compara a versão local, a do servidor e a <b>base</b> registrada no <i>journal</i> na última sincronização bem-sucedida, como as três árvores do Nucleus do Dropbox (GOLDBERG, 2020). Se as duas mudaram e os conteúdos diferem, nada é descartado: a versão local é renomeada por <code>makeConflictFileName</code>, com a marca antes da extensão para o arquivo continuar abrindo no programa certo. O <i>locking</i> transacional do servidor é outro problema: impede gravações simultâneas corrompidas, não edições concorrentes.`;
+}
+function aba(x){ modoAba=x; $('abaB').classList.toggle('hide',x!=='B'); $('abaC').classList.toggle('hide',x!=='C'); $('tB').classList.toggle('on',x==='B'); $('tC').classList.toggle('on',x==='C'); x==='B'?renderB():renderC(); }
+resetB(); resetC(); aba('B');
+</script>
+</body>
+</html>

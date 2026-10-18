@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broker e mediator no Mattermost</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 14px; cursor:pointer; font:inherit; font-size:.88rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .panel{background:var(--nav); border-radius:12px; padding:14px}
+  .lvl{display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap}
+  .pill{font-family:"JetBrains Mono",monospace; font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; background:var(--teal)}
+  .pill.b{background:var(--gold); color:var(--nav2)} .pill.n{background:var(--navL)}
+  .c4{font-size:.8rem; color:var(--muted)}
+  .diagram{display:grid; gap:8px; min-height:250px; align-content:start}
+  .row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:stretch}
+  .box{background:var(--nav2); border:1px solid var(--navL); border-radius:9px; padding:8px 10px; min-width:118px; max-width:210px; text-align:center; font-size:.76rem; line-height:1.3; transition:all .3s}
+  .box b{display:block; font-size:.8rem; color:var(--paper)}
+  .box small{color:var(--muted)}
+  .box.foco{border:2px solid var(--gold)}
+  .box.hl{box-shadow:0 0 0 3px rgba(232,169,60,.45)}
+  .box.ok{border:2px solid var(--tealL)}
+  .box.fail{border:2px solid var(--red); box-shadow:0 0 0 3px rgba(192,80,63,.35)}
+  .box.off{opacity:.35}
+  .grp{border:1px dashed var(--navL); border-radius:10px; padding:8px; display:grid; gap:6px; flex:1; min-width:230px}
+  .grp > .t{font-size:.7rem; color:var(--tealL); text-align:center; font-family:"JetBrains Mono",monospace}
+  .arrow{text-align:center; color:var(--tealL); font-size:.75rem}
+  .arrow.r{color:var(--red)}
+  code{font-family:"JetBrains Mono",monospace; font-size:.92em; color:var(--tealL)}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  .info ul{margin:.3em 0 0 1.1em; padding:0}
+  .nota{font-size:.68rem; color:var(--muted); margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Eventos no <span style="color:var(--tealL)">Mattermost</span>: broker, mediator e difusão</h1>
+  <p class="sub">Etapas ordenadas, no estilo <b>mediator</b>, até gravar a mensagem; reações independentes, no estilo <b>broker</b>, depois dela. Por fim, a difusão no <i>hub</i> de WebSocket e entre os nós do <i>cluster</i>.</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="panel">
+    <div class="lvl"><span class="pill" id="pill"></span><span class="c4" id="c4"></span></div>
+    <div class="diagram" id="diagram"></div>
+  </div>
+  <div class="info" id="info"></div>
+
+<script>
+const box=(t,s,cls='')=>`<div class="box ${cls}"><b>${t}</b><small>${s}</small></div>`;
+const row=(...b)=>`<div class="row">${b.join('')}</div>`;
+const arrow=(t,c='')=>`<div class="arrow ${c}">${t}</div>`;
+const grp=(t,...b)=>`<div class="grp"><div class="t">${t}</div>${b.join('')}</div>`;
+
+const med=(k,fail)=>{ // k: etapa ativa (0..3); fail: rejeição no hook
+  const c=i=> fail&&i===1?'fail': i<k?'ok': i===k?'foco':'';
+  return grp('Etapas ordenadas: estilo mediator',
+    row(box('1. Deduplicar','pending_post_id, cache de 30 s',c(0))),
+    row(box('2. Hook MessageWillBePosted','plugins podem alterar ou rejeitar',c(1))),
+    row(box('3. store.Post.Save','grava no PostgreSQL',fail?'off':c(2))));
+};
+const brk=(on,failW)=>grp('Reações independentes: estilo broker',
+  row(box('Hub WebSocket','local e demais nós',on?'ok':''), box('Notificações','push e e-mail',on?'ok':'')),
+  row(box('Hook MessageHasBeenPosted','assíncrono, sem veto',on?'ok':''), box('Webhooks de saída','integrações',failW?'fail':on?'ok':'')));
+
+const STEPS=[
+  { tag:'teoria', c4:'Topologia broker (Richards; Ford, 2020, cap. 14)',
+    diagram: row(box('Evento inicial','publicado num canal','foco'))
+      + arrow('↓ canal do broker')
+      + row(box('Processador A','faz sua parte','hl'))
+      + arrow('↓ anuncia o que fez: novo evento de processamento')
+      + row(box('Processador B','reage'), box('Processador C','reage'), box('(ninguém ainda)','ponto de extensão','off')),
+    info:`<b>Broker:</b> não há coordenador. Cada processador consome um evento, executa sua tarefa e anuncia o que fez, como numa corrida de revezamento em que o corredor esquece o bastão depois de passá-lo.
+      <ul><li>Vantagens: desacoplamento, escalabilidade, responsividade, tolerância a falhas.</li><li>Desvantagens: sem controle do fluxo, tratamento de erros difícil, sem reinício.</li></ul>` },
+  { tag:'teoria', c4:'Topologia mediator (Richards; Ford, 2020, cap. 14)',
+    diagram: row(box('Evento inicial','',''))
+      + arrow('↓')
+      + row(box('Mediador de eventos','conhece as etapas do fluxo','foco'))
+      + arrow('↓ filas ponto a ponto · ↑ respostas ao mediador')
+      + row(box('Etapa 1','processador','hl'), box('Etapa 2','processador'), box('Etapa 3','processador')),
+    info:`<b>Mediator:</b> um mediador recebe o evento inicial e envia eventos de processamento a canais dedicados; os processadores respondem a ele e não anunciam nada ao resto do sistema.
+      <ul><li>Ganha-se controle do fluxo, tratamento de erros e reinício.</li><li>Perde-se desacoplamento, escalabilidade e tolerância a falhas (RICHARDS; FORD, 2020, p. 195).</li></ul>` },
+  { tag:'mediator', c4:'Mattermost: POST /api/v4/posts',
+    diagram: row(box('Cliente','POST /api/v4/posts com pending_post_id','foco'))
+      + arrow('↓')
+      + row(box('api4.createPost','decodifica, sanitiza, audita, verifica permissões','hl'))
+      + arrow('↓ app.CreatePost')
+      + `<div class="row">${med(-1)}${brk(false)}</div>`,
+    info:`<b>Antes da confirmação</b>, tudo é síncrono e ordenado. O <i>handler</i> REST descarta o instante enviado pelo cliente (salvo para administradores): o servidor define o <code>CreateAt</code> que ordenará a mensagem.` },
+  { tag:'mediator', c4:'Deduplicação pelo pending_post_id',
+    diagram: `<div class="row">${med(0)}${brk(false)}</div>` + arrow('repetição com o mesmo pending_post_id → devolve a mensagem já criada'),
+    info:`<b>Idempotent Receiver:</b> o cliente reenvia o mesmo <code>pending_post_id</code> em todas as tentativas; o servidor guarda por 30 segundos a associação com a mensagem criada. Numa rede móvel instável, a segunda tentativa não duplica a mensagem.` },
+  { tag:'mediator', c4:'Hook MessageWillBePosted: um plugin rejeita',
+    diagram: `<div class="row">${med(1,true)}${brk(false)}</div>` + arrow('✕ erro devolvido ao usuário; nada é gravado nem anunciado','r'),
+    info:`<b>Por que mediator aqui:</b> a ordem importa e um erro precisa <b>interromper</b> o fluxo e voltar ao usuário. Se um <i>plugin</i> rejeita a mensagem no <i>hook</i> síncrono, nenhum interessado chega a saber dela.` },
+  { tag:'mediator', c4:'Gravação no PostgreSQL',
+    diagram: `<div class="row">${med(2)}${brk(false)}</div>` + arrow('↓ só depois de gravar: platform.Publish(evento posted)'),
+    info:`<b>Gravar e depois anunciar.</b> Nenhum cliente é avisado de uma mensagem não persistida. Se a difusão falhar, a mensagem não se perde: apenas atrasa até o cliente se ressincronizar. A perda de eventos vira problema de latência, não de integridade.` },
+  { tag:'broker', c4:'Evento posted: reações independentes',
+    diagram: `<div class="row">${med(3)}${brk(true,true)}</div>` + arrow('a falha de um webhook não impede as demais reações'),
+    info:`<b>Depois da confirmação</b>, a lógica é de broker: o evento <code>posted</code> é anunciado e o <i>hub</i>, as notificações, os <i>plugins</i> (<code>MessageHasBeenPosted</code>) e os <i>webhooks</i> reagem em paralelo, sem se conhecerem. Aqui um <i>webhook</i> falhou, e os demais seguiram.` },
+  { tag:'hub', c4:'Hub de WebSocket: um por núcleo de CPU',
+    diagram: row(box('Publish(evento)','produtor não conhece conexões','foco'))
+      + arrow('↓ GetHubForUserId: hash(userID) % nº de hubs')
+      + row(box('Hub 0','laço único, sem locks','hl'), box('Hub 1','ana: notebook + celular','hl'), box('Hub 2','bruno'), box('Hub 3','carla'))
+      + arrow('↓ ShouldSendEvent filtra · envio pelo canal webConn.send')
+      + row(box('WebConn','goroutine de leitura'), box('WebConn','goroutine de escrita','ok'), box('WebConn','fila de envio','ok')),
+    info:`<b>Publish/subscribe dentro do nó.</b> Todas as conexões de um usuário ficam no mesmo <i>hub</i>, escolhido por <i>hash</i>. Cada <i>hub</i> processa registrar, remover e difundir num único laço que recebe mensagens por canais Go; como só ele altera os índices, dispensam-se <i>locks</i>. Para quem publica, o <i>hub</i> é um <i>Mediator</i>; para as conexões, um <i>Observer</i>.` },
+  { tag:'hub', c4:'Consumidor lento: contrapressão por descarte',
+    diagram: row(box('Hub 1','tenta entregar o evento','foco'))
+      + arrow('↓ select { case webConn.send <- msg: … default: … }')
+      + row(box('WebConn de ana','fila cheia','fail'), box('WebConn de outro usuário','entregue','ok'))
+      + arrow('closeAndRemoveConn → o cliente reconecta informando a última sequência','r')
+      + row(box('Fila morta','últimos 128 eventos da conexão','hl'), box('Fora da fila?','nova conexão, hello, ressincroniza pela API')),
+    info:`<b>O hub não espera.</b> Se a fila de envio está cheia, o ramo <code>default</code> fecha a conexão em vez de bloquear o laço: protege-se a responsividade dos demais usuários à custa do cliente lento. Na reconexão, a <i>dead queue</i> de 128 eventos permite retomar sem perdas; se a sequência já saiu dela, o cliente recebe <i>hello</i> e ressincroniza.` },
+  { tag:'cluster', c4:'Difusão entre nós: modo confiável',
+    diagram: `<div class="row">`
+      + grp('Nó 1', row(box('Publish','evento posted','foco')), arrow('↓'), row(box('PublishSkipClusterSend','hubs locais','ok')), row(box('Conexões do nó 1','','ok')))
+      + grp('Nó 2', row(box('ClusterPublishHandler','recebe e decodifica','hl')), arrow('↓'), row(box('PublishSkipClusterSend','hubs locais, sem reenviar','ok')), row(box('Conexões do nó 2','','ok')))
+      + `</div>` + arrow('Nó 1 → Nó 2: SendClusterMessage, SendType = ClusterSendReliable (canal TCP)'),
+    info:`<b>Assimetria que evita laços.</b> O nó de origem entrega aos seus <i>hubs</i> e envia o evento aos demais; quem recebe chama <code>PublishSkipClusterSend</code>, que não reenvia. O modo confiável é reservado a eventos cuja perda é cara: mensagem publicada ou editada, conversa direta ou em grupo criada, usuário adicionado a equipe.` },
+  { tag:'cluster', c4:'Difusão entre nós: melhor esforço',
+    diagram: `<div class="row">`
+      + grp('Nó 1', row(box('Publish','evento typing','foco')), arrow('↓'), row(box('PublishSkipClusterSend','hubs locais','ok')))
+      + grp('Nó 2', row(box('ClusterPublishHandler','pacote perdido','fail')), arrow('↓'), row(box('Conexões do nó 2','não veem “digitando…”','off')))
+      + `</div>` + arrow('SendType = ClusterSendBestEffort','r'),
+    info:`<b>Garantia proporcional ao custo da perda.</b> Perder um aviso de “digitando” é irrelevante, porque ele perde o sentido em segundos. A implementação do <i>cluster</i> fica atrás de <code>einterfaces.ClusterInterface</code>; sem ela, o servidor opera como nó único: inversão de dependência a serviço do modelo <i>open core</i>.` },
+];
+
+let i=0, timer=null;
+function render(){
+  const s=STEPS[i], p=document.getElementById('pill');
+  p.textContent={teoria:'teoria',mediator:'antes de gravar',broker:'depois de gravar',hub:'hub WebSocket',cluster:'cluster'}[s.tag];
+  p.className='pill '+(s.tag==='broker'?'b':s.tag==='teoria'?'n':'');
+  document.getElementById('c4').textContent=s.c4;
+  document.getElementById('diagram').innerHTML=s.diagram;
+  document.getElementById('info').innerHTML=s.info;
+  document.getElementById('count').textContent=`passo ${i+1} de ${STEPS.length}`;
+}
+function go(d){ i=Math.max(0, Math.min(STEPS.length-1, i+d)); render(); }
+function reset(){ stop(); i=0; render(); }
+function stop(){ if(timer){ clearInterval(timer); timer=null; document.getElementById('auto').textContent='▶ Auto'; } }
+function toggleAuto(){
+  if(timer){ stop(); return; }
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{ if(i>=STEPS.length-1){ stop(); return; } go(1); }, 5000);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparador de estilos</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .grid{display:grid;grid-template-columns:230px 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  .car{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:7px;font-size:.82rem;cursor:pointer}
+  .car:hover{background:var(--nav2)}
+  .car input{accent-color:var(--gold)}
+  .car.on{background:rgba(232,169,60,.14);color:var(--gold)}
+  .rank{display:grid;gap:6px}
+  .est{display:grid;grid-template-columns:24px 120px 1fr 52px;gap:8px;align-items:center;font-size:.8rem;background:var(--nav2);border:1px solid var(--navL);border-radius:9px;padding:6px 8px;cursor:pointer}
+  .est.sel{border-color:var(--gold)}
+  .pos{font-family:"JetBrains Mono",monospace;color:var(--muted)}
+  .nome b{display:block}
+  .nome small{color:var(--muted);font-size:.68rem}
+  .bar{height:12px;background:var(--navL);border-radius:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--tealL))}
+  .nota5{font-family:"JetBrains Mono",monospace;color:var(--gold);font-weight:700;text-align:right}
+  .det{margin-top:10px;font-size:.78rem}
+  .det table{width:100%;border-collapse:collapse}
+  .det td{padding:3px 6px;border-bottom:1px solid var(--navL)}
+  .det td:last-child{text-align:right;font-family:"JetBrains Mono",monospace;color:var(--gold)}
+  .aviso{margin-top:10px;font-size:.74rem;color:var(--muted);border:1px solid var(--navL);border-radius:8px;padding:7px 9px}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+  @media(max-width:640px){.est{grid-template-columns:20px 1fr 70px 40px}}
+</style>
+</head>
+<body>
+  <h1>Comparador de <span style="color:var(--tealL)">estilos arquiteturais</span></h1>
+  <p class="sub">Marque as características que o sistema precisa priorizar (de preferência, um <b>Top-3</b>) e observe a ordenação dos oito estilos segundo a Tabela D.11.</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="exemplo(['Escalabilidade','Elasticidade','Tolerância a falhas'])">Exemplo: picos de demanda</button>
+    <button class="btn" onclick="exemplo(['Custo e simplicidade','Testabilidade','Implantabilidade'])">Exemplo: equipe pequena</button>
+    <button class="btn ghost" onclick="exemplo([])">Limpar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="rot">Características desejadas</div>
+      <div id="cars"></div>
+    </div>
+    <div class="panel">
+      <div class="rot">Ranking (média das avaliações, de 1 a 5)</div>
+      <div class="rank" id="rank"></div>
+      <div class="det" id="det"></div>
+      <div class="aviso">
+        <b>Advertência.</b> As avaliações são <b>tendências</b> derivadas do texto de Richards e Ford (2020, caps. 10-17), organizadas na Tabela D.11 do Apêndice D, e não medições.
+        Os números de estrelas atribuídos explicitamente pelos autores foram mantidos;
+        as qualificações verbais foram convertidas na escala muito baixa = 1, baixa = 2, média = 3, alta = 4 e muito alta = 5.
+        Células sem qualificação ("—") não entram na média.</div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), a partir da Tabela D.11, que é derivada de Richards e Ford (2020, caps. 10-17).</p>
+
+<script>
+const ESTILOS=['Camadas','Pipeline','Microkernel','Serviços','Eventos','Space-based','SOA','Microsserviços'];
+const TIPO=['Monolítico','Monolítico','Monolítico','Distribuído','Distribuído','Distribuído','Distribuído','Distribuído'];
+// Texto literal da Tabela D.11; null = "—"
+const T={
+ 'Custo e simplicidade':['Alta','Alta','Alta','Alta (para distribuído)','Baixa simplicidade','Baixa','Baixa','Baixa (inferida)'],
+ 'Implantabilidade':['Muito baixa','Média','Média (3)','Alta (4)',null,null,'Muito baixa','Alta'],
+ 'Testabilidade':['Baixa (2)','Média','Média (3)','Alta (4)','Baixa','Muito baixa (1)','Muito baixa','Alta'],
+ 'Confiabilidade':['Média (3)','Média (3)','Média (3)','Alta para distribuído',null,null,null,'Média'],
+ 'Desempenho':['Baixa (2)',null,'Média (3)',null,'Muito alta (5)','Muito alta (5)','Muito baixa','Baixa'],
+ 'Escalabilidade':['Muito baixa (1)','Muito baixa (1)','Baixa','Média (3)','Muito alta (5)','Muito alta (5)','Média','Muito alta'],
+ 'Elasticidade':['Muito baixa (1)','Muito baixa (1)','Baixa','Baixa (2)',null,'Muito alta (5)','Média','Muito alta'],
+ 'Tolerância a falhas':['Muito baixa','Muito baixa','Baixa','Alta (4)','Muito alta (5)',null,null,'Alta'],
+ 'Capacidade evolutiva':[null,'Média','Média (3)','Alta (agilidade 4)','Muito alta (5)',null,'Muito baixa','Muito alta'],
+};
+function nota(txt){
+  if(!txt) return null;
+  const m=txt.match(/\((?:agilidade )?(\d)\)/); if(m) return +m[1];
+  const t=txt.toLowerCase();
+  if(t.startsWith('muito alta'))return 5; if(t.startsWith('muito baixa'))return 1;
+  if(t.startsWith('alta'))return 4; if(t.startsWith('média'))return 3; if(t.startsWith('baixa'))return 2;
+  return null;
+}
+let marcadas=new Set(), sel=null;
+function montaCars(){
+  document.getElementById('cars').innerHTML=Object.keys(T).map(c=>
+    `<label class="car ${marcadas.has(c)?'on':''}"><input type="checkbox" ${marcadas.has(c)?'checked':''} onchange="marca('${c}',this.checked)">${c}</label>`).join('');
+}
+function marca(c,on){on?marcadas.add(c):marcadas.delete(c);render();}
+function exemplo(l){marcadas=new Set(l);sel=null;render();}
+function ranking(){
+  return ESTILOS.map((e,k)=>{
+    const vals=[...marcadas].map(c=>nota(T[c][k])).filter(v=>v!==null);
+    const media=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+    return {e,k,media,n:vals.length,falta:marcadas.size-vals.length};
+  }).sort((a,b)=>(b.media??-1)-(a.media??-1)||b.n-a.n);
+}
+function render(){
+  montaCars();
+  const r=ranking(), n=marcadas.size;
+  document.getElementById('count').textContent=n?`${n} característica${n>1?'s':''} marcada${n>1?'s':''}`:'nenhuma característica marcada';
+  document.getElementById('rank').innerHTML=r.map((x,p)=>`
+    <div class="est ${sel===x.k?'sel':''}" onclick="sel=${x.k};render()">
+      <span class="pos">${x.media===null?'–':p+1}</span>
+      <span class="nome"><b>${x.e}</b><small>${TIPO[x.k]}${x.falta?` · ${x.falta} sem avaliação`:''}</small></span>
+      <span class="bar"><i style="width:${x.media?x.media*20:0}%"></i></span>
+      <span class="nota5">${x.media===null?'—':x.media.toFixed(1).replace('.',',')}</span>
+    </div>`).join('');
+  const k=sel??(n?r[0].k:null);
+  document.getElementById('det').innerHTML=k===null?'':
+    `<div class="rot" style="margin-top:4px">Linhas da Tabela D.11 para ${ESTILOS[k]}</div><table>`+
+    Object.keys(T).filter(c=>!n||marcadas.has(c)).map(c=>`<tr><td>${c}</td><td>${T[c][k]??'—'}</td></tr>`).join('')+'</table>';
+  info(r,n);
+}
+function info(r,n){
+  let h;
+  if(!n) h=`Nenhuma característica marcada. Richards e Ford recomendam priorizar <b>poucas</b> características, e não maximizar todas: um Top-3 já basta para que a ordenação dos estilos mude de forma significativa.`;
+  else {
+    const top=r[0], mono=r.filter(x=>x.media!==null&&TIPO[x.k]==='Monolítico')[0];
+    h=`Com as características marcadas, o estilo mais bem avaliado é <b>${top.e}</b> (${TIPO[top.k].toLowerCase()}).`;
+    if(n>3) h+=` Foram marcadas ${n} características: quanto mais longa a lista, mais as médias se aproximam, o que ilustra por que se recomenda um Top-3.`;
+    if(mono&&TIPO[top.k]!=='Monolítico') h+=` O melhor monolítico é <b>${mono.e}</b>; a diferença deve ser pesada contra o custo e a complexidade da distribuição (Seção D.6).`;
+    h+=` Observe que <b>nenhum estilo</b> é bem avaliado em todas as linhas: é a primeira lei de Richards e Ford em forma de tabela. O ranking é ponto de partida para a discussão, e não substitui a análise dos quanta e do contexto.`;
+  }
+  document.getElementById('info').innerHTML=h;
+}
+exemplo(['Escalabilidade','Elasticidade','Tolerância a falhas']);
+</script>
+</body>
+</html>

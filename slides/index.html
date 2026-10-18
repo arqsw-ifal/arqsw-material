@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slides | Arquitetura de Software</title>
+  <style>
+    :root {
+      --nav:#1A2E4A; --nav-dark:#12203A; --nav-light:#2A4468;
+      --teal:#0F7A8C; --teal-light:#6FC3D0; --gold:#E8A93C; --paper:#F4F6F9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--nav-dark); color: var(--paper);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 3rem 1.2rem;
+    }
+    header { text-align: center; max-width: 720px; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2rem; margin: 0 0 .4rem; }
+    header p { color: var(--teal-light); margin: .2rem 0; }
+    header .rodape { color:#9FB0C4; font-size:.85rem; margin-top:.8rem; }
+    .grade {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem; width: 100%; max-width: 900px;
+    }
+    a.card {
+      display: block; text-decoration: none; color: var(--paper);
+      background: var(--nav); border: 1px solid var(--nav-light);
+      border-left: 4px solid var(--gold);
+      border-radius: 10px; padding: 1.1rem 1.2rem; transition: .15s;
+    }
+    a.card:hover { border-color: var(--teal); background: var(--nav-light); transform: translateY(-2px); }
+    a.card .num { font-family: "JetBrains Mono", monospace; color: var(--gold); font-size:.8rem; }
+    a.card h2 { font-size: 1.05rem; margin: .25rem 0 .3rem; }
+    a.card p { color:#9FB0C4; font-size:.82rem; margin:0; }
+    a.card.pendente { opacity:.5; border-left-color: var(--nav-light); }
+    a.card.pendente .num { color:#9FB0C4; }
+    footer { margin-top: 2.5rem; color:#9FB0C4; font-size:.8rem; text-align:center; }
+    footer a { color: var(--teal-light); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Slides &mdash; Arquitetura de Software</h1>
+    <p>Um voo do negócio ao código &middot; BSI</p>
+    <p class="rodape">IFAL &mdash; Campus Maceió &middot; Prof. Leo Fernandes, PhD</p>
+  </header>
+
+  <main class="grade">
+    <a class="card" href="capitulo-1/index.html">
+      <span class="num">Capítulo 1</span>
+      <h2>Fundamentos da arquitetura de software</h2>
+      <p>Definições, arquitetura de sistemas, visões, qualidade, princípios, padrões, camadas, hexagonal, limpa, DDD e o método das altitudes.</p>
+    </a>
+    <a class="card pendente" href="capitulo-2/index.html">
+      <span class="num">Capítulo 2</span>
+      <h2>As sete aplicações</h2>
+      <p>Os sistemas reais, seus gêmeos de código aberto e as fichas kata.</p>
+    </a>
+    <a class="card pendente" href="capitulo-3/index.html">
+      <span class="num">Capítulo 3</span>
+      <h2>100.000 pés: requisitos e contexto</h2>
+      <p>A conversa com o cliente e o diagrama de contexto que evolui.</p>
+    </a>
+    <a class="card pendente" href="capitulo-4/index.html">
+      <span class="num">Capítulo 4</span>
+      <h2>50.000 pés: containers e implantação</h2>
+      <p>Containers, quanta, falácias e as decisões de implantação.</p>
+    </a>
+    <a class="card pendente" href="capitulo-5/index.html">
+      <span class="num">Capítulo 5</span>
+      <h2>10.000 pés: componentes e comunicação</h2>
+      <p>Componentes, dependências, padrões de aplicação e contextos.</p>
+    </a>
+    <a class="card pendente" href="capitulo-6/index.html">
+      <span class="num">Capítulo 6</span>
+      <h2>Solo: o código</h2>
+      <p>Modelo de domínio, padrões de projeto e a subida de verificação.</p>
+    </a>
+    <a class="card pendente" href="capitulo-7/index.html">
+      <span class="num">Capítulo 7</span>
+      <h2>Escolha de estilos e arquitetura evolutiva</h2>
+      <p>Comparação dos sete sistemas, avaliação e governança.</p>
+    </a>
+  </main>
+
+  <footer>
+    <a href="../">&larr; Voltar ao material</a>
+  </footer>
+</body>
+</html>

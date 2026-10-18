@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laços de controle e prazos</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:6px 11px; cursor:pointer; font:inherit; font-size:.82rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .lab{font-size:.78rem; color:var(--muted)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .panel{background:var(--nav); border-radius:12px; padding:12px; margin-bottom:12px}
+  .cascata{display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:center; font-size:.72rem}
+  .lp{background:var(--nav2); border:1px solid var(--navL); border-radius:8px; padding:5px 8px; text-align:center; line-height:1.25}
+  .lp b{display:block; font-size:.76rem} .lp small{color:var(--muted); font-family:"JetBrains Mono",monospace}
+  .lp.miss{border:2px solid var(--red)}
+  .seta{color:var(--tealL)}
+  .ctl{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:6px}
+  @media(max-width:640px){ .ctl{grid-template-columns:1fr} }
+  label{display:block; font-size:.76rem; color:var(--muted)}
+  label b{color:var(--paper)}
+  input[type=range]{width:100%; accent-color:var(--teal)}
+  select{background:var(--nav2); color:var(--paper); border:1px solid var(--navL); border-radius:6px; padding:4px; font:inherit; font-size:.78rem; width:100%}
+  canvas{width:100%; height:230px; background:var(--nav2); border-radius:9px; display:block; margin-top:8px}
+  table{width:100%; border-collapse:collapse; font-size:.74rem; margin-top:8px}
+  th,td{padding:4px 6px; border-bottom:1px solid var(--navL); text-align:left}
+  th{color:var(--tealL); font-weight:600}
+  td.n{font-family:"JetBrains Mono",monospace; text-align:right}
+  td.bad{color:#ffb4a8; font-weight:700} td.good{color:var(--tealL)}
+  .info{background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  code{font-family:"JetBrains Mono",monospace; color:var(--tealL); font-size:.92em}
+</style>
+</head>
+<body>
+  <h1>Laços em cascata no <span style="color:var(--tealL)">PX4</span>: frequências, prioridades e prazo perdido</h1>
+  <p class="sub">Quatro tarefas periódicas do conjunto <b>hipotético</b> da Tabela 5.8.1, escalonadas em 40 ms. Acrescente um atraso a uma tarefa e veja quem perde o prazo em cada política.</p>
+
+  <div class="panel">
+    <div class="cascata" id="cascata"></div>
+    <div class="toolbar" style="margin-top:10px">
+      <span class="lab">Política:</span>
+      <button class="btn pol" data-p="rm">Taxa monotônica (Liu; Layland)</button>
+      <button class="btn pol" data-p="px4">Filas do PX4 v1.17.0</button>
+      <button class="btn pol" data-p="unica">Fila única não preemptiva</button>
+    </div>
+    <div class="ctl">
+      <label>Tarefa que atrasa<select id="alvo"><option value="3">τ4 Controle de posição</option><option value="2">τ3 Controle de atitude</option><option value="1">τ2 Estimador</option><option value="0">τ1 Controle de taxa</option></select></label>
+      <label>Atraso extra por execução (ex.: E/S bloqueante): <b id="vX"></b><input type="range" id="X" min="0" max="50" value="0"></label>
+    </div>
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn" id="anim" onclick="animar()">▶ Animar</button>
+      <button class="btn ghost" onclick="reset()">Reiniciar</button>
+      <span class="count" id="count"></span>
+    </div>
+    <canvas id="cv" width="900" height="230"></canvas>
+    <table><thead><tr><th>Tarefa</th><th>Fila no PX4</th><th>T (ms)</th><th>C (ms)</th><th>R pior caso, RM (ms)</th><th>Prazos perdidos</th></tr></thead><tbody id="tb"></tbody></table>
+  </div>
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const css=getComputedStyle(document.documentElement), col=v=>css.getPropertyValue(v).trim();
+// unidades de 0,1 ms
+const TASKS=[
+  {n:'τ1 Controle de taxa', m:'mc_rate_control + control_allocator', q:'wq:rate_ctrl (0)', T:25, C:5, cor:'#E8A93C', hz:'400 Hz', fq:0},
+  {n:'τ2 Estimador', m:'ekf2', q:'wq:INS0 (−14)', T:40, C:12, cor:'#6FC3D0', hz:'250 Hz', fq:2},
+  {n:'τ3 Controle de atitude', m:'mc_att_control', q:'wq:nav_and_controllers (−13)', T:100, C:10, cor:'#0F7A8C', hz:'100 Hz', fq:1},
+  {n:'τ4 Controle de posição', m:'mc_pos_control', q:'wq:nav_and_controllers (−13)', T:200, C:40, cor:'#9FB0C4', hz:'50 Hz', fq:1},
+];
+const H=400; // 40 ms
+let pol='rm', res=null, cursor=H, timer=null;
+const ms=u=>(u/10).toFixed(1).replace('.',',');
+function custos(){ const x=+$('X').value, a=+$('alvo').value; return TASKS.map((t,k)=>t.C+(k===a?x:0)); }
+
+function simular(){
+  const C=custos(), jobs=[], gantt=[], miss=TASKS.map(()=>0), missAt=[];
+  let corrente=null; // job em execução, para as políticas não preemptivas
+  for(let t=0;t<H;t++){
+    TASKS.forEach((tk,k)=>{ if(t%tk.T===0) jobs.push({k,rel:t,dl:t+tk.T,rem:C[k],ini:false,miss:false}); });
+    jobs.forEach(j=>{ if(j.rem>0 && t>=j.dl && !j.miss){ j.miss=true; miss[j.k]++; missAt.push({k:j.k,t:j.dl}); } });
+    const prontos=jobs.filter(j=>j.rem>0);
+    let esc=null;
+    if(prontos.length){
+      if(pol==='rm') esc=prontos.sort((a,b)=>TASKS[a.k].T-TASKS[b.k].T||a.rel-b.rel)[0];
+      else if(pol==='unica') esc=(corrente&&corrente.rem>0)?corrente:prontos.sort((a,b)=>a.rel-b.rel||TASKS[a.k].T-TASKS[b.k].T)[0];
+      else { // filas do PX4: preempção entre filas por prioridade; dentro de nav_and_controllers, cooperativa
+        const fq=Math.min(...prontos.map(j=>TASKS[j.k].fq));
+        const daFila=prontos.filter(j=>TASKS[j.k].fq===fq);
+        esc=daFila.find(j=>j.ini) || daFila.sort((a,b)=>a.rel-b.rel||TASKS[a.k].T-TASKS[b.k].T)[0];
+      }
+      esc.rem--; esc.ini=true; corrente=esc;
+    }
+    gantt.push(esc?esc.k:-1);
+  }
+  return {gantt,miss,missAt,C};
+}
+function rta(C){ // análise de tempo de resposta (JOSEPH; PANDYA, 1986) sob RM
+  return TASKS.map((t,k)=>{ let R=C[k], ant=-1, it=0;
+    while(R!==ant && R<=10*t.T && it++<100){ ant=R; R=C[k]+TASKS.slice(0,k).reduce((s,u,j)=>s+Math.ceil(ant/u.T)*C[j],0); }
+    return R; });
+}
+function render(){
+  document.querySelectorAll('.pol').forEach(b=>b.classList.toggle('on',b.dataset.p===pol));
+  $('vX').textContent=ms(+$('X').value)+' ms';
+  res=simular(); const R=rta(res.C);
+  const U=res.C.reduce((s,c,k)=>s+c/TASKS[k].T,0), LL=4*(2**(1/4)-1);
+  $('cascata').innerHTML=[3,2,0].map(k=>`<div class="lp ${res.miss[k]?'miss':''}"><b>${['Taxa angular','Estimador','Atitude','Posição'][k]}</b><small>${TASKS[k].m} · ${TASKS[k].hz}</small></div>`).join('<span class="seta">→ setpoint →</span>')
+    +`<span class="seta">→</span><div class="lp"><b>Motores</b><small>actuator_motors</small></div><span class="seta">·</span><div class="lp ${res.miss[1]?'miss':''}"><b>Estimador</b><small>ekf2 · 250 Hz → vehicle_attitude</small></div>`;
+  $('tb').innerHTML=TASKS.map((t,k)=>`<tr><td>${t.n}</td><td><code>${t.q}</code></td><td class="n">${ms(t.T)}</td><td class="n">${ms(res.C[k])}</td><td class="n ${R[k]>t.T?'bad':'good'}">${R[k]>t.T?'> '+ms(t.T):ms(R[k])}</td><td class="n ${res.miss[k]?'bad':'good'}">${res.miss[k]}</td></tr>`).join('');
+  const tot=res.miss.reduce((a,b)=>a+b,0);
+  $('count').textContent=`U = ${U.toFixed(2).replace('.',',')} · limite de Liu e Layland (n = 4) = ${LL.toFixed(3).replace('.',',')} · prazos perdidos: ${tot}`;
+  desenhar(); info(U,LL,tot);
+}
+function desenhar(){
+  const cv=$('cv'), g=cv.getContext('2d'), W=cv.width, Hh=cv.height, L=150, top=10, rh=46, px=(W-L-10)/H;
+  g.clearRect(0,0,W,Hh); g.font='12px system-ui';
+  TASKS.forEach((t,k)=>{
+    const y=top+k*rh; g.fillStyle=col('--muted'); g.fillText(t.n,6,y+22);
+    g.fillStyle=col('--nav'); g.fillRect(L,y+6,W-L-10,26);
+    for(let r=0;r<H;r+=t.T){ g.fillStyle=col('--tealL'); g.fillRect(L+r*px,y+2,1.5,34); }
+  });
+  for(let t=0;t<Math.min(cursor,H);t++){ const k=res.gantt[t]; if(k<0) continue; g.fillStyle=TASKS[k].cor; g.fillRect(L+t*px,top+k*rh+8,px+.5,22); }
+  res.missAt.filter(m=>m.t<=cursor).forEach(m=>{ const x=L+m.t*px, y=top+m.k*rh+19; g.strokeStyle=col('--red'); g.lineWidth=3; g.beginPath(); g.moveTo(x-6,y-6); g.lineTo(x+6,y+6); g.moveTo(x+6,y-6); g.lineTo(x-6,y+6); g.stroke(); });
+  g.fillStyle=col('--muted'); for(let t=0;t<=H;t+=50) g.fillText(ms(t)+' ms',L+t*px-12,Hh-6);
+  if(cursor<H){ g.fillStyle=col('--gold'); g.fillRect(L+cursor*px,0,2,Hh-18); }
+}
+function info(U,LL,tot){
+  const P={rm:`<b>Taxa monotônica:</b> prioridade fixa tanto maior quanto menor o período, com preempção. U = ${U.toFixed(2).replace('.',',')} ${U>LL?'excede':'não excede'} o limite suficiente de Liu e Layland (1973); a análise de tempo de resposta, exata, decide. Sem atraso, τ4 termina em 13,8 ms, dentro de 20 ms.`,
+    px4:`<b>Filas do PX4:</b> <code>wq:rate_ctrl</code> (0) preempta todas; <code>mc_att_control</code> e <code>mc_pos_control</code> dividem <code>wq:nav_and_controllers</code> (−13), em que as tarefas cooperam e não se interrompem; <code>ekf2</code> fica em <code>wq:INS0</code> (−14). Entre filas, preempção por prioridade; dentro da fila, um item longo bloqueia o vizinho. Daí a regra: itens de fila não podem dormir nem fazer E/S bloqueante. Com os tempos hipotéticos da tabela, que não são medições do PX4, o <code>ekf2</code>, abaixo dos controladores, perde prazos: uma atribuição de prioridades só se valida com os tempos de execução no pior caso (WCET) reais.`,
+    unica:`<b>Fila única cooperativa:</b> nada interrompe uma tarefa iniciada. Os 4 ms do controle de posição bloqueiam o laço de taxa, cujo período é 2,5 ms: é o motivo de o laço interno e a alocação ficarem sozinhos na fila de maior prioridade.`}[pol];
+  const cons=res.miss[0]?' <b style="color:#ffb4a8">O laço de taxa perdeu prazo:</b> oscilação ou perda de estabilidade (Tabela 3.8.1).':res.miss[1]?' O estimador perdeu prazo: os controladores operam sobre estado desatualizado.':(res.miss[2]||res.miss[3])?' Um laço externo perdeu prazo: o laço interno não espera; lê sem bloquear o último setpoint, agora velho.':'';
+  $('info').innerHTML=P+cons+` Lembre a estimativa da Seção 3.8.2.1: a 400 Hz, um voo de 20 minutos tem 480.000 ciclos; uma chance de 10⁻⁶ de perder o prazo por ciclo vira cerca de 38% por voo. Tempos e frequências, exceto os 400 Hz do laço interno, são hipotéticos.`;
+}
+function animar(){ if(timer){ clearInterval(timer); timer=null; $('anim').textContent='▶ Animar'; cursor=H; desenhar(); return; }
+  cursor=0; $('anim').textContent='⏸ Parar';
+  timer=setInterval(()=>{ cursor+=4; desenhar(); if(cursor>=H){ clearInterval(timer); timer=null; $('anim').textContent='▶ Animar'; } },30); }
+function reset(){ if(timer){ clearInterval(timer); timer=null; $('anim').textContent='▶ Animar'; } cursor=H; pol='rm'; $('X').value=0; $('alvo').value='3'; render(); }
+document.querySelectorAll('.pol').forEach(b=>b.onclick=()=>{ pol=b.dataset.p; render(); });
+$('X').oninput=render; $('alvo').onchange=render;
+render();
+</script>
+</body>
+</html>

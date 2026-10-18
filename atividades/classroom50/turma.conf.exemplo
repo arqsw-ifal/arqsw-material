@@ -1,0 +1,6 @@
+# Copie para turma.conf e ajuste.
+ORG="SUA-ORG-NO-GITHUB"          # organizacao onde rodou o `gh teacher init`
+TURMA="arqsw-2026-2"              # identificador curto (sem espacos)
+TURMA_NOME="Arquitetura de Software - 2026.2"
+TURMA_PERIODO="2026.2"
+ROSTER_CSV="alunos.csv"          # opcional; deixe vazio se for convidar manualmente

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Altímetro: do contexto ao código</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--nav2); color:var(--paper); padding:14px;
+  }
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 14px; cursor:pointer; font:inherit; font-size:.88rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .grid{display:grid; grid-template-columns:110px 1fr; gap:14px}
+  @media(max-width:640px){ .grid{grid-template-columns:1fr} .alt{display:none} }
+  .panel{background:var(--nav); border-radius:12px; padding:14px}
+  /* altimetro */
+  .alt{position:relative; padding:10px 8px}
+  .scale{position:relative; height:330px; border-left:3px solid var(--navL); margin-left:22px}
+  .mark{position:absolute; left:-6px; display:flex; align-items:center; gap:6px; font-size:.68rem; color:var(--muted); transform:translateY(-50%); white-space:nowrap}
+  .mark::before{content:""; width:9px; height:3px; background:var(--navL)}
+  .mark.on{color:var(--gold); font-weight:700}
+  .mark.on::before{background:var(--gold)}
+  .plane{position:absolute; left:-20px; font-size:1.3rem; transition:top .6s ease; transform:translateY(-50%)}
+  /* diagrama */
+  .lvl{display:flex; align-items:center; gap:8px; margin-bottom:8px}
+  .pill{font-family:"JetBrains Mono",monospace; font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px}
+  .c4{font-size:.78rem; color:var(--muted)}
+  .diagram{display:grid; gap:8px; min-height:210px; align-content:start}
+  .row{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+  .box{background:var(--nav2); border:1px solid var(--navL); border-radius:9px; padding:8px 10px; min-width:120px; max-width:200px; text-align:center; font-size:.78rem; line-height:1.3}
+  .box b{display:block; font-size:.82rem; color:var(--paper)}
+  .box small{color:var(--muted)}
+  .box.foco{border:2px solid var(--gold)}
+  .box.ext{border-style:dashed}
+  .box.hl{box-shadow:0 0 0 3px rgba(232,169,60,.45)}
+  .arrow{text-align:center; color:var(--tealL); font-size:.75rem}
+  pre{margin:0; background:#1E3040; color:#A8D8A8; border-radius:9px; padding:10px 12px; font-family:"JetBrains Mono",monospace; font-size:.76rem; overflow:auto; line-height:1.45}
+  pre .k{color:var(--gold)} pre .c{color:#6B7A8F} pre .hl{background:rgba(232,169,60,.22); display:block}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  .info ul{margin:.3em 0 0 1.1em; padding:0}
+  .nota{font-size:.68rem; color:var(--muted); margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Altímetro: descendo sobre o <span style="color:var(--tealL)">Mastodon</span></h1>
+  <p class="sub">A cada altitude o piloto vê <b>outra coisa</b> e faz <b>outras perguntas</b>. No fim, sobe de volta para verificar o que o código protege.</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel alt">
+      <div class="scale" id="scale">
+        <div class="plane" id="plane">✈️</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="lvl"><span class="pill" id="pill"></span><span class="c4" id="c4"></span></div>
+      <div class="diagram" id="diagram"></div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const LEVELS=[
+  {id:'a100', label:'100.000 pés', top:6,  bg:'#0b1526', fg:'#fff'},
+  {id:'a50',  label:'50.000 pés',  top:36, bg:'#2A4468', fg:'#fff'},
+  {id:'a10',  label:'10.000 pés',  top:66, bg:'#0F7A8C', fg:'#fff'},
+  {id:'solo', label:'Solo',        top:94, bg:'#E8A93C', fg:'#12203A'},
+];
+
+const box=(t,s,cls='')=>`<div class="box ${cls}"><b>${t}</b><small>${s}</small></div>`;
+const row=(...b)=>`<div class="row">${b.join('')}</div>`;
+const arrow=t=>`<div class="arrow">${t}</div>`;
+
+const STEPS=[
+  { lvl:0, c4:'C4 nível 1: Contexto',
+    diagram: row(box('👤 Usuário','web, apps móveis'), box('👤 Moderador','administra a instância'))
+           + arrow('↓ usa (HTTPS)')
+           + row(box('Instância Mastodon','rede social de microblog','foco'))
+           + arrow('↕ ActivityPub · SMTP · Web Push')
+           + row(box('Outras instâncias','Mastodon, PeerTube...','ext'), box('E-mail','confirmações','ext'), box('Push','navegadores e apps','ext')),
+    info:`<b>O que se vê:</b> o sistema é <b>uma caixa</b>. Importam as pessoas e os sistemas com que ele conversa.
+      <ul><li>Que problema resolve, e para quem?</li><li>Que escala? Leituras superam escritas em ordens de grandeza.</li>
+      <li>Top-3: <b>desempenho de leitura</b>, disponibilidade, elasticidade em picos.</li></ul>` },
+
+  { lvl:1, c4:'C4 nível 2: Containers',
+    diagram: row(box('Web','Rails (Puma): páginas e API'), box('Streaming','Node.js: atualizações em tempo real'))
+           + arrow('↓ enfileiram jobs · leem e gravam')
+           + row(box('Workers','Sidekiq: jobs assíncronos','foco'))
+           + arrow('↓')
+           + row(box('PostgreSQL','dados principais'), box('Redis','filas, cache e timelines','hl'), box('Mídia','armazenamento de objetos')),
+    info:`<b>O que se vê:</b> as partes que <b>rodam separadamente</b>. Ainda não há classes.
+      <ul><li>Monólito ou distribuído? Aqui: <b>monólito em camadas + jobs assíncronos</b>.</li>
+      <li>Por que entregar a publicação aos seguidores num <b>job</b>, e não na requisição?</li>
+      <li>Onde fica a timeline de cada usuário? (Pista: em memória.)</li></ul>` },
+
+  { lvl:2, c4:'C4 nível 3: Componentes (dentro da aplicação Rails)',
+    diagram: row(box('Controllers','recebem a requisição de publicar'))
+           + arrow('↓')
+           + row(box('Serviço de publicação','valida e grava a publicação'), box('Serviço de fanout','distribui aos seguidores','foco'))
+           + arrow('↓')
+           + row(box('Models','Active Record: conta, publicação, seguir'), box('Gerenciador de feeds','escreve nas timelines (Redis)','hl'), box('Workers de entrega','ActivityPub para outras instâncias')),
+    info:`<b>O que se vê:</b> os blocos <b>dentro</b> de um container e suas responsabilidades.
+      <ul><li>Lógica em <i>Service Objects</i>, dados em <i>Active Record</i> (Fowler).</li>
+      <li><i>Fanout on write</i>: cada publicação é copiada para as timelines dos seguidores locais.</li>
+      <li>E se a conta tiver 1 milhão de seguidores? (O problema da celebridade.)</li></ul>` },
+
+  { lvl:3, c4:'C4 nível 4: Código',
+    diagram:`<pre><span class="c"># Ilustrativo e simplificado: não é o código literal do Mastodon.</span>
+<span class="k">class</span> FanOutOnWriteService &lt; BaseService
+  <span class="k">def</span> call(status)
+    deliver_to_self(status)
+<span class="hl">    deliver_to_followers(status)  <span class="c"># em lotes, por jobs</span></span>
+    deliver_to_lists(status)
+  <span class="k">end</span>
+<span class="k">end</span></pre><div class="nota">Procure o serviço real em <code>app/services/</code> na versão estudada e use um link permanente.</div>`,
+    info:`<b>O que se vê:</b> classes e métodos. Aqui as decisões viram código.
+      <ul><li>Que padrões aparecem? <i>Service Object</i>, jobs, <i>Active Record</i>.</li>
+      <li>Onde está o custo da escrita? No laço sobre os seguidores.</li></ul>` },
+
+  { lvl:0, c4:'Subida de verificação', up:true,
+    diagram: row(box('Código','entrega em lotes, por jobs','hl'))
+           + arrow('↑ protege')
+           + row(box('Componente','fanout on write','hl'))
+           + arrow('↑ protege')
+           + row(box('Container','workers assíncronos','hl'))
+           + arrow('↑ protege')
+           + row(box('Característica','desempenho de leitura da timeline','foco')),
+    info:`<b>Subindo de volta:</b> partindo da linha destacada, pergunte <b>"que característica este código protege?"</b>.
+      A resposta liga o laço de entrega à decisão a 50.000 pés e ao Top-3 a 100.000 pés.
+      Se não houver resposta, ou o código está sobrando, ou falta documentar a decisão (ADR).` },
+];
+
+let i=0, timer=null;
+const scale=document.getElementById('scale');
+LEVELS.forEach(L=>{ const m=document.createElement('div'); m.className='mark'; m.id='m-'+L.id; m.style.top=L.top+'%'; m.textContent=L.label; scale.appendChild(m); });
+
+function render(){
+  const s=STEPS[i], L=LEVELS[s.lvl];
+  const pill=document.getElementById('pill');
+  pill.textContent = s.up ? '↑ subida' : L.label;
+  pill.style.background = s.up ? '#C0503F' : L.bg; pill.style.color = s.up ? '#fff' : L.fg;
+  document.getElementById('c4').textContent=s.c4;
+  document.getElementById('diagram').innerHTML=s.diagram;
+  document.getElementById('info').innerHTML=s.info;
+  document.getElementById('count').textContent=`passo ${i+1} de ${STEPS.length}`;
+  const plane=document.getElementById('plane');
+  plane.style.top=L.top+'%'; plane.textContent = s.up ? '🛫' : (s.lvl===3 ? '🛬' : '✈️');
+  LEVELS.forEach((x,k)=>document.getElementById('m-'+x.id).classList.toggle('on', k===s.lvl));
+}
+function go(d){ i=Math.max(0, Math.min(STEPS.length-1, i+d)); render(); }
+function reset(){ stop(); i=0; render(); }
+function stop(){ if(timer){ clearInterval(timer); timer=null; document.getElementById('auto').textContent='▶ Auto'; } }
+function toggleAuto(){
+  if(timer){ stop(); return; }
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{ if(i>=STEPS.length-1){ stop(); return; } go(1); }, 4500);
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saga do checkout</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 12px; cursor:pointer; font:inherit; font-size:.84rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .btn.f.on{background:var(--red); border-color:#ffb4a8}
+  .lab{font-size:.78rem; color:var(--muted)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .panel{background:var(--nav); border-radius:12px; padding:12px}
+  .actors{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin-bottom:10px}
+  .actor{background:var(--nav2); border:1px solid var(--navL); border-radius:10px; padding:8px; text-align:center; font-size:.76rem; transition:all .3s}
+  .actor b{display:block; font-size:.84rem}
+  .actor .st{font-family:"JetBrains Mono",monospace; font-size:.7rem; color:var(--tealL); margin-top:4px; min-height:1.2em}
+  .actor.ativo{border:2px solid var(--gold); box-shadow:0 0 0 3px rgba(232,169,60,.35)}
+  .actor.comp{border:2px solid var(--red)}
+  .actor.orq{border-style:dashed}
+  .msgs{display:grid; gap:5px; min-height:190px; align-content:start}
+  .msg{display:flex; gap:8px; align-items:center; font-size:.77rem; background:var(--nav2); border-radius:7px; padding:5px 8px; border-left:4px solid var(--navL); opacity:.55}
+  .msg.cur{opacity:1; border-left-color:var(--gold); background:rgba(232,169,60,.12)}
+  .msg.c{border-left-color:var(--red)}
+  .msg .k{font-family:"JetBrains Mono",monospace; font-size:.66rem; padding:1px 7px; border-radius:999px; background:var(--navL); white-space:nowrap}
+  .k.comp{background:var(--teal)} .k.pivo{background:var(--gold); color:var(--nav2); font-weight:700}
+  .k.ret{background:#3d6a4a} .k.cp{background:var(--red)} .k.evt{background:var(--navL)}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  code{font-family:"JetBrains Mono",monospace; color:var(--tealL); font-size:.92em}
+</style>
+</head>
+<body>
+  <h1>A saga do <i>checkout</i> no <span style="color:var(--tealL)">Saleor</span>: coreografia, orquestração e compensações</h1>
+  <p class="sub">Etapas <b>compensáveis</b> antes do <b>pivô</b> (o pagamento), etapas <b>retentáveis</b> depois dele (RICHARDSON, 2018, cap. 4). Escolha a forma de coordenação e o ponto de falha.</p>
+
+  <div class="toolbar">
+    <span class="lab">Coordenação:</span>
+    <button class="btn m" data-v="coreo">Coreografada</button>
+    <button class="btn m" data-v="orq">Orquestrada</button>
+    <button class="btn m" data-v="saleor">Saleor: em processo</button>
+  </div>
+  <div class="toolbar">
+    <span class="lab">Falha:</span>
+    <button class="btn f" data-v="nenhuma">Nenhuma</button>
+    <button class="btn f" data-v="pag">Pagamento recusado</button>
+    <button class="btn f" data-v="est">Estoque insuficiente</button>
+  </div>
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="panel">
+    <div class="actors" id="actors"></div>
+    <div class="msgs" id="msgs"></div>
+  </div>
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let modo='coreo', falha='pag', i=0, timer=null, STEPS=[];
+const K={comp:'compensável',pivo:'pivô',ret:'retentável',cp:'compensação',evt:'evento'};
+// passo: [ator, texto, tipo, {estados}, info]
+function S(a,t,k,st,info){ return {a,t,k,st:st||{},info}; }
+
+function build(){
+  const s=[];
+  if(modo==='coreo'){
+    s.push(S('Pedido','cria pedido pendente → publica PedidoCriado','comp',{Pedido:'PENDENTE'},'<b>Coreografia:</b> cada participante executa sua transação local e publica um evento; o próximo reage. Não há coordenador: o fluxo está espalhado entre os participantes.'));
+    if(falha==='est'){
+      s.push(S('Estoque','não há itens → publica EstoqueInsuficiente','evt',{Estoque:'SEM RESERVA'},'A falha ocorre antes do pivô, numa etapa compensável. O estoque anuncia o fato; quem precisar reage.'));
+      s.push(S('Pedido','reage a EstoqueInsuficiente: cancela o pedido','cp',{Pedido:'CANCELADO'},'<b>Compensação:</b> o pedido não é apagado; é cancelado, um novo efeito que anula o anterior do ponto de vista do negócio (GARCIA-MOLINA; SALEM, 1987).'));
+      return s;
+    }
+    s.push(S('Estoque','reserva itens → publica EstoqueReservado','comp',{Estoque:'RESERVADO'},'A reserva é compensável: pode ser liberada depois. Estados intermediários ficam visíveis, pois sagas não têm isolamento.'));
+    if(falha==='pag'){
+      s.push(S('Pagamento','cobrança recusada → publica PagamentoRecusado','pivo',{Pagamento:'RECUSADO'},'O pivô falhou. Na coreografia, <b>cada</b> participante afetado precisa saber reagir a PagamentoRecusado.'));
+      s.push(S('Estoque','reage a PagamentoRecusado: libera a reserva','cp',{Estoque:'LIBERADO'},'<b>Compensação 1:</b> liberar a reserva de estoque.'));
+      s.push(S('Pedido','reage a PagamentoRecusado: cancela o pedido','cp',{Pedido:'CANCELADO'},'<b>Compensação 2:</b> cancelar o pedido. As duas reações são independentes; nenhum participante vê o fluxo inteiro, o que torna o tratamento de erros mais difícil (RICHARDS; FORD, 2020, p. 256-259).'));
+      return s;
+    }
+    s.push(S('Pagamento','cobra (ponto de não retorno) → publica PagamentoAprovado','pivo',{Pagamento:'CAPTURADO'},'<b>Pivô:</b> depois da captura não se volta atrás por motivo de negócio; só um estorno anularia a cobrança.'));
+    s.push(S('Pedido','reage a PagamentoAprovado: confirma','ret',{Pedido:'CONFIRMADO'},'<b>Retentável:</b> confirmar o pedido, pedir a NF-e e notificar devem ter sucesso se repetidos, logo precisam ser idempotentes.'));
+    return s;
+  }
+  if(modo==='orq'){
+    s.push(S('Orquestrador','inicia a saga do checkout','evt',{Orquestrador:'INICIADA'},'<b>Orquestração:</b> um orquestrador envia comandos e decide, conforme as respostas, o próximo passo ou as compensações. A complexidade fica concentrada nele.'));
+    s.push(S('Estoque','comando 1: reservar',falha==='est'?'evt':'comp',{Estoque:falha==='est'?'SEM RESERVA':'RESERVADO',Orquestrador:'AGUARDA'},falha==='est'?'O estoque responde ao orquestrador que não há itens.':'O estoque responde ao orquestrador, sem anunciar nada ao resto do sistema.'));
+    if(falha==='est'){
+      s.push(S('Pedido','compensar: cancelar','cp',{Pedido:'CANCELADO',Orquestrador:'COMPENSADA'},'O orquestrador conhece o fluxo e sabe exatamente o que desfazer: só o pedido.'));
+      return s;
+    }
+    if(falha==='pag'){
+      s.push(S('Pagamento','comando 2: cobrar → recusado','pivo',{Pagamento:'RECUSADO',Orquestrador:'COMPENSANDO'},'O pivô falhou; a decisão sobre as compensações é tomada num só lugar.'));
+      s.push(S('Estoque','compensar: liberar reserva','cp',{Estoque:'LIBERADO'},'<b>Compensação 1</b>, enviada pelo orquestrador em ordem inversa: C2 antes de C1.'));
+      s.push(S('Pedido','compensar: cancelar','cp',{Pedido:'CANCELADO',Orquestrador:'COMPENSADA'},'<b>Compensação 2.</b> Ganha-se controle e tratamento de erros; perde-se desacoplamento, pois todos os participantes dependem do orquestrador.'));
+      return s;
+    }
+    s.push(S('Pagamento','comando 2: cobrar → aprovado','pivo',{Pagamento:'CAPTURADO'},'<b>Pivô</b> superado: daqui em diante as etapas devem ser retentáveis.'));
+    s.push(S('Pedido','comando 3: confirmar','ret',{Pedido:'CONFIRMADO',Orquestrador:'CONCLUÍDA'},'<b>Retentável:</b> se a resposta se perder, o orquestrador repete o comando; o participante precisa ser idempotente.'));
+    return s;
+  }
+  // Saleor: complete_checkout_with_payment (fluxo legado), saga orquestrada dentro de um processo
+  s.push(S('Checkout','T1: select_for_update(); completing_started_at = now()','comp',{Checkout:'EM CONCLUSÃO'},'<b>Saleor.</b> Não há barramento entre <code>checkout</code>, <code>order</code>, <code>payment</code> e <code>warehouse</code>: a função de conclusão orquestra transações locais sucessivas. <code>completing_started_at</code> é um <b>bloqueio semântico</b>, que expira após <code>CHECKOUT_COMPLETION_LOCK_TIME</code> (3 minutos por padrão).'));
+  s.push(S('Estoque','T1: valida dados, reserva o estoque, registra uso do cupom','comp',{Estoque:'RESERVADO',Cupom:'USADO'},'Etapas compensáveis. O <code>SELECT ... FOR UPDATE</code> serializa duas conclusões concorrentes do mesmo carrinho.'));
+  s.push(S('Pagamento',falha==='pag'?'T2: _process_payment → recusado':'T2: _process_payment → aprovado','pivo',{Pagamento:falha==='pag'?'RECUSADO':'CAPTURADO'},'<b>Pivô fora da transação do estoque.</b> Comentário do código: processar o pagamento fora da transação libera as linhas de estoque para outro comprador das mesmas variantes. Quebrar a transação é aceitar estados intermediários visíveis.'));
+  const fh=(info)=>{
+    s.push(S('Checkout','_complete_checkout_fail_handler: libera o indicador de processamento','cp',{Checkout:'LIVRE'},info));
+    s.push(S('Cupom','_complete_checkout_fail_handler: libera o uso do cupom','cp',{Cupom:'LIBERADO'},'Desfaz o incremento do contador do cupom, feito numa transação própria.'));
+    s.push(S('Pagamento','gateway.payment_refund_or_void: estorna ou cancela','cp',{Pagamento:falha==='pag'?'CANCELADO':'ESTORNADO'},falha==='est'?'O pivô já tinha ocorrido: a <b>compensação financeira</b> é a única forma de manter a consistência, mesmo dentro de um monólito, porque o provedor externo já impunha uma fronteira transacional.':'As três ações da função compensam as três etapas anteriores, concentradas num único lugar.'));
+  };
+  if(falha==='pag'){ fh('A saga falhou no pivô. As compensações estão concentradas numa única função.'); return s; }
+  if(falha==='est'){
+    s.push(S('Pedido','T3: criar pedido e alocar estoque → estoque insuficiente','evt',{Pedido:'NÃO CRIADO'},'A falha acontece <b>depois</b> do pagamento, na terceira transação.'));
+    fh('A função de compensação é chamada mesmo depois do pivô.'); return s;
+  }
+  s.push(S('Pedido','T3: cria o pedido, aloca o estoque, apaga o checkout','ret',{Pedido:'CRIADO',Checkout:'APAGADO'},'Etapa posterior ao pivô.'));
+  s.push(S('Pedido','repetição da chamada: checkout não existe → get_by_checkout_token devolve o pedido','ret',{},'<b>Idempotência:</b> se o checkout já não existe, uma execução anterior o converteu em pedido, e a função devolve esse pedido em vez de criar outro.'));
+  s.push(S('Apps','webhook assíncrono ORDER_CREATED, entregue pelo Celery com repetição','evt',{Apps:'NOTIFICADAS'},'<b>Borda coreografada:</b> a app fiscal reage ao evento sem que o núcleo saiba de sua existência.'));
+  return s;
+}
+const ATORES={coreo:['Pedido','Estoque','Pagamento'], orq:['Orquestrador','Estoque','Pagamento','Pedido'], saleor:['Checkout','Estoque','Cupom','Pagamento','Pedido','Apps']};
+
+function render(){
+  document.querySelectorAll('.m').forEach(b=>b.classList.toggle('on',b.dataset.v===modo));
+  document.querySelectorAll('.f').forEach(b=>b.classList.toggle('on',b.dataset.v===falha));
+  const st={}; STEPS.slice(0,i+1).forEach(p=>Object.assign(st,p.st));
+  const cur=STEPS[i];
+  $('actors').innerHTML=ATORES[modo].map(a=>`<div class="actor ${a===cur.a?(cur.k==='cp'?'comp':'ativo'):''} ${a==='Orquestrador'?'orq':''}"><b>${a}</b><div class="st">${st[a]||'—'}</div></div>`).join('');
+  $('msgs').innerHTML=STEPS.slice(0,i+1).map((p,k)=>`<div class="msg ${k===i?'cur':''} ${p.k==='cp'?'c':''}"><span class="k ${p.k}">${K[p.k]}</span><span><b>${p.a}</b>: ${p.t}</span></div>`).join('');
+  $('info').innerHTML=cur.info;
+  $('count').textContent=`passo ${i+1} de ${STEPS.length}`;
+}
+function go(d){ i=Math.max(0,Math.min(STEPS.length-1,i+d)); render(); }
+function reset(){ stop(); STEPS=build(); i=0; render(); }
+function stop(){ if(timer){ clearInterval(timer); timer=null; $('auto').textContent='▶ Auto'; } }
+function toggleAuto(){ if(timer){ stop(); return; } $('auto').textContent='⏸ Pausar'; timer=setInterval(()=>{ if(i>=STEPS.length-1){ stop(); return; } go(1); },4000); }
+document.querySelectorAll('.m').forEach(b=>b.onclick=()=>{ modo=b.dataset.v; reset(); });
+document.querySelectorAll('.f').forEach(b=>b.onclick=()=>{ falha=b.dataset.v; reset(); });
+reset();
+</script>
+</body>
+</html>

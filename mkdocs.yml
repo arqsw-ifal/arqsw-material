@@ -1,0 +1,122 @@
+site_name: "Arquitetura de Software: um voo do negócio ao código"
+site_description: Material da disciplina Arquitetura de Software (BSI) - IFAL-Maceio
+site_author: Leo Fernandes, PhD
+site_url: https://leofernandesmo.github.io/arqsw-material/
+copyright: Leo Fernandes, PhD &middot; IFAL-Maceio
+
+theme:
+  name: material
+  language: pt-BR
+  font:
+    text: Schibsted Grotesk
+    code: JetBrains Mono
+  icon:
+    logo: material/airplane
+  features:
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+
+extra_css:
+  - assets/css/extra.css
+
+extra_javascript:
+  - assets/js/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - assets/js/mermaid-init.js
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search:
+      lang: pt
+  - glightbox
+
+nav:
+  - Inicio: index.md
+  - "Capitulo 1 - Fundamentos da arquitetura de software": capitulo-1-fundamentos/index.md
+  - "Capitulo 2 - As sete aplicacoes":
+    - "2.1 Introducao": capitulo-2-aplicacoes/index.md
+    - "2.2 Mastodon": capitulo-2-aplicacoes/mastodon.md
+    - "2.3 Mattermost": capitulo-2-aplicacoes/mattermost.md
+    - "2.4 PeerTube": capitulo-2-aplicacoes/peertube.md
+    - "2.5 Nextcloud": capitulo-2-aplicacoes/nextcloud.md
+    - "2.6 Saleor": capitulo-2-aplicacoes/saleor.md
+    - "2.7 ThingsBoard": capitulo-2-aplicacoes/thingsboard.md
+    - "2.8 PX4": capitulo-2-aplicacoes/px4.md
+  - "Capitulo 3 - 100.000 pes: requisitos e contexto":
+    - "3.1 Introducao": capitulo-3-100-mil-pes/index.md
+    - "3.2 Mastodon": capitulo-3-100-mil-pes/mastodon.md
+    - "3.3 Mattermost": capitulo-3-100-mil-pes/mattermost.md
+    - "3.4 PeerTube": capitulo-3-100-mil-pes/peertube.md
+    - "3.5 Nextcloud": capitulo-3-100-mil-pes/nextcloud.md
+    - "3.6 Saleor": capitulo-3-100-mil-pes/saleor.md
+    - "3.7 ThingsBoard": capitulo-3-100-mil-pes/thingsboard.md
+    - "3.8 PX4": capitulo-3-100-mil-pes/px4.md
+  - "Capitulo 4 - 50.000 pes: containers e implantacao":
+    - "4.1 Introducao": capitulo-4-50-mil-pes/index.md
+    - "4.2 Mastodon": capitulo-4-50-mil-pes/mastodon.md
+    - "4.3 Mattermost": capitulo-4-50-mil-pes/mattermost.md
+    - "4.4 PeerTube": capitulo-4-50-mil-pes/peertube.md
+    - "4.5 Nextcloud": capitulo-4-50-mil-pes/nextcloud.md
+    - "4.6 Saleor": capitulo-4-50-mil-pes/saleor.md
+    - "4.7 ThingsBoard": capitulo-4-50-mil-pes/thingsboard.md
+    - "4.8 PX4": capitulo-4-50-mil-pes/px4.md
+  - "Capitulo 5 - 10.000 pes: componentes e comunicacao":
+    - "5.1 Introducao": capitulo-5-10-mil-pes/index.md
+    - "5.2 Mastodon": capitulo-5-10-mil-pes/mastodon.md
+    - "5.3 Mattermost": capitulo-5-10-mil-pes/mattermost.md
+    - "5.4 PeerTube": capitulo-5-10-mil-pes/peertube.md
+    - "5.5 Nextcloud": capitulo-5-10-mil-pes/nextcloud.md
+    - "5.6 Saleor": capitulo-5-10-mil-pes/saleor.md
+    - "5.7 ThingsBoard": capitulo-5-10-mil-pes/thingsboard.md
+    - "5.8 PX4": capitulo-5-10-mil-pes/px4.md
+  - "Capitulo 6 - Solo: o codigo":
+    - "6.1 Introducao": capitulo-6-solo/index.md
+    - "6.2 Mastodon": capitulo-6-solo/mastodon.md
+    - "6.3 Mattermost": capitulo-6-solo/mattermost.md
+    - "6.4 PeerTube": capitulo-6-solo/peertube.md
+    - "6.5 Nextcloud": capitulo-6-solo/nextcloud.md
+    - "6.6 Saleor": capitulo-6-solo/saleor.md
+    - "6.7 ThingsBoard": capitulo-6-solo/thingsboard.md
+    - "6.8 PX4": capitulo-6-solo/px4.md
+  - "Capitulo 7 - Escolha de estilos e arquitetura evolutiva": capitulo-7-sintese/index.md
+  - Glossario: glossario.md
+  - Referencias: referencias.md
+  - Apendices:
+    - A - O modelo C4 e as altitudes: apendice-a-c4/index.md
+    - B - Registro de decisao (ADR): apendice-b-adr/index.md
+    - C - Explorando codigo legado: apendice-c-codigo-legado/index.md
+    - D - Caracteristicas, estilos e decisoes: apendice-d-caracteristicas-estilos-decisoes/index.md
+    - E - Modularidade e padroes de aplicacao: apendice-e-modularidade-padroes-de-aplicacao/index.md
+    - F - Sistemas em escala: apendice-f-sistemas-em-escala/index.md

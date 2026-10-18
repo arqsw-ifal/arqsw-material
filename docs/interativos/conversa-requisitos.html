@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversa de requisitos</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px}
+  .perg{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .q{font:inherit;font-size:.74rem;text-align:left;background:var(--nav2);color:var(--paper);border:1px solid var(--navL);border-radius:8px;padding:5px 8px;cursor:pointer}
+  .q:hover{border-color:var(--teal)}
+  .q .t{color:var(--tealL);font-size:.64rem;display:block;text-transform:uppercase;letter-spacing:.04em}
+  .chat{height:190px;overflow:auto;display:flex;flex-direction:column;gap:6px;background:var(--nav2);border-radius:8px;padding:8px}
+  .b{max-width:88%;font-size:.76rem;line-height:1.35;padding:6px 9px;border-radius:10px}
+  .b.arq{align-self:flex-end;background:var(--navL)}
+  .b.cli{align-self:flex-start;background:rgba(15,122,140,.35)}
+  .b.cli small{display:block;color:var(--gold);font-size:.64rem;margin-top:2px}
+  .b.alerta{align-self:center;background:rgba(192,80,63,.25);border:1px solid var(--red)}
+  .ctx{display:grid;gap:5px;margin-bottom:10px}
+  .row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .box{background:var(--nav2);border:1px solid var(--navL);border-radius:9px;padding:5px 9px;text-align:center;font-size:.72rem;min-width:110px;max-width:200px}
+  .box b{display:block;font-size:.76rem}
+  .box small{color:var(--muted)}
+  .box.foco{border:2px solid var(--gold)}
+  .box.ext{border-color:var(--muted);background:transparent;color:var(--muted)}
+  .box.novo{box-shadow:0 0 0 3px rgba(232,169,60,.45)}
+  .arrow{text-align:center;color:var(--tealL);font-size:.68rem}
+  table{width:100%;border-collapse:collapse;font-size:.72rem}
+  td{padding:3px 4px;border-bottom:1px solid var(--navL)}
+  td:last-child{text-align:right;font-family:"JetBrains Mono",monospace;color:var(--gold);white-space:nowrap}
+  td.rodape{color:var(--muted);font-size:.64rem;font-family:inherit;text-align:left;white-space:normal}
+  td.falta{color:var(--muted);font-family:inherit;font-style:italic;white-space:normal}
+  tr.novo td{background:rgba(232,169,60,.12)}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Conversa de requisitos: um <span style="color:var(--tealL)">encurtador de URL</span></h1>
+  <p class="sub">Escolha as perguntas do arquiteto. A cada resposta, o diagrama de contexto e as estimativas de guardanapo se atualizam. Nem toda pergunta é oportuna a 100.000 pés.</p>
+
+  <div class="toolbar">
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="rot">Perguntas disponíveis</div>
+      <div class="perg" id="perg"></div>
+      <div class="rot">Conversa</div>
+      <div class="chat" id="chat"></div>
+    </div>
+    <div class="panel">
+      <div class="rot">Diagrama de contexto (C4, nível 1)</div>
+      <div class="ctx" id="ctx"></div>
+      <div class="rot">Estimativas (Tabela F.8 e Seção F.4.4)</div>
+      <table id="est"></table>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base em Xu (2020, caps. 3 e 8) e nas Tabelas F.7 e F.8. As respostas assinaladas como "suposição registrada" são hipóteses do autor ou de Xu, e não dados de um sistema real.</p>
+
+<script>
+const XU='hipótese do diálogo de Xu (2020, cap. 8)', AUT='suposição registrada (hipótese do autor)';
+const Q=[
+ {id:'ex',t:'Funcionalidades',p:'Pode dar um exemplo de funcionamento?',r:'Envia-se uma URL longa e o serviço devolve um código curto. Quem acessa o código é redirecionado ao endereço original.',f:XU,
+  a:`Duas operações definem o sistema: <b>encurtar</b> e <b>redirecionar</b>. O sítio de destino aparece no diagrama como sistema externo, fora do controle do encurtador.`},
+ {id:'quem',t:'Usuários',p:'Quem cria os links: pessoas ou sistemas?',r:'Ambos, pela web e por uma API. E há um público muito maior que apenas clica nos links.',f:'ficha kata (Tabela F.7)',
+  a:`Surgem dois tipos de usuário com intensidades muito diferentes. O criador pode ser um programa, o que antecipa o risco de <b>criação automatizada em massa</b> (Seção F.5).`},
+ {id:'vol',t:'Usuários e escala',p:'Qual é o volume de tráfego?',r:'Cerca de 100 milhões de URLs novas por dia.',f:XU,
+  a:`10⁸ ÷ 86.400 s dá cerca de <b>1.160 escritas por segundo</b>, e o dobro no pico. É pouco para alguns servidores sem estado.`},
+ {id:'razao',t:'Usuários e escala',p:'Quantas leituras há para cada escrita?',r:'Algo como 10 leituras para cada escrita.',f:XU,
+  a:`A assimetria é a primeira propriedade do domínio: cerca de <b>11.600 leituras por segundo</b>. O redirecionamento, e não o encurtamento, domina a carga, o que antecipa o uso de <i>cache</i>.`},
+ {id:'dur',t:'Crescimento',p:'Por quanto tempo o serviço deve operar?',r:'Dez anos.',f:XU,
+  a:`Com 100 milhões por dia durante dez anos, acumulam-se <b>365 bilhões</b> de registros. O número condiciona o comprimento do código e o armazenamento.`},
+ {id:'tam',t:'Usuários e escala',p:'Qual o tamanho médio de uma URL longa?',r:'Suponha 100 bytes.',f:XU,
+  a:`Só as URLs longas ocupam <b>36,5 TB</b> em dez anos. Xu chega a 365 TB por multiplicar duas vezes por dez anos; refazer a conta com as unidades explícitas evita o erro.`},
+ {id:'alfa',t:'Funcionalidades',p:'Que caracteres o código pode usar, e com que comprimento?',r:'Letras e dígitos, [0-9a-zA-Z], e tão curto quanto possível.',f:XU,
+  a:`São 62 símbolos. Como 62⁶ ≈ 56,8 bilhões é menor que 365 bilhões e 62⁷ ≈ 3,5 trilhões é maior, <b>sete símbolos</b> bastam, se os identificadores forem densos.`},
+ {id:'mut',t:'Funcionalidades',p:'Os links podem ser apagados ou alterados?',r:'Para simplificar, não: um código, uma vez criado, nunca muda.',f:XU,
+  a:`A <b>imutabilidade</b> simplifica o projeto: uma cópia em <i>cache</i>, em réplica ou no navegador nunca fica obsoleta, e o dilema CAP quase desaparece para o redirecionamento.`},
+ {id:'met',t:'Usuários',p:'Alguém precisa consultar os cliques?',r:'Sim, a equipe de operação e análise quer métricas de cliques.',f:AUT,
+  a:`Um terceiro ator entra no diagrama. A escolha entre redirecionamento 301 e 302, discutida a 50.000 pés, dependerá dessa necessidade de contar cliques.`},
+ {id:'tec',t:'Tecnologia existente',p:'Que tecnologia a empresa já usa?',r:'O serviço é novo e não há pilha imposta.',f:AUT,
+  a:`Sem pilha imposta, a decisão tecnológica fica livre, mas deve ser adiada: nesta altitude ainda faltam as características que a justificariam.`},
+ {id:'bd',t:'Prematura',p:'Usaremos MySQL ou Cassandra?',prem:true,
+  a:`Pergunta <b>prematura</b>. Xu adverte que propor soluções antes de entender o problema é sinal de alerta, e não de competência. A escolha do banco pertence ao passo seguinte, a 50.000 pés.`},
+ {id:'ms',t:'Prematura',p:'Vamos usar microsserviços?',prem:true,
+  a:`Pergunta <b>prematura</b>. O estilo segue das características, e elas ainda não foram estabelecidas. Projetar para um bilhão de usuários quando o cliente espera dez mil é excesso de engenharia.`},
+];
+const ESSENC=Q.filter(q=>!q.prem).length;
+let feitas=[], ultimo=null;
+const tem=id=>feitas.includes(id);
+const fmt=n=>n.toLocaleString('pt-BR');
+function estimativas(){
+  const E=[
+    ['Escritas, média','≈ 1.160/s',['vol']],['Escritas, pico (fator 2)','≈ 2.300/s',['vol']],
+    ['Leituras, média (10:1)','≈ 11.600/s',['vol','razao']],['Leituras, pico (fator 2)','≈ 23.000/s',['vol','razao']],
+    ['Registros em 10 anos','365 bilhões',['vol','dur']],['Comprimento do código (Seção F.4.4)','7 símbolos',['vol','dur','alfa']],
+    ['Só as URLs longas (100 B)','36,5 TB',['vol','dur','tam']],['Registro completo (≈ 250 B)*','≈ 91 TB',['vol','dur','tam']],
+    ['Com três réplicas*','≈ 275 TB',['vol','dur','tam']],['Cache para 20% das leituras diárias*','≈ 50 GB',['vol','razao','tam']],
+    ['Banda de saída (≈ 500 B por resposta)*','≈ 46 Mbit/s',['vol','razao']],
+  ];
+  const nome={vol:'volume',razao:'razão leitura/escrita',dur:'duração',tam:'tamanho da URL',alfa:'alfabeto'};
+  return E.map(([g,v,req])=>{const f=req.filter(r=>!tem(r));const novo=ultimo&&req.includes(ultimo)&&!f.length;
+    return `<tr class="${novo?'novo':''}"><td>${g}</td>${f.length?`<td class="falta">falta: ${f.map(x=>nome[x]).join(', ')}</td>`:`<td>${v}</td>`}</tr>`;}).join('')
+    +`<tr><td colspan="2" class="rodape">* linhas acrescentadas pelo autor às estimativas de Xu (Tabela F.8)</td></tr>`;
+}
+function contexto(){
+  const N=id=>ultimo===id?'novo':'';
+  if(!tem('ex')) return `<div class="row"><div class="box foco"><b>Encurtador de URL</b><small>escopo ainda indefinido</small></div></div>`;
+  let h=`<div class="row"><div class="box ${N('ex')} ${N('quem')}"><b>${tem('quem')?'Criador de links':'Usuário'}</b><small>${tem('quem')?'pessoa ou sistema, via web e API':'encurta URLs'}</small></div><div class="box ${N('ex')}"><b>Visitante</b><small>acessa a URL curta</small></div></div>`;
+  h+=`<div class="arrow">↓ encurta · acessa${tem('vol')?' · '+(tem('razao')?'1.160 escritas/s, 11.600 leituras/s':'1.160 escritas/s'):''}</div>`;
+  const sub=[tem('mut')?'mapeamentos imutáveis':'',tem('alfa')?'códigos de 7 símbolos':'',tem('dur')?'10 anos de registros':''].filter(Boolean).join(' · ')||'encurtar e redirecionar';
+  h+=`<div class="row"><div class="box foco"><b>Encurtador de URL</b><small>${sub}</small></div>${tem('met')?`<div class="box ${N('met')}"><b>Operação e análise</b><small>consulta métricas de cliques</small></div>`:''}</div>`;
+  h+=`<div class="arrow">↓ redireciona (HTTP 301 ou 302)</div><div class="row"><div class="box ext ${N('ex')}"><b>Sítio de destino</b><small>fora do sistema</small></div></div>`;
+  return h;
+}
+function render(){
+  document.getElementById('perg').innerHTML=Q.filter(q=>!tem(q.id)).map(q=>`<button class="q" onclick="pergunta('${q.id}')"><span class="t">${q.t}</span>${q.p}</button>`).join('')||'<span style="color:var(--muted);font-size:.8rem">Todas as perguntas foram feitas.</span>';
+  document.getElementById('chat').innerHTML=feitas.map(id=>{const q=Q.find(x=>x.id===id);
+    return `<div class="b arq">${q.p}</div>`+(q.prem?`<div class="b alerta">Ainda é cedo para essa pergunta.</div>`:`<div class="b cli">${q.r}<small>${q.f}</small></div>`);}).join('')||'<div class="b cli">"Queremos um serviço que encurte endereços longos." Por onde começar?</div>';
+  const c=document.getElementById('chat');c.scrollTop=c.scrollHeight;
+  document.getElementById('ctx').innerHTML=contexto();
+  document.getElementById('est').innerHTML=estimativas();
+  const ok=feitas.filter(id=>!Q.find(q=>q.id===id).prem).length;
+  document.getElementById('count').textContent=`${ok} de ${ESSENC} perguntas pertinentes`;
+  document.getElementById('info').innerHTML=ultimo?Q.find(q=>q.id===ultimo).a:
+    `O método de Xu começa por <b>entender o problema e estabelecer o escopo</b>. As perguntas iniciais tratam de funcionalidades, usuários, crescimento e tecnologia existente. Cada resposta elimina alternativas e introduz restrições, e o desenho que emerge não poderia ter sido proposto no início.`;
+}
+function pergunta(id){feitas.push(id);ultimo=id;render();}
+function reset(){feitas=[];ultimo=null;render();}
+reset();
+</script>
+</body>
+</html>

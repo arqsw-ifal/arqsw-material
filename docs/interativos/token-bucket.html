@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limitador de taxa: balde de fichas</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .ctl{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+  .ctl b{color:var(--gold);min-width:2.6em;font-family:"JetBrains Mono",monospace}
+  select{background:var(--nav2);color:var(--paper);border:1px solid var(--navL);border-radius:6px;font:inherit;font-size:.8rem;padding:4px}
+  input[type=range]{accent-color:var(--teal);width:110px}
+  .grid{display:grid;grid-template-columns:1fr 150px;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  @media(max-width:640px){.tank{height:90px}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  svg{width:100%;height:auto;display:block;cursor:crosshair}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.72rem;color:var(--muted);margin-top:6px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+  .balde{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.75rem}
+  .tank{width:70px;height:170px;border:2px solid var(--tealL);border-top:none;border-radius:0 0 12px 12px;position:relative;overflow:hidden;background:var(--nav2)}
+  .agua{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(var(--tealL),var(--teal));transition:height .1s}
+  .tk{font-family:"JetBrains Mono",monospace;color:var(--gold);font-weight:700}
+  .log{font-family:"JetBrains Mono",monospace;font-size:.68rem;background:#1E3040;border-radius:8px;padding:6px;min-height:60px;width:100%;color:#A8D8A8}
+  .log .r{color:#F0A08F}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Limitador de taxa: <span style="color:var(--tealL)">balde de fichas</span> e janelas</h1>
+  <p class="sub">A mesma sequência de requisições passa por três algoritmos. Pontos verdes recebem 200; pontos vermelhos recebem <b>HTTP 429 (Too Many Requests)</b>. Clique na linha do tempo para acrescentar requisições.</p>
+
+  <div class="toolbar">
+    <label class="ctl">Capacidade <input type="range" id="cap" min="1" max="10" value="4" oninput="param()"><b id="capV"></b></label>
+    <label class="ctl">Taxa (fichas/s) <input type="range" id="taxa" min="0.5" max="5" step="0.5" value="2" oninput="param()"><b id="taxaV"></b></label>
+    <label class="ctl">Sequência
+      <select id="seq" onchange="preset()">
+        <option value="fronteira">Rajada na fronteira da janela</option>
+        <option value="rajadas">Rajadas intermitentes</option>
+        <option value="constante">Fluxo constante acima da taxa</option>
+        <option value="aleatoria">Chegadas aleatórias</option>
+        <option value="vazia">Vazia (clique para criar)</option>
+      </select></label>
+    <button class="btn" id="play" onclick="toggle()">▶ Reproduzir</button>
+    <button class="btn ghost" onclick="preset()">Reiniciar</button>
+  </div>
+
+  <div class="grid">
+    <div class="panel"><svg id="svg" viewBox="0 0 640 300"></svg>
+      <div class="legend"><span><i class="dot" style="background:var(--tealL)"></i>aceita (200)</span><span><i class="dot" style="background:var(--red)"></i>recusada (429)</span><span><i class="dot" style="background:var(--gold)"></i>fichas no balde</span></div>
+    </div>
+    <div class="panel balde">
+      <div>Balde no instante <span class="tk" id="tnow">0,0 s</span></div>
+      <div class="tank"><div class="agua" id="agua"></div></div>
+      <div><span class="tk" id="fichas"></span> fichas</div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base em Xu (2020, cap. 4) e na RFC 6585 (NOTTINGHAM; FIELDING, 2012). Para comparar os algoritmos com a mesma taxa média, as janelas admitem <i>capacidade</i> requisições a cada <i>capacidade ÷ taxa</i> segundos. O registro deslizante guarda também os carimbos das requisições recusadas, como descreve Xu.</p>
+
+<script>
+const T=10, X0=110, X1=630, svg=document.getElementById('svg');
+let reqs=[], res={}, cursor=0, timer=null;
+const C=()=>+document.getElementById('cap').value, R=()=>+document.getElementById('taxa').value, W=()=>C()/R();
+const xs=t=>X0+(X1-X0)*t/T, fmt=v=>v.toFixed(1).replace('.',',');
+
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};}
+function preset(){
+  stop(); cursor=0; const c=C(),r=R(),w=W(),s=document.getElementById('seq').value; reqs=[];
+  if(s==='fronteira') for(let b=w;b<T;b+=2*w){for(let j=0;j<c;j++){reqs.push(b-w*0.25+j*w*0.24/c);reqs.push(b+j*w*0.24/c);}}
+  if(s==='rajadas') [0.8,4.5,8].forEach(b=>{for(let j=0;j<2*c;j++)reqs.push(b+j*0.06);});
+  if(s==='constante') for(let t=0.2;t<T;t+=1/(1.5*r))reqs.push(t);
+  if(s==='aleatoria'){const g=rng(7);let t=0;while(true){t+=-Math.log(1-g())/(1.3*r);if(t>=T)break;reqs.push(t);}}
+  calc();
+}
+function simular(){
+  const c=C(),r=R(),w=W(),ts=[...reqs].sort((a,b)=>a-b);
+  let tok=c,last=0; const tb=[],curva=[];
+  for(const t of ts){tok=Math.min(c,tok+(t-last)*r);last=t;const ok=tok>=1;if(ok)tok-=1;tb.push({t,ok,tok,retry:ok?0:Math.ceil((1-tok)/r)});}
+  for(let s=0;s<=T+1e-9;s+=0.02){ // nível de fichas ao longo do tempo
+    let k=c,l=0;for(const e of tb){if(e.t>s)break;k=Math.min(c,k+(e.t-l)*r);l=e.t;if(e.ok)k-=1;}curva.push([s,Math.min(c,k+(s-l)*r)]);}
+  const cont={},fw=ts.map(t=>{const j=Math.floor(t/w);cont[j]=(cont[j]||0)+1;return{t,ok:cont[j]<=c};});
+  const logv=[],sw=ts.map(t=>{while(logv.length&&logv[0]<=t-w)logv.shift();logv.push(t);return{t,ok:logv.length<=c};});
+  return{tb,fw,sw,curva};
+}
+function picoJanela(arr){const a=arr.filter(e=>e.ok).map(e=>e.t);let m=0;a.forEach((t,i)=>{let n=0;for(let j=i;j<a.length&&a[j]<t+W()-1e-9;j++)n++;m=Math.max(m,n);});return m;}
+
+function param(){ if(document.getElementById("seq").value==="vazia") calc(); else preset(); }
+function calc(){
+  document.getElementById('capV').textContent=C();document.getElementById('taxaV').textContent=fmt(R());
+  res=simular();draw();
+}
+function draw(){
+  const c=C(),w=W(),rows=[['tb','Balde de fichas',70],['fw','Janela fixa',165],['sw','Registro deslizante',245]];
+  let h=`<rect x="${X0}" y="10" width="${X1-X0}" height="270" fill="#12203A" rx="6"/>`;
+  for(let s=0;s<=T;s++)h+=`<line x1="${xs(s)}" x2="${xs(s)}" y1="10" y2="280" stroke="#2A4468" stroke-width=".6"/><text x="${xs(s)}" y="295" fill="#9FB0C4" font-size="10" text-anchor="middle">${s}s</text>`;
+  for(let b=w;b<T;b+=w)h+=`<line x1="${xs(b)}" x2="${xs(b)}" y1="125" y2="205" stroke="#E8A93C" stroke-opacity=".45" stroke-width=".8"/>`;
+  const y0=105,yh=80,pts=res.curva.map(([s,k])=>`${xs(s).toFixed(1)},${(y0-yh*k/c).toFixed(1)}`).join(' ');
+  h+=`<polyline points="${pts}" fill="none" stroke="#E8A93C" stroke-width="1.5" opacity=".8"/>`;
+  rows.forEach(([k,nome,y])=>{
+    const arr=res[k],ok=arr.filter(e=>e.ok).length;
+    h+=`<text x="4" y="${y-6}" fill="#F4F6F9" font-size="10" font-weight="700">${nome}</text><text x="4" y="${y+8}" fill="#9FB0C4" font-size="9.5">${ok} aceitas · ${arr.length-ok}×429</text><text x="4" y="${y+20}" fill="#9FB0C4" font-size="9.5">pico em ${fmt(w)} s: ${picoJanela(arr)}</text>`;
+    h+=`<line x1="${X0}" x2="${X1}" y1="${y+14}" y2="${y+14}" stroke="#2A4468"/>`;
+    arr.forEach(e=>{const op=e.t<=cursor||!timer?1:.25;h+=`<circle cx="${xs(e.t)}" cy="${y+14}" r="4.2" fill="${e.ok?'#6FC3D0':'#C0503F'}" opacity="${op}"/>`;});
+  });
+  h+=`<line x1="${xs(cursor)}" x2="${xs(cursor)}" y1="10" y2="280" stroke="#F4F6F9" stroke-width="1.2"/>`;
+  svg.innerHTML=h; balde();
+}
+function balde(){
+  const c=C();let k=c;for(const [s,v] of res.curva){if(s>cursor+1e-9)break;k=v;}
+  document.getElementById('agua').style.height=(100*k/c)+'%';
+  document.getElementById('fichas').textContent=fmt(k)+' / '+c;
+  document.getElementById('tnow').textContent=fmt(cursor)+' s';
+  const ult=res.tb.filter(e=>e.t<=cursor).slice(-4).reverse();
+  document.getElementById('log').innerHTML=ult.length?ult.map(e=>e.ok?`t=${e.t.toFixed(2)} 200 OK<br>`:`<span class="r">t=${e.t.toFixed(2)} 429 · Retry-After: ${e.retry}</span><br>`).join(''):'(sem requisições ainda)';
+}
+svg.addEventListener('click',ev=>{
+  const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());
+  if(q.x<X0||q.x>X1)return; reqs.push((q.x-X0)/(X1-X0)*T); res=simular(); draw();
+});
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById('play').textContent='▶ Reproduzir';}}
+function toggle(){
+  if(timer){stop();draw();return;}
+  if(cursor>=T)cursor=0;
+  document.getElementById('play').textContent='⏸ Pausar';
+  timer=setInterval(()=>{cursor=Math.min(T,cursor+0.05);draw();if(cursor>=T){stop();draw();}},50);
+}
+document.getElementById("info").innerHTML=`<ul style="margin:0;padding-left:1.1em">
+ <li><b>Balde de fichas:</b> o balde recebe fichas a uma taxa fixa até a capacidade; cada requisição consome uma ficha, e a que não encontra ficha recebe 429. O algoritmo admite <b>rajadas</b> de até a capacidade, o que o torna adequado a APIs com tráfego legítimo intermitente (no exemplo de Xu, capacidade 4 e 2 fichas por segundo).</li>
+ <li><b>Janela fixa:</b> com a sequência "rajada na fronteira", observe a coluna "pico": requisições no fim de uma janela e no início da seguinte somam até o <b>dobro</b> do limite em um intervalo de uma janela.</li>
+ <li><b>Registro deslizante:</b> é exato em qualquer janela móvel, mas guarda um carimbo por requisição, inclusive das recusadas, o que consome memória e pode punir clientes insistentes.</li>
+</ul>`;
+preset();
+</script>
+</body>
+</html>

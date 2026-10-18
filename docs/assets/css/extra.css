@@ -1,0 +1,111 @@
+:root {
+  --md-primary-fg-color:        #1A2E4A;
+  --md-primary-fg-color--light: #2A4468;
+  --md-primary-fg-color--dark:  #12203A;
+  --md-primary-bg-color:        #F4F6F9;
+  --md-accent-fg-color:         #0F7A8C;
+  --md-default-bg-color:        #F4F6F9;
+  --md-typeset-a-color:         #0F7A8C;
+
+  /* Blocos de codigo - identidade visual */
+  --md-code-bg-color: #1E3040;
+  --md-code-fg-color: #A8D8A8;
+  --md-code-hl-color: rgba(232,169,60,0.20);
+  --md-code-hl-keyword-color:  #E8A93C;
+  --md-code-hl-function-color: #6FC3D0;
+  --md-code-hl-name-color:     #A8D8A8;
+  --md-code-hl-string-color:   #A8D8A8;
+  --md-code-hl-number-color:   #E8A93C;
+  --md-code-hl-comment-color:  #6B7A8F;
+  --md-code-hl-operator-color: #C8D6E5;
+  --md-code-hl-punctuation-color: #C8D6E5;
+  --md-code-hl-constant-color: #E8A93C;
+
+}
+
+/* Mermaid: o tema Material define as cores dos diagramas em ":root > *" usando
+   --md-code-fg-color nos rotulos e setas. Como aqui os blocos de codigo sao escuros (texto
+   claro), os diagramas ficariam ilegiveis: redefinimos no mesmo seletor. */
+:root > * {
+  --md-mermaid-node-bg-color:  rgba(15,122,140,0.08);
+  --md-mermaid-node-fg-color:  #0F7A8C;
+  --md-mermaid-label-bg-color: #F4F6F9;
+  --md-mermaid-label-fg-color: #1A2E4A;
+  --md-mermaid-edge-color:     #2A4468;
+}
+
+/* Detalhe dourado em titulos de secao */
+.md-typeset h2 {
+  border-bottom: 2px solid #E8A93C;
+  padding-bottom: 0.2rem;
+}
+
+/* Admonicao "Para desenvolver" (marca de stub do docente) */
+.md-typeset .admonition.todo,
+.md-typeset details.todo {
+  border-color: #E8A93C;
+}
+.md-typeset .todo > .admonition-title,
+.md-typeset .todo > summary {
+  background-color: rgba(232,169,60,0.12);
+}
+.md-typeset .todo > .admonition-title::before,
+.md-typeset .todo > summary::before {
+  background-color: #E8A93C;
+  -webkit-mask-image: var(--md-admonition-icon--note);
+          mask-image: var(--md-admonition-icon--note);
+}
+
+/* Podcast do capítulo (audio no topo, para ouvir antes de ler) */
+.md-typeset .podcast-capitulo {
+  margin: 0 0 1.4rem 0;
+  padding: 0.85rem 1rem;
+  background: rgba(15, 122, 140, 0.06);
+  border: 1px solid rgba(15, 122, 140, 0.22);
+  border-left: 4px solid var(--md-accent-fg-color);
+  border-radius: 8px;
+}
+.md-typeset .podcast-capitulo > figcaption {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: left;
+  font-style: normal;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .podcast-capitulo iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+}
+
+/* ---------- ARQSW: faixas de altitude ---------- */
+.md-typeset .altitude {
+  display: inline-block;
+  font-family: "JetBrains Mono", monospace;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  margin-right: .35rem;
+  vertical-align: middle;
+  color: #fff;
+}
+.md-typeset .altitude.a100 { background: #12203A; }
+.md-typeset .altitude.a50  { background: #2A4468; }
+.md-typeset .altitude.a10  { background: #0F7A8C; }
+.md-typeset .altitude.solo { background: #E8A93C; color: #12203A; }
+
+/* Caixa-preta (incidentes reais / licoes) */
+.md-typeset .admonition.caixa-preta,
+.md-typeset details.caixa-preta { border-color: #C0503F; }
+.md-typeset .caixa-preta > .admonition-title,
+.md-typeset .caixa-preta > summary { background-color: rgba(192,80,63,.12); }
+.md-typeset .caixa-preta > .admonition-title::before,
+.md-typeset .caixa-preta > summary::before {
+  background-color: #C0503F;
+  -webkit-mask-image: var(--md-admonition-icon--bug);
+          mask-image: var(--md-admonition-icon--bug);
+}

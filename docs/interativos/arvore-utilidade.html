@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Árvore de utilidade</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  ul.tree,ul.tree ul{list-style:none;margin:0;padding-left:18px}
+  ul.tree{padding-left:0}
+  ul.tree ul{border-left:1px solid var(--navL);margin-left:8px}
+  .no{display:inline-flex;align-items:center;gap:6px;margin:3px 0;padding:4px 9px;border-radius:8px;cursor:pointer;font-size:.82rem;background:var(--nav2);border:1px solid var(--navL)}
+  .no:hover{border-color:var(--teal)}
+  .no .seta{color:var(--tealL);font-size:.7rem;width:10px}
+  .no.raiz{background:var(--teal);border-color:var(--teal);font-weight:700}
+  .no.attr{border-color:var(--tealL);font-weight:700}
+  .cen{display:block;margin:4px 0;padding:7px 9px;border-radius:8px;background:var(--nav2);border:1px solid var(--navL);font-size:.78rem;cursor:pointer;line-height:1.35}
+  .cen.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(232,169,60,.3)}
+  .cen.aa{border-left:4px solid var(--red)}
+  .notas{display:flex;gap:10px;margin-top:5px;font-size:.7rem;color:var(--muted);flex-wrap:wrap}
+  select{background:var(--nav);color:var(--paper);border:1px solid var(--navL);border-radius:6px;font:inherit;font-size:.72rem;padding:1px 3px}
+  .fila{display:grid;gap:5px}
+  .fi{display:grid;grid-template-columns:22px 1fr 44px;gap:6px;align-items:center;font-size:.76rem;background:var(--nav2);border-radius:8px;padding:5px 8px}
+  .fi b{font-family:"JetBrains Mono",monospace;color:var(--gold)}
+  .par{font-family:"JetBrains Mono",monospace;font-size:.72rem;text-align:right}
+  .res{margin-top:10px;font-size:.78rem}
+  .res div{margin:4px 0;padding-left:8px;border-left:3px solid var(--navL)}
+  .res .r{border-color:var(--red)} .res .n{border-color:var(--tealL)} .res .s{border-color:var(--gold)} .res .c{border-color:#B48CE0}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Árvore de utilidade do ATAM: <span style="color:var(--tealL)">Saleor</span></h1>
+  <p class="sub">Clique nos nós para expandir. Cada folha é um cenário de qualidade com duas notas: <b>importância</b> para o negócio e <b>dificuldade</b> para a arquitetura (Figura 7.3).</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="tudo(true)">Expandir tudo</button>
+    <button class="btn ghost" onclick="tudo(false)">Recolher</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar notas</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel"><div class="rot">Árvore (raiz → atributo → refinamento → cenário)</div><div id="arvore"></div></div>
+    <div class="panel">
+      <div class="rot">Ordem de análise no passo 6</div>
+      <div class="fila" id="fila"></div>
+      <div class="res" id="res"></div>
+      <div class="res">
+        <div class="rot" style="margin-top:10px">Vocabulário dos resultados</div>
+        <div class="r"><b>Risco:</b> decisão potencialmente problemática para um atributo,
+          ou decisão importante ainda não tomada.</div>
+        <div class="n"><b>Não risco:</b> decisão considerada adequada, registrada com a justificativa.</div>
+        <div class="s"><b>Ponto de sensibilidade:</b> propriedade crítica para que um atributo
+          seja alcançado.</div>
+        <div class="c"><b>Ponto de compromisso:</b> ponto de sensibilidade de mais de um atributo,
+          em que melhorar um piora outro.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base na Figura 7.3 e no método de Kazman, Klein e Clements (2000). As conclusões do passo 6 para o cenário S2 reproduzem o exemplo da Seção 7.3.4.</p>
+
+<script>
+const NIV=['B','M','A'], NOME={A:'alta',M:'média',B:'baixa'};
+const BASE=[
+  {attr:'Elasticidade',ref:'Pico de Black Friday',id:'S1',txt:'10x pedidos por minuto, checkout em menos de 2 s para 95% dos pedidos',imp:'A',dif:'A'},
+  {attr:'Consistência',ref:'Pagamento',id:'S2',txt:'Nova tentativa do gateway não gera cobrança dupla',imp:'A',dif:'M'},
+  {attr:'Modificabilidade',ref:'Integrações',id:'S3',txt:'Novo provedor de frete em até 5 dias sem alterar o módulo de pedido',imp:'M',dif:'B'},
+];
+const PASSO6={
+  S2:[['r','Risco','ausência de chave de idempotência nas chamadas ao gateway'],
+      ['n','Não risco','uso de transações locais no agregado de pagamento'],
+      ['s','Ponto de sensibilidade','tempo limite da chamada ao gateway, para a disponibilidade do checkout'],
+      ['c','Ponto de compromisso','confirmar o pedido de forma síncrona ou assíncrona: consistência percebida pelo comprador × elasticidade']]
+};
+let C=[], aberto=new Set(['raiz']), sel=null;
+function reset(){
+  C=BASE.map(x=>({...x})); // cópia: as notas originais da Figura 7.3 ficam preservadas
+  sel=null;
+  render();
+}
+function chave(c){return NIV.indexOf(c.imp)*3+NIV.indexOf(c.dif);}
+function toggle(k){aberto.has(k)?aberto.delete(k):aberto.add(k);render();}
+function tudo(on){aberto=new Set(on?['raiz',...C.map(c=>'a:'+c.attr),...C.map(c=>'r:'+c.ref)]:['raiz']);render();}
+function nota(id,campo,v){C.find(c=>c.id===id)[campo]=v;render();}
+function escolhe(id){sel=id;aberto=new Set([...aberto,'raiz','a:'+C.find(c=>c.id===id).attr,'r:'+C.find(c=>c.id===id).ref]);render();}
+function seta(k){return `<span class="seta">${aberto.has(k)?'▼':'▶'}</span>`;}
+function render(){
+  const attrs=[...new Set(C.map(c=>c.attr))];
+  let h=`<ul class="tree"><li><span class="no raiz" onclick="toggle('raiz')">${seta('raiz')}Utilidade</span>`;
+  if(aberto.has('raiz')){
+    h+='<ul>'+attrs.map(a=>{
+      const ka='a:'+a, refs=[...new Set(C.filter(c=>c.attr===a).map(c=>c.ref))];
+      let s=`<li><span class="no attr" onclick="toggle('${ka}')">${seta(ka)}${a}</span>`;
+      if(aberto.has(ka)) s+='<ul>'+refs.map(r=>{
+        const kr='r:'+r;
+        let t=`<li><span class="no" onclick="toggle('${kr}')">${seta(kr)}${r}</span>`;
+        if(aberto.has(kr)) t+='<ul>'+C.filter(c=>c.ref===r).map(c=>`<li><span class="cen ${sel===c.id?'sel':''} ${c.imp==='A'&&c.dif==='A'?'aa':''}" onclick="escolhe('${c.id}')">
+          <b>${c.id}</b>: ${c.txt}
+          <span class="notas" onclick="event.stopPropagation()">importância ${sel_(c,'imp')} dificuldade ${sel_(c,'dif')}</span></span></li>`).join('')+'</ul>';
+        return t+'</li>';
+      }).join('')+'</ul>';
+      return s+'</li>';
+    }).join('')+'</ul>';
+  }
+  document.getElementById('arvore').innerHTML=h+'</li></ul>';
+  const fila=[...C].sort((a,b)=>chave(b)-chave(a));
+  document.getElementById('fila').innerHTML=fila.map((c,k)=>`<div class="fi" onclick="escolhe('${c.id}')" style="cursor:pointer"><b>${k+1}</b><span>${c.id}: ${c.ref}</span><span class="par">(${c.imp}, ${c.dif})</span></div>`).join('');
+  const r=sel&&PASSO6[sel];
+  document.getElementById('res').innerHTML=sel?(r?`<div class="rot" style="margin-top:6px">Passo 6 aplicado a ${sel}</div>`+r.map(([k,t,d])=>`<div class="${k}"><b>${t}:</b> ${d}</div>`).join('')
+    :`<div class="rot" style="margin-top:6px">${sel}</div><div>O capítulo detalha o passo 6 apenas para o cenário S2. Como exercício, classifique as decisões que afetam ${sel} em riscos, não riscos, pontos de sensibilidade e pontos de compromisso.</div>`):'';
+  const aa=C.filter(c=>c.imp==='A'&&c.dif==='A').length;
+  document.getElementById('count').textContent=`${C.length} cenários · ${aa} com (A, A)`;
+  document.getElementById('info').innerHTML=sel?infoCen(C.find(c=>c.id===sel)):
+    `A raiz representa a utilidade geral do sistema; o primeiro nível, atributos de qualidade; o segundo, refinamentos; as folhas, <b>cenários concretos e mensuráveis</b>. Os cenários com importância e dificuldade altas, marcados em vermelho, são os primeiros analisados no passo 6. Altere as notas e observe a fila mudar.`;
+}
+function sel_(c,campo){return `<select onchange="nota('${c.id}','${campo}',this.value)">${['A','M','B'].map(v=>`<option value="${v}" ${c[campo]===v?'selected':''}>${v}</option>`).join('')}</select>`;}
+function infoCen(c){
+  let h=`<b>${c.id}</b> tem importância <b>${NOME[c.imp]}</b> e dificuldade <b>${NOME[c.dif]}</b>. `;
+  if(c.imp==='A'&&c.dif==='A') h+=`É prioridade máxima: o negócio depende dele, e a arquitetura terá dificuldade em satisfazê-lo.`;
+  else if(c.imp==='A') h+=`É importante, mas a arquitetura o atende com esforço menor; entra na análise logo após os cenários (A, A).`;
+  else if(c.dif==='A') h+=`É difícil, mas pouco importante: um candidato a ser renegociado com os <i>stakeholders</i> antes de consumir esforço.`;
+  else h+=`Ocupa o fim da fila. A árvore serve justamente para que o tempo escasso da avaliação vá para onde há risco.`;
+  if(c.id==='S2') h+=` O caso de cobrança em duplicidade discutido na Seção 6.6 é o tipo de incidente que o tema de risco "integridade financeira sob falhas parciais" pretende antecipar.`;
+  return h;
+}
+reset(); tudo(true);
+</script>
+</body>
+</html>

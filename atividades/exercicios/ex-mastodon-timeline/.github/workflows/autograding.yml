@@ -1,0 +1,37 @@
+name: Corretor automatico
+
+# Roda a cada envio do aluno e tambem sob demanda (aba Actions -> Run workflow).
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Se o aluno enviar varias vezes seguidas, cancela as execucoes anteriores.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# SEGURANCA: privilegio minimo. O corretor executa codigo do aluno; o token do job
+# fica somente-leitura, para que esse codigo nao consiga escrever no repositorio.
+permissions:
+  contents: read
+
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar o codigo do aluno
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 (com cache do Maven)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Rodar o corretor
+        run: |
+          chmod +x scripts/run_tests.sh
+          ./scripts/run_tests.sh

@@ -1,0 +1,4 @@
+{
+  "runs-on": "ubuntu-latest",
+  "apt": ["openjdk-17-jdk-headless", "maven"]
+}

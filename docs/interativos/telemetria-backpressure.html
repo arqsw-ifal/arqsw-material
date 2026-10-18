@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telemetria e backpressure</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:6px 11px; cursor:pointer; font:inherit; font-size:.82rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .panel{background:var(--nav); border-radius:12px; padding:12px; margin-bottom:12px}
+  .panel h2{font-size:.86rem; margin:0 0 8px; color:var(--tealL)}
+  .flow{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; align-items:stretch; margin-bottom:10px}
+  @media(max-width:640px){ .flow{grid-template-columns:1fr 1fr} .sl{grid-template-columns:1fr !important} }
+  .st{background:var(--nav2); border:1px solid var(--navL); border-radius:9px; padding:6px; text-align:center; font-size:.7rem; line-height:1.3}
+  .st b{display:block; font-size:.76rem}
+  .st span{font-family:"JetBrains Mono",monospace; color:var(--gold)}
+  .st.hot{border:2px solid var(--red)} .st.ok{border:2px solid var(--teal)}
+  .sl{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  label{display:block; font-size:.76rem; color:var(--muted)}
+  label b{color:var(--paper)}
+  input[type=range]{width:100%; accent-color:var(--teal)}
+  canvas{width:100%; height:170px; background:var(--nav2); border-radius:9px; display:block; margin-top:8px}
+  .leg{display:flex; flex-wrap:wrap; gap:12px; font-size:.7rem; color:var(--muted); margin-top:4px}
+  .leg i{display:inline-block; width:12px; height:3px; margin-right:4px; vertical-align:middle}
+  .info{background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  code{font-family:"JetBrains Mono",monospace; color:var(--tealL); font-size:.92em}
+</style>
+</head>
+<body>
+  <h1>Ingestão de telemetria no <span style="color:var(--tealL)">ThingsBoard</span>: fila, <i>backpressure</i> e reconexão</h1>
+  <p class="sub">A sobrecarga do motor de regras deve aparecer como <b>atraso</b> na fila, não como perda; e uma frota que cai junta não deve voltar junta.</p>
+
+  <div class="panel">
+    <h2>1. Produção × consumo na fila <code>tb_rule_engine</code></h2>
+    <div class="toolbar">
+      <button class="btn on" id="qK" onclick="setQ('kafka')">queue.type = kafka</button>
+      <button class="btn" id="qM" onclick="setQ('in-memory')">queue.type = in-memory</button>
+      <button class="btn ghost" onclick="reiniciarNo()">Reiniciar o nó</button>
+      <button class="btn ghost" id="pp" onclick="pausar()">⏸ Pausar</button>
+      <button class="btn ghost" onclick="resetQ()">Reiniciar</button>
+      <span class="count" id="cQ"></span>
+    </div>
+    <div class="flow">
+      <div class="st"><b>Dispositivos</b>PUBLISH QoS 1<br><span id="fP"></span></div>
+      <div class="st" id="sT"><b>Transporte MQTT</b>checkLimits<br><span id="fT"></span></div>
+      <div class="st" id="sQ"><b>tb_rule_engine</b>partições por entidade<br><span id="fQ"></span></div>
+      <div class="st"><b>Consumidor</b>poll de lote, commit<br><span id="fC"></span></div>
+      <div class="st"><b>Atores e regras</b>cadeia de regras<br><span id="fA"></span></div>
+    </div>
+    <div class="sl">
+      <label>Produção: <b id="vP"></b><input type="range" id="P" min="0" max="5000" step="100" value="2000"></label>
+      <label>Consumo do motor de regras: <b id="vC"></b><input type="range" id="C" min="0" max="5000" step="100" value="2500"></label>
+      <label>Limite de taxa do inquilino: <b id="vL"></b><input type="range" id="L" min="500" max="5000" step="100" value="4000"></label>
+    </div>
+    <canvas id="cv1" width="800" height="170"></canvas>
+    <div class="leg"><span><i style="background:#E8A93C"></i>mensagens na fila (atraso do consumidor)</span><span><i style="background:#6FC3D0"></i>aceitas por segundo</span><span><i style="background:#C0503F"></i>rejeitadas ou perdidas</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Tempestade de reconexão: 1.000 dispositivos, balanceador fora por 30 s, 300 s simulados</h2>
+    <div class="toolbar">
+      <button class="btn pol" data-p="fixo">Intervalo fixo (5 s)</button>
+      <button class="btn pol" data-p="exp">Exponencial</button>
+      <button class="btn pol" data-p="jitter">Exponencial + Full Jitter</button>
+      <span class="count" id="cR"></span>
+    </div>
+    <canvas id="cv2" width="800" height="170"></canvas>
+    <div class="leg"><span><i style="background:#C0503F"></i>tentativas por segundo</span><span><i style="background:#6FC3D0"></i>dispositivos conectados</span><span><i style="background:#9FB0C4"></i>capacidade do transporte: 100 conexões/s (hipotética)</span></div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id), fmt=n=>Math.round(n).toLocaleString('pt-BR');
+const css=getComputedStyle(document.documentElement), col=v=>css.getPropertyValue(v).trim();
+// ---------- parte 1 ----------
+let qt='kafka', lag=0, hist=[], timer=null, perdidas=0, rejeitadas=0, t=0;
+function passo(){
+  const P=+$('P').value, C=+$('C').value, L=+$('L').value;
+  const aceitas=Math.min(P,L), rej=P-aceitas;   // checkLimits por inquilino: excesso encerra a sessão MQTT
+  rejeitadas+=rej; lag+=aceitas;
+  const cons=Math.min(lag,C); lag-=cons; t++;
+  hist.push({lag,aceitas,perda:rej}); if(hist.length>120) hist.shift();
+  render1(P,C,L,aceitas,cons,rej);
+}
+function render1(P,C,L,aceitas,cons,rej){
+  $('vP').textContent=fmt(P)+' msg/s'; $('vC').textContent=fmt(C)+' msg/s'; $('vL').textContent=fmt(L)+' msg/s';
+  $('fP').textContent=fmt(P)+'/s'; $('fT').textContent=rej?`${fmt(rej)}/s rejeitadas`:'PUBACK após a fila';
+  $('fQ').textContent=fmt(lag)+' na fila'; $('fC').textContent=fmt(cons)+'/s'; $('fA').textContent=lag>0?`atraso ≈ ${(lag/Math.max(C,1)).toFixed(1).replace('.',',')} s`:'em dia';
+  $('sT').className='st '+(rej?'hot':'ok'); $('sQ').className='st '+(lag>C*5?'hot':'ok');
+  $('cQ').textContent=`t = ${t} s · rejeitadas: ${fmt(rejeitadas)} · perdidas: ${fmt(perdidas)}`;
+  desenhar($('cv1'), hist.map(h=>h.lag), hist.map(h=>h.aceitas), hist.map(h=>h.perda));
+}
+function eixo(g,W,H,max){ g.fillStyle=col('--muted'); g.font='11px system-ui'; g.fillText('máx. '+fmt(max),W-90,14); }
+function linha(g,arr,cor,max,W,H,larg){ if(!arr.length) return; const n=Math.max(arr.length-1,1); g.strokeStyle=cor; g.lineWidth=larg||2; g.beginPath();
+  arr.forEach((v,k)=>{ const x=8+k*(W-16)/n, y=H-10-(H-20)*Math.min(v/max,1); k?g.lineTo(x,y):g.moveTo(x,y); }); g.stroke(); }
+function desenhar(cv, a, b, c){
+  const g=cv.getContext('2d'), W=cv.width, H=cv.height; g.clearRect(0,0,W,H);
+  const m=Math.max(1000,...a,...b,...c);
+  linha(g,c,col('--red'),m,W,H); linha(g,b,col('--tealL'),m,W,H); linha(g,a,col('--gold'),m,W,H,2.5); eixo(g,W,H,m);
+}
+function desenhar2(cv, tent, con){
+  const g=cv.getContext('2d'), W=cv.width, H=cv.height; g.clearRect(0,0,W,H);
+  const m=Math.max(N,...tent), y=H-10-(H-20)*CAP/m;
+  g.strokeStyle=col('--muted'); g.setLineDash([5,4]); g.lineWidth=1; g.beginPath(); g.moveTo(0,y); g.lineTo(W,y); g.stroke(); g.setLineDash([]);
+  const xf=8+FORA*(W-16)/(tent.length-1); g.fillStyle='rgba(192,80,63,.12)'; g.fillRect(8,0,xf-8,H);
+  linha(g,tent,col('--red'),m,W,H); linha(g,con,col('--tealL'),m,W,H,2.5); eixo(g,W,H,m);
+}
+function setQ(q){ qt=q; $('qK').classList.toggle('on',q==='kafka'); $('qM').classList.toggle('on',q!=='kafka'); info(); }
+function reiniciarNo(){ if(qt==='in-memory'){ perdidas+=lag; hist.push({lag:0,aceitas:0,perda:lag}); lag=0; } info(qt==='in-memory'?'perda':'kafka'); render1(+$('P').value,+$('C').value,+$('L').value,0,0,0); }
+function pausar(){ if(timer){ clearInterval(timer); timer=null; $('pp').textContent='▶ Continuar'; } else { timer=setInterval(passo,250); $('pp').textContent='⏸ Pausar'; } }
+function resetQ(){ lag=0; hist=[]; perdidas=0; rejeitadas=0; t=0; ['P','C','L'].forEach(id=>$(id).value=$(id).defaultValue); passo(); }
+
+// ---------- parte 2 ----------
+const N=1000, CAP=100, FORA=30, DUR=300, BASE=1, TETO=300;
+let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+function atraso(pol,n){ if(pol==='fixo') return 5; const e=Math.min(TETO,BASE*2**Math.min(n,30)); return pol==='exp'? e : Math.round(rnd()*e); }
+function simular(pol){
+  seed=7; const prox=new Array(N).fill(1), tent=new Array(N).fill(0), con=new Array(N).fill(false);
+  const tentativas=[], conectados=[];
+  for(let s=0;s<DUR;s++){
+    let quem=[]; for(let d=0;d<N;d++) if(!con[d] && prox[d]<=s) quem.push(d);
+    let vagas = s<FORA ? 0 : CAP;
+    quem.forEach(d=>{ if(vagas>0){ con[d]=true; vagas--; } else { tent[d]++; prox[d]=s+Math.max(1,atraso(pol,tent[d])); } });
+    tentativas.push(quem.length); conectados.push(con.filter(Boolean).length);
+  }
+  return {tentativas,conectados};
+}
+let pol='jitter';
+function render2(){
+  document.querySelectorAll('.pol').forEach(b=>b.classList.toggle('on',b.dataset.p===pol));
+  const r=simular(pol), todos=r.conectados.findIndex(v=>v===N), pico=Math.max(...r.tentativas.slice(FORA)), total=r.tentativas.reduce((a,b)=>a+b,0);
+  desenhar2($('cv2'), r.tentativas, r.conectados);
+  $('cR').textContent=`pico após a volta: ${fmt(pico)} tentativas/s · total: ${fmt(total)} tentativas · ${todos<0?'nem todos conectados em '+DUR+' s':'todos conectados em t = '+todos+' s'}`;
+  info();
+}
+function info(extra){
+  const q = qt==='kafka'
+    ? `<b>Fila durável.</b> Com <code>queue.type = kafka</code>, as mensagens ficam em disco e sobrevivem ao reinício; o consumidor <b>puxa</b> lotes quando tem capacidade, e a sobrecarga vira atraso observável (KREPS; NARKHEDE; RAO, 2011).`
+    : `<b>Fila em memória.</b> Com <code>queue.type = in-memory</code> (o padrão), reiniciar o nó perde tudo o que estava na fila: serve a desenvolvimento e demonstrações num único nó (ADR 4.7-A).`;
+  $('info').innerHTML = (extra==='perda'?'<b style="color:#ffb4a8">Mensagens perdidas no reinício.</b> ':'') + q
+   + ` Os pontos de controle de fluxo são o <code>checkLimits</code> no transporte (excesso encerra a sessão MQTT), o <code>PUBACK</code> só após a confirmação da fila e o <i>commit</i> do lote só após o processamento. Se o consumo fica abaixo da produção, o atraso cresce sem limite: o remédio é mais réplicas ou partições.`
+   + `<br><br><b>Reconexão.</b> Com intervalo fixo ou exponencial puro, quem falhou junto tenta junto, em ondas que esbarram na capacidade do transporte; o intervalo fixo ainda multiplica o trabalho total. O <i>Full Jitter</i> sorteia o atraso uniformemente em [0, min(teto, base·2<sup>n</sup>)], com base de 1 s e teto de 300 s, como na Listagem 4.7.1 (BROOKER, 2015). Parâmetros da frota e da capacidade são hipotéticos.`;
+}
+document.querySelectorAll('.pol').forEach(b=>b.onclick=()=>{ pol=b.dataset.p; render2(); });
+['P','C','L'].forEach(id=>$(id).oninput=()=>render1(+$('P').value,+$('C').value,+$('L').value,0,0,0));
+resetQ(); render2(); timer=setInterval(passo,250);
+</script>
+</body>
+</html>

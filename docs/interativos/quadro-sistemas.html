@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadro dos sete sistemas</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--navL);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.82rem;font-weight:600}
+  .btn:hover{border-color:var(--teal)}
+  .btn.on{border-color:var(--teal);background:var(--teal)}
+  .btn.a100.on{background:#0b1526;border-color:#6FC3D0}
+  .btn.a50.on{background:#2A4468;border-color:#6FC3D0}
+  .btn.a10.on{background:#0F7A8C}
+  .btn.solo.on{background:#E8A93C;color:#12203A}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  input[type=search]{background:var(--nav);color:var(--paper);border:1px solid var(--navL);border-radius:8px;padding:6px 10px;font:inherit;font-size:.82rem;min-width:180px}
+  .sis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .chip{font-size:.74rem;padding:3px 10px;border-radius:999px;border:1px solid var(--navL);cursor:pointer;color:var(--muted);user-select:none}
+  .chip.on{border-color:var(--gold);color:var(--gold)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+  .card{background:var(--nav);border-radius:12px;padding:12px;font-size:.79rem;line-height:1.4}
+  .card h2{font-size:.95rem;margin:0 0 8px;color:var(--paper)}
+  .card h2 small{color:var(--muted);font-weight:400;font-size:.75rem}
+  .campo{margin-bottom:8px;padding-left:9px;border-left:3px solid var(--navL)}
+  .campo .rot{display:block;font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .campo.a100{border-color:#6FC3D0} .campo.a50{border-color:#4F7AB0} .campo.a10{border-color:#0F7A8C} .campo.solo{border-color:#E8A93C}
+  mark{background:rgba(232,169,60,.35);color:inherit;border-radius:3px;padding:0 1px}
+  .vazio{color:var(--muted);font-size:.85rem;padding:20px;text-align:center}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+  @media(max-width:640px){input[type=search]{min-width:0;width:100%}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <h1>Quadro comparativo dos <span style="color:var(--tealL)">sete sistemas</span></h1>
+  <p class="sub">Tabelas 7.1 e 7.2 reunidas e filtráveis por altitude. Busque um termo (por exemplo, <i>Observer</i> ou <i>eventos</i>) para ver onde ele se repete.</p>
+
+  <div class="toolbar" id="alts"></div>
+  <div class="toolbar">
+    <input type="search" id="busca" placeholder="Buscar termo nos sistemas…" oninput="render()">
+    <span class="count" id="count"></span>
+  </div>
+  <div class="sis" id="sis"></div>
+  <div class="cards" id="cards"></div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), a partir das Tabelas 7.1 e 7.2, com base nas Seções 3.2 a 3.8, 4.2 a 4.8, 5.2 a 5.8 e 6.2 a 6.8. Versões: Mastodon v4.7.3, Mattermost v11.11.1, PeerTube v8.3.1, Nextcloud v35.0.2, Saleor 3.23.42, ThingsBoard v4.3.1.6 e PX4 v1.17.0.</p>
+
+<script>
+const ALT=[
+  {id:'todas',nome:'Todas as altitudes'},
+  {id:'a100',nome:'100.000 pés',campos:[['top3','Top-3 (Cap. 3)']]},
+  {id:'a50',nome:'50.000 pés',campos:[['estilo','Estilo dominante (Cap. 4)'],['quanta','Quanta (Cap. 4)'],['adr','Decisão-chave (ADR reconstruído)']]},
+  {id:'a10',nome:'10.000 pés',campos:[['org','Organização interna (Cap. 5)']]},
+  {id:'solo',nome:'Solo',campos:[['padroes','Padrões mais visíveis no código (Cap. 6)']]},
+];
+const S=[
+ {n:'Mastodon',r:'Twitter/X',top3:'simplicidade operacional; interoperabilidade; desempenho de leitura da timeline',
+  estilo:'monólito em camadas com jobs assíncronos (Sidekiq); federação ActivityPub',
+  quanta:'1 por instância (web, workers e streaming compartilham PostgreSQL e Redis); milhares na rede federada',
+  adr:'ADR-M1: uma base de código Rails executada como processo web e como workers Sidekiq',
+  org:'camadas abertas por convenção do Rails; sem inversão de dependência, exceto na fronteira do protocolo ActivityPub',
+  padroes:'Active Record, Service Layer/Transaction Script, Command (workers), Observer (callbacks), disjuntor na entrega federada'},
+ {n:'Mattermost',r:'Slack/WhatsApp',top3:'segurança e privacidade, com soberania de dados; latência de entrega; disponibilidade',
+  estilo:'núcleo monolítico com camada de difusão orientada a eventos (WebSocket) e traços de microkernel',
+  quanta:'1 (mesmo binário, mesmo banco, mesma versão em todos os nós); plugins como exceção parcial',
+  adr:'ADR-MM-01: plugins de servidor em processos separados, via RPC',
+  org:'camadas api4 → app → store, com camada de aplicação larga; portas no armazenamento, no cluster e nos plugins',
+  padroes:'Observer e Mediator no hub, Decorator sobre Repository, Proxy remoto para plugins, Command, Idempotent Receiver'},
+ {n:'PeerTube',r:'YouTube/Netflix',top3:'custo; desempenho de entrega; elasticidade do processamento',
+  estilo:'pipes and filters por filas no processamento; cliente-servidor, CDN e P2P na entrega; federação',
+  quanta:'1 com workers locais; 2 ou mais com runners remotos',
+  adr:'ADR-PT-02: permitir runners remotos de transcodificação',
+  org:'camadas abertas; adaptadores nítidos (ffmpeg, armazenamento, ActivityPub) sem portas definidas pelo núcleo; hooks de plugins',
+  padroes:'Chain of Responsibility (middlewares), Template Method, Strategy (perfis de codificação), Active Record'},
+ {n:'Nextcloud',r:'Dropbox/Drive',top3:'durabilidade e confiabilidade; extensibilidade; segurança e privacidade',
+  estilo:'microkernel (núcleo lib/ + apps) com clientes de sincronização',
+  quanta:'1 (todos os apps no mesmo processo e no mesmo banco)',
+  adr:'ADR-001: toda funcionalidade além do núcleo é um app',
+  org:'camadas fechadas no caminho de arquivos; hexagonal na fronteira com armazenamentos e apps; microkernel recursivo',
+  padroes:'Adapter, Decorator (wrappers), Composite, Observer, Plugin, Separated Interface'},
+ {n:'Saleor',r:'Mercado Livre/Amazon',top3:'elasticidade; consistência dos dados financeiros e de estoque; modificabilidade e integração',
+  estilo:'monólito modular headless com apps externas',
+  quanta:'vários, mas acoplados: o núcleo e cada app, ligados por webhooks síncronos no checkout',
+  adr:'ADR-002: extensões como apps externas, e não como plug-ins no processo',
+  org:'módulos por domínio; hexagonal na escala do sistema (eventos síncronos como portas de saída), não no código',
+  padroes:'Transaction Script, Active Record, Remote Facade e DTO, saga em processo, chave de idempotência, camada anticorrupção, Circuit Breaker'},
+ {n:'ThingsBoard',r:'AWS IoT',top3:'escalabilidade; disponibilidade de aceitação; segurança',
+  estilo:'orientado a eventos com fila como espinha dorsal; mesmo código como monólito ou microsserviços',
+  quanta:'1 no monólito, mesmo em cluster; argumenta-se 2 ou mais em microsserviços',
+  adr:'ADR 4.7-B: uma base de código, duas topologias',
+  org:'hexagonal no transporte e na fila; regra de dependência no motor de regras; camadas no módulo dao',
+  padroes:'Strategy e Chain of Responsibility no motor de regras, Adapter nos transportes, modelo de atores, Service Layer, Data Mapper'},
+ {n:'PX4',r:'DJI',top3:'segurança (safety); determinismo temporal; tolerância a falhas',
+  estilo:'arquitetura unitária com publish/subscribe interno (uORB)',
+  quanta:'1 no controlador de voo; computador de missão e estação em solo são outros quanta',
+  adr:'ADR-PX4-001: módulos comunicam-se apenas por tópicos uORB',
+  org:'barramento, e não camadas; adaptadores (MAVLink, uXRCE-DDS, drivers) em torno de contratos de mensagens',
+  padroes:'Observer com ChangeManager (uORB), máquina de estados tabular no commander, Strategy na alocação de controle'},
+];
+const INFO={
+  todas:`O quadro lê-se em duas direções. Na <b>vertical</b>, compara os sistemas numa mesma altitude; na <b>horizontal</b>, segue um sistema do contexto ao código. Escolha uma altitude para reduzir o quadro a uma única pergunta.`,
+  a100:`A 100.000 pés, observa-se que <b>nenhuma característica aparece em todos os sistemas</b>
+    e que as poucas recorrentes mudam de significado conforme o contexto. Disponibilidade, no
+    ThingsBoard, é <b>disponibilidade de aceitação</b>: nenhuma mensagem confirmada ao dispositivo
+    pode ser perdida. A segurança do Mattermost é sobretudo confidencialidade e soberania de dados;
+    a do PX4 é <i>safety</i>, ausência de danos a pessoas e ao patrimônio.`,
+  a50:`A 50.000 pés, o estilo segue das características. Note como a contagem de <b>quanta</b> depende do banco compartilhado e das chamadas síncronas: vários processos sobre um único banco continuam formando um único quantum.`,
+  a10:`A 10.000 pés,
+    as lentes das camadas, da arquitetura hexagonal e da arquitetura limpa raramente se aplicam de forma pura. É comum encontrar portas apenas nas fronteiras que mais mudam.`,
+  solo:`No solo, os padrões se repetem entre linguagens e domínios. Busque <i>Observer</i>, <i>Strategy</i> ou <i>Active Record</i> para ver o mesmo mecanismo resolvendo problemas diferentes.`
+};
+let alt='todas', ativos=new Set(S.map(s=>s.n));
+function esc(t){return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function realca(t,q){return q?t.replace(new RegExp('('+esc(q)+')','gi'),'<mark>$1</mark>'):t;}
+function render(){
+  document.getElementById('alts').innerHTML=ALT.map(a=>`<button class="btn ${a.id} ${alt===a.id?'on':''}" onclick="alt='${a.id}';render()">${a.nome}</button>`).join('');
+  document.getElementById('sis').innerHTML=S.map(s=>`<span class="chip ${ativos.has(s.n)?'on':''}" onclick="alterna('${s.n}')">${s.n}</span>`).join('');
+  const q=document.getElementById('busca').value.trim();
+  const blocos=(alt==='todas'?ALT.slice(1):ALT.filter(a=>a.id===alt));
+  let n=0,html='';
+  S.filter(s=>ativos.has(s.n)).forEach(s=>{
+    const campos=blocos.flatMap(a=>a.campos.map(c=>[a.id,...c]));
+    if(q&&!campos.some(([,k])=>s[k].toLowerCase().includes(q.toLowerCase())))return;
+    n++;
+    html+=`<div class="card"><h2>${s.n} <small>(${s.r})</small></h2>`+
+      campos.map(([a,k,rot])=>`<div class="campo ${a}"><span class="rot">${rot}</span>${realca(s[k],q)}</div>`).join('')+`</div>`;
+  });
+  document.getElementById('cards').innerHTML=html||'<div class="vazio">Nenhum sistema corresponde ao filtro.</div>';
+  document.getElementById('count').textContent=`${n} de ${S.length} sistemas`;
+  document.getElementById('info').innerHTML=INFO[alt]+(q?` A busca por "<b>${q.replace(/</g,'&lt;')}</b>" encontrou ${n} sistema${n===1?'':'s'}.`:'');
+}
+function alterna(n){
+  ativos.has(n)?ativos.delete(n):ativos.add(n);
+  if(!ativos.size) S.forEach(s=>ativos.add(s.n)); // nunca deixa o quadro vazio
+  render();
+}
+render();
+</script>
+</body>
+</html>

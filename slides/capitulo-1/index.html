@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capítulo 1 - Fundamentos | Arquitetura de Software</title>
+
+  <link rel="stylesheet" href="../assets/reveal/dist/reset.css">
+  <link rel="stylesheet" href="../assets/reveal/dist/reveal.css">
+  <link rel="stylesheet" href="../assets/reveal/dist/theme/white.css" id="theme">
+  <link rel="stylesheet" href="../assets/reveal/plugin/highlight/monokai.css">
+  <!-- Tema do curso (sobrescreve o tema base) -->
+  <link rel="stylesheet" href="../assets/css/course-theme.css">
+  <style>
+    .alt { display:inline-block; font-family:"JetBrains Mono",monospace; font-size:.55em; font-weight:700;
+           padding:.15em .6em; border-radius:999px; color:#fff; }
+    .a100 { background:#0b1526; } .a50 { background:#2A4468; } .a10 { background:#0F7A8C; }
+    .solo { background:#E8A93C; color:#12203A; }
+    table.alts { font-size:.55em; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Capa -->
+      <section class="titulo" data-background-color="#12203A">
+        <h1>Arquitetura de Software</h1>
+        <p class="subtitulo">Capítulo 1 &mdash; Fundamentos da arquitetura de software</p>
+        <p class="rodape">
+          Um voo do negócio ao código &middot; BSI<br>
+          IFAL &mdash; Campus Maceió &middot; Prof. Leo Fernandes, PhD
+        </p>
+      </section>
+
+      <!-- Gancho -->
+      <section data-background-color="#1A2E4A">
+        <h2>Uma pergunta</h2>
+        <p>Por que o WhatsApp, o YouTube e o software de um drone<br>
+           têm arquiteturas <strong>tão diferentes</strong>?</p>
+        <p class="fragment">Spoiler: porque <strong>o que não pode falhar</strong> é diferente em cada um.</p>
+        <aside class="notes">Deixe a turma responder antes de mostrar o fragmento. Anote os palpites no quadro: voltaremos a eles no Capítulo 12.</aside>
+      </section>
+
+      <!-- Objetivos -->
+      <section data-background-color="#1A2E4A">
+        <h2>Objetivos</h2>
+        <ul style="font-size:.8em">
+          <li>Comparar definições de <strong>arquitetura de software</strong>.</li>
+          <li>Distinguir arquitetura de <strong>software</strong>, de <strong>sistemas</strong> e <strong>corporativa</strong>.</li>
+          <li>Usar o vocabulário: <em>stakeholder</em>, interesse, visão, ponto de vista.</li>
+          <li>Explicar princípios de projeto e <strong>SOLID</strong>; caracterizar <strong>padrões</strong>.</li>
+          <li>Comparar camadas, <strong>hexagonal</strong>, cebola e <strong>limpa</strong>.</li>
+          <li>Descrever o <strong>DDD</strong> estratégico e tático.</li>
+          <li>Registrar decisões (ADR) e entender o método das <strong>altitudes</strong>.</li>
+        </ul>
+      </section>
+
+      <!-- Quatro dimensoes -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>O que é arquitetura?</h2>
+          <div class="colunas">
+            <div class="caixa"><strong>Estrutura</strong><br><small>o estilo: camadas, eventos, microsserviços...</small></div>
+            <div class="caixa"><strong>Características</strong><br><small>as "-ilidades": escalabilidade, disponibilidade...</small></div>
+          </div>
+          <div class="colunas">
+            <div class="caixa"><strong>Decisões</strong><br><small>regras: o que pode e o que não pode</small></div>
+            <div class="caixa"><strong>Princípios</strong><br><small>diretrizes, não regras rígidas</small></div>
+          </div>
+          <p class="rodape">Richards &amp; Ford, cap. 1</p>
+        </section>
+        <section>
+          <h3>"O sistema usa microsserviços"</h3>
+          <p>... descreve <strong>apenas a estrutura</strong>.</p>
+          <p class="fragment">Faltam: <em>quais características</em> importam, <em>que decisões</em> foram tomadas e <em>por quê</em>.</p>
+        </section>
+      </section>
+
+      <!-- Leis -->
+      <section data-background-color="#1A2E4A">
+        <h2>As duas leis</h2>
+        <div class="caixa dourada">
+          <strong>1.</strong> Tudo em arquitetura de software é um <strong>trade-off</strong>.
+        </div>
+        <div class="caixa dourada fragment">
+          <strong>2.</strong> O <strong>porquê</strong> é mais importante que o <strong>como</strong>.
+        </div>
+        <p class="fragment" style="font-size:.7em">Não existe "a melhor arquitetura". Existe a <em>menos pior</em> para um contexto.</p>
+      </section>
+
+      <!-- Arquitetura x design -->
+      <section data-background-color="#1A2E4A">
+        <h2>Arquitetura × design</h2>
+        <table style="font-size:.6em">
+          <tr><th></th><th>Mais arquitetural</th><th>Mais design</th></tr>
+          <tr><td>Quem é envolvido</td><td>muitas equipes</td><td>uma pessoa/equipe</td></tr>
+          <tr><td>Custo de mudar</td><td>semanas, meses</td><td>horas, dias</td></tr>
+          <tr><td>Exemplo</td><td>dividir em serviços</td><td>Strategy no frete</td></tr>
+        </table>
+        <p style="font-size:.7em">Os dois lados <strong>conversam</strong>: por isso o curso desce até o código.</p>
+      </section>
+
+
+      <!-- Definicoes -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>Definições clássicas</h2>
+          <table style="font-size:.5em">
+            <tr><th>Autor</th><th>Ênfase</th></tr>
+            <tr><td>Perry &amp; Wolf (1992)</td><td>elementos + forma + <strong>justificativa</strong></td></tr>
+            <tr><td>Garlan &amp; Shaw (1993)</td><td><strong>componentes e conectores</strong> + restrições</td></tr>
+            <tr><td>Bass, Clements &amp; Kazman (2021)</td><td>conjunto de <strong>estruturas</strong> para raciocinar sobre o sistema</td></tr>
+            <tr><td>ISO/IEC/IEEE 42010</td><td>conceitos fundamentais de um sistema <strong>em seu ambiente</strong></td></tr>
+            <tr><td>Fowler (2003); Taylor <em>et al.</em> (2009)</td><td>as <strong>decisões</strong> importantes, difíceis de mudar</td></tr>
+          </table>
+        </section>
+        <section>
+          <h3>Arquitetura × design</h3>
+          <p style="font-size:.7em">Eden &amp; Kazman (2003): decisões arquiteturais são <strong>intensionais e não locais</strong> — podem ser violadas em qualquer parte do sistema.</p>
+          <p class="fragment" style="font-size:.7em">"Nenhuma classe de <code>dominio</code> importa <code>infra</code>" → arquitetural.<br>"Strategy no cálculo de frete" → projeto detalhado.</p>
+        </section>
+      </section>
+
+      <!-- Sistemas -->
+      <section data-background-color="#1A2E4A">
+        <h2>Níveis de arquitetura</h2>
+        <table style="font-size:.5em">
+          <tr><th>Nível</th><th>Objeto</th></tr>
+          <tr><td>Corporativa</td><td>a organização e seu portfólio (Zachman, TOGAF)</td></tr>
+          <tr><td>Soluções</td><td>sistemas combinados para uma necessidade</td></tr>
+          <tr><td>Sistemas</td><td>hardware + software + pessoas + processos (ISO 15288)</td></tr>
+          <tr><td>Software</td><td>as estruturas do software</td></tr>
+        </table>
+        <p style="font-size:.6em">Sistemas ciberfísicos (Caps. 10 e 11): decisões de sistema e de software se confundem.</p>
+      </section>
+
+      <!-- Visoes e qualidade -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>Descrevendo arquiteturas</h2>
+          <p style="font-size:.7em"><em>Stakeholder</em> → interesse → ponto de vista → <strong>visão</strong> → modelos</p>
+          <p style="font-size:.6em">4+1 (Kruchten): lógica, processo, desenvolvimento, física + cenários<br>
+          <em>Views and Beyond</em>: módulo, componente-conector, alocação<br>
+          C4 (Brown): contexto, containers, componentes, código</p>
+        </section>
+        <section>
+          <h3>Cenário de qualidade</h3>
+          <p style="font-size:.6em">fonte · estímulo · ambiente · artefato · resposta · <strong>medida</strong></p>
+          <div class="caixa" style="font-size:.55em">Na abertura da matrícula, 20.000 estudantes pedem a oferta de disciplinas; resposta em &lt; 2 s em 95% dos casos.</div>
+        </section>
+      </section>
+
+      <!-- Principios -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>Princípios de projeto</h2>
+          <ul style="font-size:.65em">
+            <li><strong>Separação de interesses</strong> (Dijkstra, 1974)</li>
+            <li><strong>Ocultação de informação</strong> (Parnas, 1972): esconda a decisão que vai mudar</li>
+            <li><strong>Alta coesão, baixo acoplamento</strong> (Stevens, Myers &amp; Constantine, 1974)</li>
+            <li><strong>SOLID</strong>: SRP, OCP (Meyer), LSP (Liskov), ISP, <strong>DIP</strong></li>
+          </ul>
+        </section>
+        <section>
+          <h3>Inversão de dependência</h3>
+          <pre><code class="language-java" data-trim>public interface CanalDeMensagem { void enviar(String para, String texto); }
+
+public class ServicoDeNotificacao {          // política (alto nível)
+    private final CanalDeMensagem canal;     // depende da abstração
+    public ServicoDeNotificacao(CanalDeMensagem c) { this.canal = c; }
+}
+
+public class CanalEmail implements CanalDeMensagem { ... }  // detalhe</code></pre>
+        </section>
+      </section>
+
+      <!-- Padroes -->
+      <section data-background-color="#1A2E4A">
+        <h2>Padrões</h2>
+        <p style="font-size:.65em">Alexander (1977) → Beck &amp; Cunningham (1987) → GoF (1994)</p>
+        <div class="colunas" style="font-size:.6em">
+          <div class="caixa"><strong>Nome · Problema</strong></div>
+          <div class="caixa"><strong>Solução · Consequências</strong></div>
+        </div>
+        <p style="font-size:.6em">Arquiteturais (POSA) · de projeto (GoF) · idiomas · <strong>antipadrões</strong></p>
+      </section>
+
+      <!-- Arquiteturas centradas no dominio -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>Do domínio ao centro</h2>
+          <table style="font-size:.5em">
+            <tr><th></th><th>Metáfora</th><th>Dependências</th></tr>
+            <tr><td>Camadas</td><td>pilha</td><td>domínio → dados</td></tr>
+            <tr><td>Hexagonal (Cockburn, 2005)</td><td>dentro/fora, portas</td><td>de fora para dentro</td></tr>
+            <tr><td>Cebola (Palermo, 2008)</td><td>anéis</td><td>para o centro</td></tr>
+            <tr><td>Limpa (Martin, 2012)</td><td>círculos</td><td><strong>regra da dependência</strong></td></tr>
+          </table>
+        </section>
+        <section>
+          <h3>O princípio comum</h3>
+          <div class="caixa dourada" style="font-size:.7em">O domínio fica no centro, não depende de nada externo, e todas as dependências de código apontam para ele — via <strong>inversão de dependência</strong>.</div>
+          <p class="fragment" style="font-size:.6em">Custo: mais tipos e indireções. Vale quando o domínio é complexo (Fowler, 2002).</p>
+        </section>
+      </section>
+
+      <!-- DDD -->
+      <section data-background-color="#1A2E4A">
+        <h2><em>Domain-Driven Design</em></h2>
+        <div class="colunas" style="font-size:.55em">
+          <div class="caixa"><strong>Estratégico</strong><br>linguagem ubíqua · contexto delimitado · mapa de contextos (ACL, OHS, conformista...) · domínio principal</div>
+          <div class="caixa"><strong>Tático</strong><br>entidade · objeto de valor · agregado · repositório · fábrica · serviço · evento de domínio</div>
+        </div>
+      </section>
+
+      <!-- Decisoes -->
+      <section data-background-color="#1A2E4A">
+        <h2>Decisões</h2>
+        <ul style="font-size:.65em">
+          <li><strong>ADR</strong> (Nygard, 2011): contexto, decisão, consequências</li>
+          <li><strong>Dívida técnica</strong> (Cunningham, 1992), muitas vezes arquitetural</li>
+          <li><strong>Funções de aptidão</strong>: decisões verificadas por testes (Ford <em>et al.</em>, 2017)</li>
+        </ul>
+      </section>
+
+      <!-- Altitudes -->
+      <section data-background-color="#1A2E4A">
+        <section>
+          <h2>A metáfora do voo</h2>
+          <table class="alts">
+            <tr><th>Altitude</th><th>C4</th><th>Pergunta</th></tr>
+            <tr><td><span class="alt a100">100.000 pés</span></td><td>Contexto</td><td>Que problema resolve? O que não pode falhar?</td></tr>
+            <tr><td><span class="alt a50">50.000 pés</span></td><td>Containers</td><td>Monólito ou distribuído? Onde ficam os dados?</td></tr>
+            <tr><td><span class="alt a10">10.000 pés</span></td><td>Componentes</td><td>Como está dividido por dentro?</td></tr>
+            <tr><td><span class="alt solo">Solo</span></td><td>Código</td><td>Onde está a decisão? Que padrão a materializa?</td></tr>
+          </table>
+        </section>
+        <section>
+          <h3>O erro mais comum</h3>
+          <p><strong>Discutir na altitude errada.</strong></p>
+          <p style="font-size:.7em">Ex.: brigar por framework (solo) antes de saber se o sistema precisa aguentar picos de 100× (100.000 pés).</p>
+        </section>
+        <section>
+          <h3>Demonstração: o altímetro</h3>
+          <p style="font-size:.7em">Abra o interativo no material (Capítulo 1) e desça sobre o Mastodon.</p>
+          <aside class="notes">Abrir docs/interativos/altimetro.html. Parar em cada altitude e perguntar: "que pergunta faz sentido AQUI?". No último passo, a subida de verificação.</aside>
+        </section>
+      </section>
+
+      <!-- Os voos -->
+      <section data-background-color="#1A2E4A">
+        <h2>Os sete voos</h2>
+        <table style="font-size:.5em">
+          <tr><th>#</th><th>Sistema real</th><th>Gêmeo OSS</th><th>Estilo</th></tr>
+          <tr><td>1</td><td>Twitter/X</td><td>Mastodon</td><td>camadas + jobs</td></tr>
+          <tr><td>2</td><td>Slack/WhatsApp</td><td>Mattermost</td><td>eventos</td></tr>
+          <tr><td>3</td><td>YouTube</td><td>PeerTube</td><td>pipeline</td></tr>
+          <tr><td>4</td><td>Dropbox</td><td>Nextcloud</td><td>microkernel</td></tr>
+          <tr><td>5</td><td>Mercado Livre</td><td>Saleor</td><td>monólito modular + DDD</td></tr>
+          <tr><td>6</td><td>AWS IoT</td><td>ThingsBoard</td><td>telemetria + regras</td></tr>
+          <tr><td>7</td><td>DJI</td><td>PX4</td><td>tempo real + pub/sub</td></tr>
+        </table>
+      </section>
+
+      <!-- Resumo -->
+      <section data-background-color="#12203A">
+        <h2>Resumo</h2>
+        <ul>
+          <li>Arquitetura = estrutura + características + decisões + princípios.</li>
+          <li>Tudo é trade-off; o porquê vale mais que o como.</li>
+          <li>Quatro altitudes ↔ quatro níveis do C4.</li>
+          <li>Cada voo termina com a <strong>subida de verificação</strong>.</li>
+        </ul>
+        <p class="rodape">Referências: ver Capítulo 1 do livro (Richards &amp; Ford, 2020; Bass <em>et al.</em>, 2021; Evans, 2003; Martin, 2017; Cockburn, 2005)</p>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="../assets/reveal/dist/reveal.js"></script>
+  <script src="../assets/reveal/plugin/notes/notes.js"></script>
+  <script src="../assets/reveal/plugin/highlight/highlight.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: "c/t",
+      transition: "slide",
+      controls: true,
+      progress: true,
+      plugins: [ RevealHighlight, RevealNotes ]
+    });
+  </script>
+</body>
+</html>

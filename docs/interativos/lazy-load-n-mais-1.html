@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lazy Load e o problema N+1</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .btn.on{background:var(--teal)}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .ctl{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+  .ctl b{color:var(--gold);font-family:"JetBrains Mono",monospace}
+  input[type=range]{accent-color:var(--teal);width:90px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .rot{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
+  pre{margin:0;background:#1E3040;color:#A8D8A8;border-radius:9px;padding:10px 12px;font-family:"JetBrains Mono",monospace;font-size:.72rem;overflow:auto;line-height:1.5;white-space:pre-wrap}
+  pre .k{color:var(--gold)} pre .c{color:#6B7A8F}
+  pre .ln{display:block;padding:0 4px;border-radius:4px}
+  pre .ln.hl{background:rgba(232,169,60,.25)}
+  .objs{display:grid;gap:5px;margin-top:10px}
+  .obj{display:flex;align-items:center;gap:8px;font-size:.74rem;background:var(--nav2);border:1px solid var(--navL);border-radius:8px;padding:5px 8px}
+  .obj.at{border-color:var(--gold)}
+  .tag{font-family:"JetBrains Mono",monospace;font-size:.66rem;padding:1px 7px;border-radius:999px;background:var(--navL);color:var(--muted)}
+  .tag.ok{background:var(--teal);color:#fff}
+  .sql{font-family:"JetBrains Mono",monospace;font-size:.68rem;background:#0b1526;border-radius:8px;padding:8px;height:190px;overflow:auto;line-height:1.45}
+  .sql div{border-bottom:1px solid var(--navL);padding:2px 0}
+  .sql .novo{color:var(--gold)}
+  .meters{display:flex;gap:10px;margin-top:10px}
+  .m{flex:1;background:var(--nav2);border-radius:8px;padding:6px 8px;font-size:.72rem;color:var(--muted)}
+  .m b{display:block;font-size:1.2rem;color:var(--gold);font-family:"JetBrains Mono",monospace}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1><span style="color:var(--tealL)">Lazy Load</span> e o problema N+1</h1>
+  <p class="sub">O mesmo laço sobre <code>Pedido.itens</code>, uma associação <code>@OneToMany</code> preguiçosa por padrão, com e sem <code>join fetch</code> (Listagem E.7).</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <button class="btn ghost on" id="mLazy" onclick="modo('lazy')">Lazy (N+1)</button>
+    <button class="btn ghost" id="mJoin" onclick="modo('join')">join fetch</button>
+    <label class="ctl">N pedidos <input type="range" id="n" min="2" max="10" value="5" oninput="reset()"><b id="nV"></b></label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="rot">Código (ilustrativo e simplificado)</div>
+      <pre id="code"></pre>
+      <div class="rot" style="margin-top:10px">Contexto de persistência</div>
+      <div class="objs" id="objs"></div>
+    </div>
+    <div class="panel">
+      <div class="rot">Consultas enviadas ao banco</div>
+      <div class="sql" id="sql"></div>
+      <div class="meters">
+        <div class="m">consultas<b id="q">0</b></div>
+        <div class="m">idas e voltas na rede<b id="rt">0 ms</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">
+    Fonte: elaborado pelo autor (2026), com base em Fowler (2002, cap. 11), Fox e Patterson (2021, seção 12.7) e na Listagem E.7. O tempo de rede supõe 0,5 ms por ida e volta dentro do mesmo data center (Tabela F.5)
+    e ignora o tempo de execução no banco. Em Spring Data JPA, o mesmo efeito do <code>join fetch</code>
+    pode ser obtido com <code>@EntityGraph</code> no repositório.
+  </p>
+
+<script>
+const CODE={
+ lazy:[`<span class="k">List</span>&lt;Pedido&gt; pedidos = em.createQuery(`,`    "select p from Pedido p", Pedido.<span class="k">class</span>).getResultList();`,
+       `<span class="k">for</span> (Pedido p : pedidos) {`,`    total += p.getItens().size(); <span class="c">// toca o proxy</span>`,`}`],
+ join:[`<span class="k">List</span>&lt;Pedido&gt; pedidos = em.createQuery(`,`    "select distinct p from Pedido p join fetch p.itens",`,
+       `    Pedido.<span class="k">class</span>).getResultList();`,`<span class="k">for</span> (Pedido p : pedidos) {`,`    total += p.getItens().size(); <span class="c">// já em memória</span>`,`}`]
+};
+let m='lazy', i=0, timer=null, STEPS=[];
+const N=()=>+document.getElementById('n').value;
+
+function build(){
+  const n=N(), S=[];
+  if(m==='lazy'){
+    S.push({ln:[0,1],sql:'select p.id, p.cliente_id, p.status from pedido p',cur:-1,load:0,
+      info:`A primeira consulta traz os <b>${n} pedidos</b>. A coleção <code>itens</code> de cada um não é lida: o Hibernate deixa em seu lugar um <i>proxy</i>, o marcador previsto pelo padrão <i>Lazy Load</i> de Fowler.`});
+    for(let k=1;k<=n;k++) S.push({ln:[3],sql:`select i.* from item_pedido i where i.pedido_id = ${k}`,cur:k,load:k,
+      info:k===1?`Ao chamar <code>getItens().size()</code>, o <i>proxy</i> do pedido 1 é inicializado e dispara <b>uma nova consulta</b>. O código do laço não mostra nenhum acesso ao banco: o custo está escondido na navegação do objeto.`
+       :`Pedido ${k}: mais uma consulta curta. O total chega a <b>${k+1}</b>, isto é, 1 + ${k}.`});
+    S.push({ln:[4],sql:null,cur:-1,load:n,
+      info:`Resultado: <b>${n+1} consultas</b> para percorrer ${n} pedidos, o problema <b>N+1</b> descrito por Fox e Patterson. Com 1.000 pedidos seriam 1.001 idas e voltas. O risco aumenta quando o laço está numa <i>view</i>, que não tem como saber o estrago que causa.`});
+  } else {
+    S.push({ln:[0,1,2],sql:'select distinct p.*, i.* from pedido p join item_pedido i on i.pedido_id = p.id',cur:-1,load:n,
+      info:`Com <code>join fetch</code>, a associação é carregada <b>antecipadamente</b> na própria consulta. Uma única ida ao banco traz pedidos e itens, e o contexto de persistência já contém as coleções inicializadas.`});
+    for(let k=1;k<=n;k++) S.push({ln:[4],sql:null,cur:k,load:n,
+      info:`Pedido ${k}: <code>getItens()</code> devolve a coleção já carregada. Nenhuma consulta nova é enviada.`});
+    S.push({ln:[5],sql:null,cur:-1,load:n,
+      info:`Resultado: <b>1 consulta</b>, mais larga, no lugar de ${n+1}. O excesso oposto também é prejudicial: carregar antecipadamente dados que não serão usados. O <i>Lazy Load</i> é uma decisão de desempenho que depende do padrão de acesso de cada caso de uso.`});
+  }
+  return S;
+}
+function render(){
+  const s=STEPS[i], lines=CODE[m];
+  document.getElementById('code').innerHTML=lines.map((l,k)=>`<span class="ln ${s.ln.includes(k)?'hl':''}">${l}</span>`).join('');
+  const n=N(); let o='';
+  for(let k=1;k<=n;k++){
+    const ok=k<=s.load;
+    o+=`<div class="obj ${s.cur===k?'at':''}">Pedido #${k}<span class="tag ${ok?'ok':''}">${ok?'itens carregados':'itens: proxy'}</span></div>`;
+  }
+  document.getElementById('objs').innerHTML=o;
+  const qs=STEPS.slice(0,i+1).filter(x=>x.sql);
+  document.getElementById('sql').innerHTML=qs.map((x,k)=>`<div class="${k===qs.length-1&&s.sql?'novo':''}">${k+1}. ${x.sql}</div>`).join('')||'<div>(nenhuma consulta ainda)</div>';
+  const box=document.getElementById('sql'); box.scrollTop=box.scrollHeight;
+  document.getElementById('q').textContent=qs.length;
+  document.getElementById('rt').textContent=(qs.length*0.5).toFixed(1).replace('.',',')+' ms';
+  document.getElementById('info').innerHTML=s.info;
+  document.getElementById('count').textContent=`passo ${i+1} de ${STEPS.length}`;
+  document.getElementById('nV').textContent=N();
+}
+function modo(x){m=x;document.getElementById('mLazy').classList.toggle('on',x==='lazy');document.getElementById('mJoin').classList.toggle('on',x==='join');reset();}
+function go(d){i=Math.max(0,Math.min(STEPS.length-1,i+d));render();}
+function reset(){stop();STEPS=build();i=0;render();}
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById('auto').textContent='▶ Auto';}}
+function toggleAuto(){
+  if(timer){stop();return;}
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{if(i>=STEPS.length-1){stop();return;}go(1);},1800);
+}
+reset();
+</script>
+</body>
+</html>

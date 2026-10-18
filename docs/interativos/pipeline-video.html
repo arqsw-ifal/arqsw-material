@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline de vídeo do PeerTube</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif; background:var(--nav2); color:var(--paper); padding:14px}
+  h1{font-size:1.05rem; margin:0 0 2px}
+  .sub{color:var(--tealL); font-size:.82rem; margin:0 0 12px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+  .btn{background:var(--navL); color:var(--paper); border:1px solid var(--teal); border-radius:8px; padding:7px 12px; cursor:pointer; font:inherit; font-size:.84rem; font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL); font-weight:400}
+  .btn.on{background:var(--teal); border-color:var(--tealL)}
+  .count{color:var(--muted); font-size:.82rem; margin-left:auto}
+  .ctl{font-size:.8rem; color:var(--muted); display:flex; align-items:center; gap:6px}
+  .ctl b{color:var(--paper)}
+  input[type=range]{accent-color:var(--teal); width:90px}
+  .panel{background:var(--nav); border-radius:12px; padding:12px}
+  .grid{display:grid; grid-template-columns:2fr 1fr; gap:14px}
+  @media(max-width:700px){ .grid{grid-template-columns:1fr} }
+  .dag{display:grid; grid-template-columns:repeat(4,1fr); gap:8px 10px; align-items:center}
+  .node{background:var(--nav2); border:1px solid var(--navL); border-radius:9px; padding:6px 8px; font-size:.72rem; line-height:1.25; position:relative; overflow:hidden; min-height:46px}
+  .node b{display:block; font-size:.76rem}
+  .node small{color:var(--muted)}
+  .node .pg{position:absolute; left:0; bottom:0; height:3px; background:var(--gold); width:0}
+  .node.queued{border:1px dashed var(--tealL)}
+  .node.running{border:2px solid var(--gold)}
+  .node.done{border:2px solid var(--teal); background:rgba(15,122,140,.18)}
+  .node.failed{border:2px solid var(--red); background:rgba(192,80,63,.15)}
+  .node.ghost{opacity:.3}
+  .arrowc{color:var(--tealL); font-size:.8rem; text-align:center}
+  .state{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  .tag{font-family:"JetBrains Mono",monospace; font-size:.74rem; padding:4px 9px; border-radius:999px; background:var(--navL)}
+  .tag.g{background:var(--gold); color:var(--nav2); font-weight:700}
+  .tag.t{background:var(--teal)} .tag.r{background:var(--red)}
+  .wk{display:flex; justify-content:space-between; font-size:.76rem; padding:5px 8px; background:var(--nav2); border-radius:7px; margin-bottom:5px}
+  .wk span:last-child{color:var(--gold); font-family:"JetBrains Mono",monospace}
+  .log{font-family:"JetBrains Mono",monospace; font-size:.7rem; background:#1E3040; color:#A8D8A8; border-radius:9px; padding:8px 10px; height:150px; overflow:auto; line-height:1.45; margin-top:8px}
+  .info{margin-top:12px; background:rgba(15,122,140,.12); border-left:4px solid var(--teal); border-radius:6px; padding:10px 12px; font-size:.84rem}
+  .info b{color:var(--gold)}
+  code{font-family:"JetBrains Mono",monospace; color:var(--tealL); font-size:.92em}
+</style>
+</head>
+<body>
+  <h1>O <i>pipeline</i> de transcodificação do <span style="color:var(--tealL)">PeerTube</span> como DAG</h1>
+  <p class="sub">Um filtro constrói o DAG; os ramos de resolução executam em paralelo; um contador de pendências faz a junção. O mesmo DAG vira <i>jobs</i> da fila local ou de <i>runners</i> remotos.</p>
+
+  <div class="toolbar">
+    <button class="btn on" id="mLocal" onclick="setModo('local')">Fila local (BullMQ)</button>
+    <button class="btn" id="mRunner" onclick="setModo('runner')">Runners remotos</button>
+    <span class="ctl">Executores: <input type="range" id="W" min="1" max="4" value="2"><b id="vW"></b></span>
+    <label class="ctl"><input type="checkbox" id="AUD"> HLS só de áudio</label>
+  </div>
+  <div class="toolbar">
+    <button class="btn" id="run" onclick="toggleRun()">▶ Iniciar</button>
+    <button class="btn ghost" onclick="tick()">Passo</button>
+    <button class="btn ghost" onclick="falhar=true; log('⚠ a próxima tarefa a terminar vai falhar')">Falhar a próxima tarefa</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="dag" id="dag"></div>
+      <div class="state" id="state"></div>
+    </div>
+    <div class="panel">
+      <div id="workers"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+  <div class="info" id="info"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+// tarefas do DAG (duração em passos, ilustrativa). prio: 100 obrigatória, 10.000 opcional (transcoding-priority.ts)
+const DEF=[
+  {id:'opt',  nome:'optimize-to-web-video', sub:'1080p, obrigatória', dur:4, prio:100,  dep:null,   col:1,row:2, tr:true},
+  {id:'bld',  nome:'transcoding-job-builder', sub:'constrói os ramos', dur:1, prio:100, dep:'opt', col:2,row:2, tr:false},
+  {id:'h1080',nome:'HLS 1080p', sub:'obrigatória, pode publicar', dur:3, prio:100, dep:'bld', col:3,row:1, tr:true},
+  {id:'w720', nome:'Web Video 720p', sub:'opcional', dur:3, prio:10000, dep:'bld', col:3,row:2, tr:true},
+  {id:'h720', nome:'HLS 720p', sub:'copia codecs', dur:1, prio:10000, dep:'w720', col:4,row:2, tr:true},
+  {id:'w480', nome:'Web Video 480p', sub:'opcional', dur:2, prio:10000, dep:'bld', col:3,row:3, tr:true},
+  {id:'h480', nome:'HLS 480p', sub:'copia codecs', dur:1, prio:10000, dep:'w480', col:4,row:3, tr:true},
+  {id:'aud',  nome:'HLS só de áudio', sub:'se áudio separado', dur:1, prio:10000, dep:'bld', col:3,row:4, tr:true, opt:true},
+];
+let T, modo='local', timer=null, falhar=false;
+
+function reset(){
+  stopRun();
+  T={t:0, pend:0, estado:'TO_TRANSCODE', jobs:{}, execs:[], fim:false};
+  DEF.forEach(d=>T.jobs[d.id]={...d, st:'wait', prog:0, tent:0});
+  $('log').innerHTML='';
+  log('PUT da última parte → LocalVideoCreator grava VideoModel em TO_TRANSCODE');
+  log('fluxo sequencial: manage-video-torrent → tags automáticas → notify → federate');
+  criar('opt'); render();
+}
+function ativo(j){ return !(j.opt && !$('AUD').checked); }
+function criar(id){
+  const j=T.jobs[id]; if(!ativo(j)) return;
+  j.st='queued';
+  if(j.tr){ T.pend++; }
+  log(modo==='runner' && id!=='bld'
+    ? `RunnerJobModel ${j.nome}: PENDING; Socket.IO avisa os runners`
+    : `fila: ${j.nome} (prioridade ${j.prio.toLocaleString('pt-BR')})`);
+}
+function log(t){ const l=$('log'); l.innerHTML+=`<div>[t=${T?T.t:0}] ${t}</div>`; l.scrollTop=l.scrollHeight; }
+function nExec(){ return +$('W').value; }
+
+function tick(){
+  if(T.fim) { stopRun(); return; }
+  T.t++;
+  // 1. avança execuções
+  T.execs.forEach(e=>{ e.job.prog++; });
+  T.execs.filter(e=>e.job.prog>=e.job.dur).forEach(e=>terminar(e.job));
+  T.execs=T.execs.filter(e=>e.job.st==='running');
+  // 2. ocupa executores livres por prioridade (menor número = maior prioridade)
+  const fila=Object.values(T.jobs).filter(j=>j.st==='queued').sort((a,b)=>a.prio-b.prio);
+  while(T.execs.length<nExec() && fila.length && !T.fim){
+    const j=fila.shift(); j.st='running'; j.prog=0; j.tent++;
+    const ex=modo==='runner' && j.id!=='bld' ? `runner-${T.execs.length+1}` : `worker-${T.execs.length+1}`;
+    T.execs.push({job:j, ex});
+    if(modo==='runner' && j.id!=='bld') log(`${ex}: POST /jobs/request → POST /jobs/{uuid}/accept`);
+    else log(`${ex} executa ${j.nome}`);
+  }
+  render();
+}
+function terminar(j){
+  if(falhar && j.id!=='bld'){
+    falhar=false;
+    if(modo==='local'){
+      j.st='failed'; T.estado='TRANSCODING_FAILED'; T.fim=true;
+      log(`✕ ${j.nome} falhou; transcodificação local tem 1 tentativa → TRANSCODING_FAILED`); return;
+    }
+    if(j.tent<5){ j.st='queued'; j.prog=0; log(`✕ ${j.nome} falhou no runner: volta a PENDING (tentativa ${j.tent} de 5)`); return; }
+    j.st='failed'; T.estado='TRANSCODING_FAILED'; T.fim=true; log(`✕ ${j.nome}: 5 tentativas esgotadas`); return;
+  }
+  j.st='done';
+  if(modo==='runner' && j.id!=='bld') log(`complete(): specificComplete → COMPLETED; updateDependantJobsOf libera dependentes`);
+  if(j.tr){ T.pend--; log(`${j.nome} concluída; pendingTranscode = ${T.pend}`); }
+  if(j.id==='bld') log('builder: lista de listas; as externas em paralelo, cada interna em sequência');
+  Object.values(T.jobs).filter(x=>x.dep===j.id).forEach(x=>criar(x.id));
+  if(j.id==='h1080'){ log('moveToNextState: TO_TRANSCODE → PUBLISHED; federação'); T.estado='PUBLISHED'; }
+  else if(j.id.startsWith('h')||j.id==='aud') log('playlist mestre reescrita com a nova resolução');
+  if(T.pend===0 && T.jobs.bld.st==='done'){ log('pendingTranscode chegou a zero: junção concluída'); T.fim=true; }
+}
+function render(){
+  $('vW').textContent=nExec();
+  const dag=$('dag'); dag.innerHTML='';
+  Object.values(T.jobs).forEach(j=>{
+    const el=document.createElement('div');
+    el.className='node '+(ativo(j)? j.st : 'ghost');
+    el.style.gridColumn=j.col; el.style.gridRow=j.row;
+    const tent = modo==='runner' && j.tent>1 ? ` · tentativa ${j.tent}` : '';
+    el.innerHTML=`<b>${j.nome}</b><small>${j.sub}${tent}</small><div class="pg" style="width:${j.st==='done'?100:j.st==='running'?100*j.prog/j.dur:0}%"></div>`;
+    dag.appendChild(el);
+  });
+  const est=T.estado==='PUBLISHED'?'t':T.estado==='TRANSCODING_FAILED'?'r':'';
+  $('state').innerHTML=`<span class="tag ${est}">estado: ${T.estado}</span><span class="tag g">pendingTranscode = ${T.pend}</span>`
+    + `<span class="tag">${modo==='local'?'TranscodingJobQueueBuilder → fluxos BullMQ':'TranscodingRunnerJobBuilder → RunnerJobModel'}</span>`;
+  let w=''; for(let k=0;k<nExec();k++){ const e=T.execs[k]; w+=`<div class="wk"><span>${modo==='runner'?'runner':'worker'} ${k+1}</span><span>${e?e.job.nome:'ocioso'}</span></div>`; }
+  $('workers').innerHTML=w;
+  $('count').textContent=`passo ${T.t}${T.fim?' · fim':''}`;
+  $('info').innerHTML = modo==='local'
+    ? `<b>Fila local.</b> Cada filtro é um <i>job</i> do BullMQ; o cano é a fila. A HLS na resolução máxima tem prioridade 100 e publica o vídeo assim que existe uma versão reproduzível; as resoluções inferiores (10.000) vêm depois, em paralelo. Não há escalonador central: a junção é o contador <code>pendingTranscode</code>, incrementado na criação de cada ramo e decrementado ao fim de cada tarefa. Com uma única tentativa, um erro do ffmpeg leva a <code>TRANSCODING_FAILED</code>, porque a falha tende a se repetir e cada tentativa custa minutos de CPU. Durações ilustrativas.`
+    : `<b>Runners remotos.</b> O mesmo algoritmo de <code>AbstractJobBuilder</code> (<i>Template Method</i>) materializa o DAG como registros de <i>jobs</i> de <i>runner</i>. A instância apenas avisa por Socket.IO; quem inicia a transferência é o <i>runner</i>, que pede e aceita <i>jobs</i> por HTTP. Uma falha devolve o <i>job</i> a PENDING até cinco vezes, porque a causa provável passa a ser o <i>runner</i>, não o vídeo. Durações ilustrativas.`;
+}
+function toggleRun(){ if(timer){ stopRun(); return; } if(T.fim) reset(); $('run').textContent='⏸ Pausar'; timer=setInterval(tick,700); }
+function stopRun(){ if(timer){ clearInterval(timer); timer=null; } $('run').textContent='▶ Iniciar'; }
+function setModo(m){ modo=m; $('mLocal').classList.toggle('on',m==='local'); $('mRunner').classList.toggle('on',m==='runner'); reset(); }
+$('W').oninput=render; $('AUD').onchange=reset;
+reset();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Das camadas à arquitetura limpa</title>
+<style>
+  :root{
+    --nav:#1A2E4A; --nav2:#12203A; --navL:#2A4468; --teal:#0F7A8C; --tealL:#6FC3D0;
+    --gold:#E8A93C; --paper:#F4F6F9; --muted:#9FB0C4; --red:#C0503F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--nav2);color:var(--paper);padding:14px}
+  h1{font-size:1.05rem;margin:0 0 2px}
+  .sub{color:var(--tealL);font-size:.82rem;margin:0 0 12px}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .btn{background:var(--navL);color:var(--paper);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600}
+  .btn:hover{background:var(--teal)}
+  .btn.ghost{border-color:var(--navL);font-weight:400}
+  .count{color:var(--muted);font-size:.82rem;margin-left:auto}
+  .grid{display:grid;grid-template-columns:1.7fr 1fr;gap:14px}
+  .grid>*{min-width:0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--nav);border-radius:12px;padding:12px}
+  .lvl{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .pill{font-family:"JetBrains Mono",monospace;font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--teal)}
+  .c4{font-size:.78rem;color:var(--muted)}
+  svg{width:100%;height:auto;display:block}
+  svg text{font-family:"Schibsted Grotesk",system-ui,sans-serif}
+  pre{margin:0;background:#1E3040;color:#A8D8A8;border-radius:9px;padding:10px 12px;font-family:"JetBrains Mono",monospace;font-size:.7rem;overflow:auto;line-height:1.45;white-space:pre-wrap}
+  pre .k{color:var(--gold)} pre .c{color:#6B7A8F} pre .bad{background:rgba(192,80,63,.35);display:block} pre .hl{background:rgba(232,169,60,.22);display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.72rem;color:var(--muted);margin-top:6px}
+  .legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+  .info{margin-top:12px;background:rgba(15,122,140,.12);border-left:4px solid var(--teal);border-radius:6px;padding:10px 12px;font-size:.84rem}
+  .info b{color:var(--gold)}
+  .nota{font-size:.68rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Das camadas à <span style="color:var(--tealL)">arquitetura limpa</span>: invertendo as setas</h1>
+  <p class="sub">As setas representam <b>dependências de código-fonte</b> (quem importa quem), e não o fluxo de controle.</p>
+
+  <div class="toolbar">
+    <button class="btn" onclick="go(-1)">◀ Anterior</button>
+    <button class="btn" onclick="go(1)">Próximo ▶</button>
+    <button class="btn ghost" id="auto" onclick="toggleAuto()">▶ Auto</button>
+    <button class="btn ghost" onclick="reset()">Reiniciar</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="lvl"><span class="pill" id="pill"></span><span class="c4" id="c4"></span></div>
+      <svg id="svg" viewBox="0 0 600 330"></svg>
+      <div class="legend"><span><i style="border-color:#6FC3D0"></i>depende de</span><span><i style="border-color:#C0503F"></i>dependência problemática</span><span><i style="border-color:#E8A93C"></i>implementa a interface (seta vazada)</span><span><i style="border-color:#B48CE0"></i>fluxo de controle (lilás)</span></div>
+    </div>
+    <div class="panel"><pre id="code"></pre></div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <p class="nota">Fonte: elaborado pelo autor (2026), com base em Fowler (2002, cap. 1), Cockburn (2005), Palermo (2008), Martin (2012; 2017) e na Figura E.1. Código ilustrativo e simplificado.</p>
+
+<script>
+const COR={d:'#6FC3D0',r:'#C0503F',i:'#E8A93C',f:'#B48CE0'};
+const defs=`<defs>${Object.entries(COR).map(([k,c])=>`<marker id="m${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="${k==='i'?'#12203A':c}" stroke="${c}"/></marker>`).join('')}</defs>`;
+const R=(x,y,w,h,t,s='',c='#2A4468')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="#12203A" stroke="${c}" stroke-width="1.6"/><text x="${x+w/2}" y="${y+h/2-(s?3:-4)}" fill="#F4F6F9" font-size="15" font-weight="700" text-anchor="middle">${t}</text>${s?`<text x="${x+w/2}" y="${y+h/2+13}" fill="#9FB0C4" font-size="12" text-anchor="middle">${s}</text>`:''}`;
+const A=(x1,y1,x2,y2,k='d',t='',tx=0,ty=0)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${COR[k]}" stroke-width="${k==='f'?1.5:2}" marker-end="url(#m${k})"/>${t?`<text x="${(x1+x2)/2+tx}" y="${(y1+y2)/2+ty}" fill="${COR[k]}" font-size="10.5" text-anchor="middle">${t}</text>`:''}`;
+const T=(x,y,t,c='#9FB0C4',s=10.5)=>`<text x="${x}" y="${y}" fill="${c}" font-size="${s}" text-anchor="middle">${t}</text>`;
+
+function pilha(k){
+  let h=R(200,15,200,52,k>=4?'Controlador HTTP':'Apresentação',k>=4?'adaptador primário':'telas, controladores');
+  if(k>=3) h+=`<rect x="150" y="120" width="440" height="90" rx="12" fill="rgba(15,122,140,.10)" stroke="#0F7A8C" stroke-opacity=".5"/>`+T(370,137,'pacote do domínio (dentro)','#6FC3D0');
+  h+=R(170,145,200,52,'Domínio','regras de negócio');
+  if(k>=3) h+=R(395,145,180,52,'«interface»','RepositorioDePedidos','#E8A93C');
+  h+=R(k>=3?395:200,262,180,52,k>=4?'Repositório JDBC':'Fonte de dados',k>=4?'adaptador secundário':'JDBC, ORM');
+  if(k>=4) h+=R(170,262,180,52,'Repositório em memória','adaptador para testes');
+  h+=A(290,67,275,143,'d',k>=4?'usa a porta':'',-40,0);
+  if(k<=2) h+=A(290,197,295,260,k===2?'r':'d',k===2?'importa tipos de persistência':'',k===2?95:0,0);
+  else { h+=A(370,171,393,171,'d'); h+=A(485,262,485,199,'i','implementa',36,4); }
+  if(k>=4) h+=A(260,262,430,199,'i');
+  if(k===3) h+=`<line x1="270" y1="205" x2="330" y2="255" stroke="#C0503F" stroke-width="2"/><line x1="330" y1="205" x2="270" y2="255" stroke="#C0503F" stroke-width="2"/>`;
+  return h;
+}
+function aneis(k){
+  const cx=300,cy=165,L=[['Frameworks e drivers',150,'#2A4468'],['Adaptadores de interface',112,'#1F3A5C'],['Casos de uso',74,'#0F5C6A'],['Entidades',38,'#0F7A8C']];
+  let h=L.map(([t,r,c])=>`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" stroke="#12203A" stroke-width="2"/>`).join('');
+  h+=T(cx,cy+4,'Entidades','#fff',13)+T(cx,cy-50,'Casos de uso','#fff',13)+T(cx,cy-88,'Adaptadores de interface','#fff',13)+T(cx,cy-128,'Frameworks e drivers','#fff',13);
+  if(k===5){ [[0],[90],[180],[270]].forEach(([g])=>{const a=g*Math.PI/180;h+=A(cx+Math.cos(a)*146,cy+Math.sin(a)*146,cx+Math.cos(a)*42,cy+Math.sin(a)*42,'d');}); h+=T(cx,322,'regra da dependência: as setas só apontam para dentro','#E8A93C',13);}
+  if(k===6){
+    h+=T(cx+51,cy-46,'porta (interface)','#E8A93C',12)+`<rect x="${cx+40}" y="${cy-40}" width="22" height="22" rx="4" fill="#12203A" stroke="#E8A93C"/>`;
+    h+=A(cx+190,cy+40,cx+66,cy-24,'i','gateway implementa',30,30);
+    h+=A(cx-10,cy-60,cx+38,cy-34,'f'); h+=A(cx+62,cy-24,cx+200,cy-140,'f','controle: para fora',40,-10);
+    h+=T(cx,322,'controle sai; dependência de código entra (inversão de dependência)','#E8A93C',13);
+  }
+  return h;
+}
+function exercicio(){
+  let h=T(150,22,'Legado','#C0503F',13)+T(450,22,'Solução','#6FC3D0',13);
+  h+=R(40,40,110,46,'web','I = 1,00')+R(170,40,110,46,'aplicacao','I = 1,00')+R(105,150,110,46,'dominio','I = 0,25')+R(105,255,110,46,'infra','I = 0,33');
+  h+=A(95,86,145,148)+A(225,86,180,148)+A(70,86,110,256,'d')+A(150,196,150,253,'r','ciclo',-22,0)+A(175,253,175,198,'r');
+  h+=R(390,40,120,46,'web','I = 1,00')+R(390,130,120,46,'aplicacao','I = 0,50')+R(390,220,120,46,'dominio','I = 0,00')+R(530,130,60,46,'infra','I=1,00');
+  h+=A(450,86,450,128)+A(450,176,450,218)+A(560,176,505,220,'i');
+  h+=T(450,300,'todas as setas apontam para o domínio','#E8A93C',13);
+  return h;
+}
+const STEPS=[
+ {p:'1.8.1',c:'Camadas tradicionais',d:()=>pilha(1),code:`<span class="c">// pacote dominio</span>
+<span class="k">import</span> loja.dados.PedidoDao;
+
+<span class="k">class</span> Pedido {
+  <span class="k">void</span> confirmar(PedidoDao dao) {
+    validar();
+    dao.atualizar(<span class="k">this</span>);
+  }
+}`,i:`Cada camada usa a imediatamente inferior: <b>apresentação → domínio → fonte de dados</b> (Fowler). A organização é simples e conhecida, e cada camada pode ser compreendida isoladamente.`},
+ {p:'1.8.1',c:'O problema do sentido',d:()=>pilha(2),code:`<span class="c">// pacote dominio</span>
+<span class="bad"><span class="k">import</span> loja.dados.PedidoDao;</span><span class="bad"><span class="k">import</span> java.sql.SQLException;</span>
+<span class="k">class</span> Pedido {
+  <span class="k">void</span> confirmar(PedidoDao dao)
+<span class="bad">      <span class="k">throws</span> SQLException {</span>    validar();
+    dao.atualizar(<span class="k">this</span>);
+  }
+}`,i:`O domínio importa tipos, anotações e exceções do mecanismo de persistência. O <b>núcleo do sistema passa a depender do seu detalhe mais volátil</b>: trocar o banco ou testar as regras sem banco exige mexer nas regras.`},
+ {p:'1.5.4',c:'Inversão de dependência',d:()=>pilha(3),code:`<span class="c">// pacote dominio: a porta é definida aqui</span>
+<span class="hl"><span class="k">interface</span> RepositorioDePedidos {</span><span class="hl">  <span class="k">void</span> salvar(Pedido p);</span><span class="hl">}</span>
+<span class="c">// pacote infra</span>
+<span class="k">class</span> RepositorioDePedidosJdbc
+<span class="hl">    <span class="k">implements</span> RepositorioDePedidos { … }</span>`,i:`O domínio declara, <b>em seus próprios termos</b>, a interface de que precisa. A infraestrutura passa a implementá-la. A seta que descia do domínio para os dados desaparece, e surge uma seta que <b>sobe</b> da infraestrutura para o domínio.`},
+ {p:'1.8.2',c:'Portas e adaptadores (hexagonal)',d:()=>pilha(4),code:`<span class="c">// teste: adaptador em memória, sem banco</span>
+<span class="k">var</span> repo = <span class="k">new</span> RepositorioEmMemoria();
+<span class="k">var</span> servico = <span class="k">new</span> ServicoDeRegistroDePedido(repo);
+servico.registrar(cliente, itens);
+assertEquals(1, repo.total());`,i:`Cockburn troca o eixo "acima/abaixo" por "dentro/fora". O controlador HTTP é um <b>adaptador primário</b>; o repositório JDBC e o repositório em memória são <b>adaptadores secundários</b> da mesma porta. A aplicação pode ser testada sem banco e acionada por vários canais.`},
+ {p:'1.8.3 e 1.8.4',c:'Cebola e arquitetura limpa',d:()=>aneis(5),code:`entidades/      <span class="c">// não importa nada de fora</span>
+casosdeuso/     <span class="c">// importa só entidades</span>
+adaptadores/    <span class="c">// controladores, gateways</span>
+frameworks/     <span class="c">// web, BD, dispositivos</span>`,i:`Palermo desenha anéis; Martin, círculos com quatro níveis típicos. A <b>regra da dependência</b> é a mesma: nada em um círculo interno pode mencionar o nome de algo declarado em um círculo externo. O banco de dados e o <i>framework</i> web tornam-se <b>detalhes</b>.`},
+ {p:'1.8.4',c:'Controle sai, dependência entra',d:()=>aneis(6),code:`<span class="c">// casosdeuso</span>
+<span class="k">class</span> RegistrarPedido {
+  <span class="k">private final</span> RepositorioDePedidos repo; <span class="c">// porta</span>
+  <span class="k">void</span> executar(…) { repo.salvar(p); }  <span class="c">// controle → BD</span>
+}
+<span class="c">// adaptadores: o gateway implementa a porta</span>`,i:`Quando o caso de uso precisa gravar, o <b>fluxo de controle</b> vai de dentro para fora (seta lilás), mas a <b>dependência de código-fonte</b> vai de fora para dentro (seta dourada). É o princípio da inversão de dependência que preserva a regra.`},
+ {p:'E.1.5',c:'No exercício-modelo',d:exercicio,code:`Legado:  dominio → infra e infra → dominio
+         (ciclo: viola o ADP;
+          0,25 → 0,33: viola o SDP)
+Solução: web → aplicacao → dominio ← infra
+         I: 1,00 → 0,50 → 0,00 ← 1,00`,i:`A Figura E.1 mostra o resultado da refatoração do exercício-modelo: o ciclo desaparece e todas as setas apontam para o domínio, que se torna o pacote mais estável. O custo, lembra a Seção 1.8.5, são mais tipos e indireções, investimento que só se paga quando a <b>complexidade do domínio</b> o justifica.`},
+];
+let i=0,timer=null;
+function render(){
+  const s=STEPS[i];
+  document.getElementById('pill').textContent='Seção '+s.p;
+  document.getElementById('c4').textContent=s.c;
+  document.getElementById('svg').innerHTML=defs+s.d();
+  document.getElementById('code').innerHTML=s.code;
+  document.getElementById('info').innerHTML=s.i;
+  document.getElementById('count').textContent=`passo ${i+1} de ${STEPS.length}`;
+}
+function go(d){i=Math.max(0,Math.min(STEPS.length-1,i+d));render();}
+function reset(){stop();i=0;render();}
+function stop(){if(timer){clearInterval(timer);timer=null;document.getElementById('auto').textContent='▶ Auto';}}
+function toggleAuto(){
+  if(timer){stop();return;}
+  document.getElementById('auto').textContent='⏸ Pausar';
+  timer=setInterval(()=>{if(i>=STEPS.length-1){stop();return;}go(1);},5000);
+}
+i=Math.min(STEPS.length-1,Math.max(0,(+location.hash.replace(/\D/g,"")||1)-1));render();
+</script>
+</body>
+</html>
