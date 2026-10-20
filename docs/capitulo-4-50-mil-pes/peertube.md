@@ -23,42 +23,49 @@ estáticos; a própria documentação recomenda que o servidor da API nunca seja
 diretamente à internet.
 
 A Figura 4.4.1 mostra esses *containers* (nível 2 do modelo C4), acrescidos dos *runners*
-remotos e do armazenamento de objetos opcional.
+remotos e do armazenamento de objetos opcional, e o caminho de um vídeo, do envio à reprodução. A
+sequência dos passos acompanha a Figura 5.4.2.
 
-**Figura 4.4.1** – *Containers* de uma instância PeerTube.
+**Figura 4.4.1** – *Containers* de uma instância PeerTube e o caminho de um vídeo.
 
-```mermaid
-flowchart LR
-    subgraph cliente["Navegador do espectador"]
-        spa["Cliente Angular"]
-        player["Reprodutor hls.js<br/>com p2p-media-loader"]
-    end
-    nginx["Proxy reverso NGINX<br/><small>TLS, arquivos estáticos</small>"]
-    subgraph inst["Processo PeerTube"]
-        api["Servidor Node.js e Express<br/><small>API REST, ActivityPub, tracker, Socket.IO</small>"]
-        workers["Workers da fila<br/><small>mesmo processo, BullMQ</small>"]
-    end
-    redis[("Redis<br/><small>fila e cache</small>")]
-    pg[("PostgreSQL<br/><small>metadados</small>")]
-    fs[("Disco local ou<br/>armazenamento de objetos")]
-    runners["PeerTube runners<br/><small>ffmpeg, transcrição</small>"]
-    spa --> nginx
-    player --> nginx
-    nginx --> api
-    api --> pg
-    api -->|"cache"| redis
-    api -.->|"enfileira jobs"| redis
-    workers -.->|"consome jobs"| redis
-    workers --> fs
-    api --> fs
-    runners -->|"HTTP: request, accept, success"| nginx
-    nginx -->|"vídeos e playlists HLS"| player
-    player <-->|"WebRTC"| player
-```
+![Containers de uma instância PeerTube: navegador com cliente Angular e reprodutor hls.js, outros espectadores, runners remotos, proxy reverso NGINX, servidor Node.js e Express, workers da fila BullMQ, PostgreSQL, Redis e disco local ou armazenamento de objetos, com o fluxo numerado do envio, da transcodificação e da reprodução de um vídeo](../assets/diagramas/peertube-50k.svg)
+
+Passos numerados (envio de um vídeo, transcodificação e reprodução):
+
+1. O cliente Angular envia o vídeo em partes, por *upload* retomável, ao proxy reverso.
+2. O NGINX repassa as requisições ao servidor Node.js e Express, que autentica o usuário e valida o
+   canal, a duração e os filtros.
+3. O servidor grava o arquivo recebido no disco local ou no armazenamento de objetos.
+4. O servidor grava o vídeo no PostgreSQL no estado `TO_TRANSCODE` e responde ao cliente com o
+   identificador e o UUID.
+5. O servidor enfileira no Redis, via BullMQ, a sequência de *jobs* iniciais, que termina no
+   `transcoding-job-builder`, construtor do DAG de transcodificação. O que trafega na fila é uma
+   referência ao vídeo, não o vídeo.
+6. A transcodificação ocorre de uma de duas formas. Na local, um *worker* da fila consome os *jobs*
+   no Redis. Na remota, um *runner* pede a tarefa ao servidor por HTTP, passando pelo NGINX, e
+   depois a aceita e informa a conclusão; o protocolo é sempre iniciado pelo *runner*.
+7. Os arquivos HLS e Web Video de cada resolução são gravados no armazenamento: diretamente pelo
+   *worker* local, ou pelo servidor, ao receber o resultado do *runner*.
+8. Quando a resolução máxima em HLS fica pronta, o vídeo passa de `TO_TRANSCODE` a `PUBLISHED` no
+   PostgreSQL e é federado; as demais resoluções seguem em paralelo.
+9. O reprodutor hls.js baixa a *playlist* e os segmentos HLS do NGINX, que os serve sem passar pelo
+   Node.js.
+10. Com o `p2p-media-loader`, o reprodutor também troca segmentos, via WebRTC, com outros
+    espectadores do mesmo vídeo.
+
+Não há setas finas sem número nesta figura, porque todas as relações da instância participam do
+fluxo. As setas ligam o envio e a reprodução ao mesmo navegador por simplicidade; na prática, quem envia é
+o criador e quem reproduz são os espectadores. A seta 5 representa também o uso do Redis como
+*cache* pelo servidor, que a versão anterior da figura mostrava como uma seta própria, e a seta 9 representa
+a requisição do reprodutor e a resposta do NGINX com os vídeos e *playlists* HLS. A seta do *runner*
+é tracejada, como na Tabela 4.4.2: o servidor apenas avisa que há trabalho, e o *runner* o pede.
+A seta 8 não constava da versão anterior da figura: foi acrescentada para mostrar a mudança de
+estado descrita na Figura 5.4.2.
 
 Fonte: elaborado pelo autor (2026), com base na documentação de arquitetura do PeerTube
-(PEERTUBE, 2026) e no código da *tag* `v8.3.1`. Linhas contínuas: comunicação síncrona; linhas
-tracejadas: comunicação assíncrona.
+(PEERTUBE, 2026), no código da *tag* `v8.3.1` e no estilo de diagrama de Xu (2020). Linhas
+contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da
+figura: `diagramas/d2/peertube-50k.d2`.
 
 Um detalhe da figura deve ser destacado: os *workers* da fila executam, por padrão, **no mesmo
 processo** Node.js do servidor da API. A classe `JobQueue` cria um `Worker` do BullMQ para cada
@@ -495,4 +502,4 @@ Saddle River: Prentice Hall, 1996.
 WASHIZAKI, H. (ed.). **Guide to the software engineering body of knowledge (SWEBOK Guide)**:
 version 4.0. Los Alamitos: IEEE Computer Society, 2024.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

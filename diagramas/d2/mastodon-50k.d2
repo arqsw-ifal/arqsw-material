@@ -1,0 +1,62 @@
+# Mastodon a 50.000 pés: containers e fluxo de uma publicação (estilo de Xu, 2020).
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Setas numeradas: passos do fluxo, descritos no texto abaixo da figura.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 24; bold: true}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 24; bold: true}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 22; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18; border-radius: 6}}
+}
+
+usuarios: {
+  class: livre
+  grid-rows: 2
+  grid-gap: 160
+  clientes: "Clientes\nweb React e apps" {icon: https://icons.terrastruct.com/essentials%2F359-users.svg; shape: image; style.font-size: 18}
+  remotas: "Instâncias remotas\nActivityPub" {icon: https://icons.terrastruct.com/essentials%2F140-internet.svg; shape: image; style.font-size: 18}
+}
+
+borda: "Borda" {
+  class: faixa
+  nginx: "nginx\nproxy reverso" {class: no; icon: https://icons.terrastruct.com/dev%2Fnginx.svg}
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  web: "Web\nRails + Puma" {class: no; icon: https://icons.terrastruct.com/dev%2Frails.svg}
+  workers: "Workers\nSidekiq" {class: no; icon: https://icons.terrastruct.com/dev%2Fruby.svg}
+  streaming: "Streaming\nNode.js" {class: no; icon: https://icons.terrastruct.com/dev%2Fnodejs.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  pg: "PostgreSQL" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  redis: "Redis\nfilas · timelines · pub/sub" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  midia: "Mídia\nS3 ou disco" {class: no; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+}
+
+usuarios.clientes -> borda.nginx: "1" {class: sinc}
+borda.nginx -> app.web: "2" {class: sinc}
+app.web -> dados.pg: "3" {class: sinc}
+app.web -> dados.redis: "4" {class: assinc}
+app.workers -> dados.redis: "5, 7, 8" {class: assinc}
+app.workers -> dados.pg: "6" {class: sinc}
+app.streaming -> dados.redis: "9" {class: assinc}
+app.streaming -> usuarios.clientes: "10" {class: assinc}
+app.workers -> usuarios.remotas: "11" {class: sinc}
+app.web -> dados.midia {class: apoio}
+app.streaming -> dados.pg {class: apoio}
+app.workers -> dados.midia {class: apoio}
+usuarios.remotas -> borda.nginx {class: apoio}

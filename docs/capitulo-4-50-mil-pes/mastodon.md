@@ -23,31 +23,32 @@ real; e o processamento em segundo plano (Sidekiq) (MASTODON, 2026b). O arquivo
 (`bundle exec sidekiq`) (MASTODON, 2026f). A Figura 4.2.1 mostra os *containers* e suas comunicações, e a Tabela
 4.2.1 resume a responsabilidade de cada um.
 
-**Figura 4.2.1** – Diagrama de *containers* de uma instância Mastodon.
+**Figura 4.2.1** – *Containers* de uma instância Mastodon e o caminho de uma publicação.
 
-```mermaid
-flowchart TB
-    C["Clientes<br/><small>interface web React e aplicativos</small>"] --> N["Proxy reverso<br/><small>nginx</small>"]
-    N -->|"HTTPS: REST /api e páginas"| W["Web<br/><small>Rails + Puma</small>"]
-    N -.->|"WebSocket e SSE"| ST["Streaming<br/><small>Node.js</small>"]
-    W --> PG[("PostgreSQL")]
-    W -->|"cache"| R[("Redis")]
-    W -.->|"enfileiramento de jobs"| R
-    SK["Workers<br/><small>Sidekiq</small>"] -.->|"consome filas"| R
-    SK --> PG
-    SK -->|"ZADD em timelines"| R
-    SK -.->|"PUBLISH"| R
-    ST -.->|"SUBSCRIBE"| R
-    ST -->|"valida token de acesso"| PG
-    W --> OBJ["Mídia<br/><small>S3 compatível ou disco</small>"]
-    SK --> OBJ
-    SK -->|"POST para inbox remota"| F["Instâncias remotas"]
-    F -->|"POST /inbox"| N
-```
+![Containers de uma instância Mastodon: clientes, nginx, Web (Rails + Puma), workers Sidekiq, streaming (Node.js), PostgreSQL, Redis e armazenamento de mídia, com o fluxo numerado de uma publicação](../assets/diagramas/mastodon-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base em Mastodon (2026a; 2026b) e no arquivo
-`docker-compose.yml` da *tag* v4.7.3. Linhas contínuas: comunicação síncrona; linhas tracejadas:
-comunicação assíncrona.
+Passos numerados (publicação de uma mensagem e entrega aos seguidores):
+
+1. O cliente envia a publicação, `POST /api/v1/statuses`, ao proxy reverso.
+2. O nginx repassa a requisição HTTPS ao processo Web (Rails + Puma).
+3. O `PostStatusService` grava a publicação no PostgreSQL, em transação, e o cliente recebe a resposta.
+4. O processo Web enfileira o `DistributionWorker` no Redis.
+5. Um *worker* Sidekiq retira o *job* da fila.
+6. O *worker* consulta no PostgreSQL os seguidores locais ativos.
+7. Para cada seguidor, o *worker* insere o identificador da publicação na *timeline* em memória (`ZADD feed:home:<id>`). O comando é síncrono, mas executa dentro de um *job* assíncrono.
+8. Para os seguidores conectados, o *worker* publica o evento no canal do usuário (`PUBLISH timeline:<id>`).
+9. O servidor de *streaming*, que assina esses canais, recebe o evento.
+10. O evento `update` chega ao cliente do seguidor por WebSocket, passando pelo nginx.
+11. Em paralelo, a entrega federada envia `POST /inbox` às instâncias remotas (ActivityPub).
+
+As setas finas sem número representam relações que não pertencem a esse fluxo: o *streaming*
+valida *tokens* de acesso no PostgreSQL, Web e *workers* gravam mídia no armazenamento de objetos
+e as instâncias remotas entregam atividades no `/inbox` local.
+
+Fonte: elaborado pelo autor (2026), com base em Mastodon (2026a; 2026b), no arquivo
+`docker-compose.yml` da *tag* `v4.7.3` e no estilo de diagrama de Xu (2020). Linhas contínuas:
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mastodon-50k.d2`.
 
 **Tabela 4.2.1** – *Containers* de uma instância Mastodon.
 
@@ -450,5 +451,4 @@ Disponível em:
 <https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm>.
 Acesso em: 18 out. 2026.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Independently
-published, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

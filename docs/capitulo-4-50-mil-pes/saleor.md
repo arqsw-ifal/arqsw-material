@@ -19,29 +19,36 @@ oficial, que executa a aplicação ASGI com o Uvicorn na porta 8000; e o `docker
 repositório `saleor-platform`, recomendado pela documentação para execução local (SALEOR,
 2026a; 2026c).
 
-**Figura 4.6.1** – Diagrama de *containers* (C4, nível 2) do Saleor.
+**Figura 4.6.1** – *Containers* (C4, nível 2) do Saleor e o caminho de um *checkout*.
 
-```mermaid
-flowchart TB
-    V["Vitrine<br/><small>projeto separado</small>"] -- "GraphQL sobre HTTPS" --> API
-    D["Saleor Dashboard<br/><small>aplicação de página única</small>"] -- "GraphQL sobre HTTPS" --> API
-    subgraph Saleor["Saleor: um único código-fonte, uma única imagem"]
-        API["API GraphQL<br/><small>Django, Graphene, Uvicorn</small>"]
-        W["Workers Celery<br/><small>tarefas e webhooks assíncronos</small>"]
-        B["Celery beat<br/><small>tarefas agendadas</small>"]
-    end
-    API --> DB[("PostgreSQL<br/><small>primário e réplica de leitura</small>")]
-    W --> DB
-    API -. "enfileira tarefas" .-> Q[("Broker e cache<br/><small>Redis/Valkey ou SQS</small>")]
-    Q -.-> W
-    B -.-> Q
-    API -- "webhooks síncronos HTTP" --> APPS["Apps externas<br/><small>pagamento, impostos, frete</small>"]
-    W -. "webhooks assíncronos<br/>HTTP, SQS ou Pub/Sub" .-> APPS
-    APPS -- "GraphQL com token da app" --> API
-```
+![Containers do Saleor: vitrine, Saleor Dashboard e apps externas de pagamento, de frete e impostos e fiscal; API GraphQL (Django, Graphene, Uvicorn), workers Celery e Celery beat, que compartilham a mesma imagem; PostgreSQL e broker Redis/Valkey ou SQS, com o fluxo numerado da conclusão de um checkout](../assets/diagramas/saleor-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base em Saleor (2026a; 2026c). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Passos numerados (conclusão de um *checkout* no fluxo de transações, detalhado na Figura 5.6.2):
+
+1. A vitrine envia à API, por GraphQL sobre HTTPS, as mutações que montam o *checkout*.
+2. Durante a requisição, a API dispara o evento síncrono que pede às *apps* a lista de métodos de
+   entrega.
+3. Pelo mesmo mecanismo, a API pede o cálculo de impostos do *checkout*; nos dois casos, a resposta
+   da *app* é usada para continuar o processamento.
+4. A vitrine chama `transactionInitialize`.
+5. A API dispara o *webhook* síncrono `TRANSACTION_INITIALIZE_SESSION` para a *app* de pagamento,
+   que chama o provedor, repassando a chave de idempotência, e responde.
+6. A API registra `TransactionItem` e `TransactionEvent` no PostgreSQL.
+7. A vitrine chama `checkoutComplete`.
+8. Numa transação local, a API verifica se o valor autorizado cobre o total, bloqueia o *checkout*,
+   cria o pedido, aloca o estoque e apaga o *checkout*.
+9. A API enfileira no intermediário os *webhooks* assíncronos, como `ORDER_CREATED`.
+10. Um *worker* Celery retira a tarefa da fila.
+11. O *worker* entrega o evento à *app* fiscal, por HTTP, SQS ou Pub/Sub, com repetição automática.
+
+As setas finas sem número representam relações que não pertencem a esse fluxo: o Dashboard também
+é cliente da API GraphQL; as *apps* agem sobre o núcleo pela mesma API, autenticadas por *token*
+próprio (a seta parte da *app* fiscal, mas vale para todas); os *workers* leem e gravam no
+PostgreSQL; e o Celery beat enfileira as tarefas agendadas.
+
+Fonte: elaborado pelo autor (2026), com base em Saleor (2026a; 2026c) e no estilo de diagrama de
+Xu (2020). Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Código-fonte da figura: `diagramas/d2/saleor-50k.d2`.
 
 Quatro observações decorrem da figura. Primeira: API, *workers* e agendador são **o mesmo
 código e a mesma imagem**, executados com comandos diferentes. No `docker-compose.yml` do
@@ -355,6 +362,8 @@ SALEOR. **saleor/saleor-platform**: docker-compose.yml, *commit* ab6315bd. GitHu
 Disponível em:
 <https://github.com/saleor/saleor-platform/blob/ab6315bd59c58b4815175df4c679107ff9695be4/docker-compose.yml>.
 Acesso em: 18 out. 2026.
+
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.
 
 YEGGE, S. **Stevey's Google platforms rant**. 12 out. 2011. Publicado originalmente no
 Google+. Cópia disponível em: <https://gist.github.com/chitchcock/1281611>. Acesso em: 18

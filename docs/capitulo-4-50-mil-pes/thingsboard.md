@@ -34,35 +34,46 @@ temporais; o Zookeeper, para descoberta de serviços e atribuição de partiçõ
 de carga para HTTP, MQTT e CoAP (THINGSBOARD, 2026a). A Figura 4.7.1 apresenta o diagrama de
 *containers* na topologia de microsserviços.
 
-**Figura 4.7.1** – *Containers* do ThingsBoard na topologia de microsserviços (C4, nível 2).
+**Figura 4.7.1** – *Containers* do ThingsBoard na topologia de microsserviços (C4, nível 2) e o caminho de uma telemetria.
 
-```mermaid
-flowchart LR
-    DEV["Dispositivos"] --> LB["Balanceador<br/>HAProxy"]
-    LB --> TM["tb-mqtt-transport"]
-    LB --> TC["tb-coap-transport"]
-    LB --> TH["tb-http-transport"]
-    TM -. "tb_transport.api.requests" .-> K[("Kafka")]
-    TC -.-> K
-    TH -.-> K
-    TM -. "tb_rule_engine" .-> K
-    K -.-> RE["tb-rule-engine"]
-    K -.-> CORE["tb-core"]
-    RE -. "js.eval.requests" .-> K
-    K -.-> JS["tb-js-executor"]
-    RE --> PG[("PostgreSQL<br/>entidades")]
-    RE --> TS[("Cassandra ou<br/>TimescaleDB")]
-    CORE --> PG
-    CORE --> R[("Valkey<br/>cache")]
-    ZK["Zookeeper"] -->|"coordenação"| RE
-    ZK -->|"coordenação"| CORE
-    USR["Usuários"] --> UI["tb-web-ui"]
-    UI --> CORE
-```
+![Containers do ThingsBoard em microsserviços: dispositivos e usuários; HAProxy e tb-web-ui na borda; transportes MQTT, CoAP e HTTP; Kafka; tb-rule-engine, tb-js-executor e tb-core; séries temporais, PostgreSQL, Valkey e Zookeeper, com o fluxo numerado de uma telemetria MQTT](../assets/diagramas/thingsboard-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base em ThingsBoard (2026a; 2026b) e no arquivo
-`docker/docker-compose.yml` da *tag* v4.3.1.6. Linhas contínuas: comunicação síncrona; linhas
-tracejadas: comunicação assíncrona.
+Passos numerados (telemetria de um dispositivo por MQTT, detalhada na Figura 5.7.3):
+
+1. O dispositivo conecta-se por MQTT e publica telemetria com QoS 1; o balanceador recebe a conexão.
+2. O HAProxy encaminha a conexão a uma réplica do `tb-mqtt-transport`.
+3. Na conexão, o transporte publica o pedido de validação das credenciais no tópico
+   `tb_transport.api.requests`.
+4. O `tb-core` consome o pedido e valida as credenciais.
+5. As credenciais ficam em *cache* no Valkey, e a resposta volta ao transporte pelo tópico
+   `tb_transport.api.responses`.
+6. Para cada mensagem, o transporte verifica os limites de taxa, converte a carga útil numa mensagem
+   unificada e a publica no tópico `tb_rule_engine`; o `PUBACK` só é enviado ao dispositivo depois
+   que a fila confirma o recebimento.
+7. O consumidor do `tb-rule-engine` lê um lote da partição do dispositivo e o submete à cadeia de
+   regras do inquilino.
+8. O nó *Save time series* grava a telemetria no banco de séries temporais.
+9. Um nó de filtro por *script* publica o pedido de avaliação no tópico `js.eval.requests`.
+10. O `tb-js-executor` avalia o *script* numa *sandbox* Node.js; o resultado volta por
+    `js.eval.responses`.
+11. Se a condição for verdadeira, o nó *Create alarm* grava o alarme no PostgreSQL.
+12. A atualização da telemetria e do alarme chega ao `tb-core` pela fila.
+13. O `tb-core` envia a atualização em tempo real ao painel, por WebSocket, passando pelo
+    `tb-web-ui`.
+
+A seta dupla do passo 7 reúne a leitura dos lotes e as publicações do motor de regras na fila
+(passos 9 e 12). As setas duplas do passo 13 representam a conexão WebSocket, que o painel abre
+pelo `tb-web-ui` (a relação Usuários → `tb-web-ui` → `tb-core` da arquitetura) e pela qual a
+atualização desce. As setas finas sem número representam relações que não pertencem a esse fluxo:
+os transportes CoAP e HTTP também recebem conexões do balanceador e publicam na fila; o `tb-core`
+lê e grava entidades no PostgreSQL; e o Zookeeper coordena os serviços da faixa de aplicação,
+`tb-rule-engine` e `tb-core`, atribuindo-lhes partições, o que se representa por uma única seta
+para a faixa.
+
+Fonte: elaborado pelo autor (2026), com base em ThingsBoard (2026a; 2026b), no arquivo
+`docker/docker-compose.yml` da *tag* v4.3.1.6 e no estilo de diagrama de Xu (2020). Linhas
+contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/thingsboard-50k.d2`.
 
 A documentação afirma que todos esses serviços são sem estado, com o estado persistente no banco e
 no *cache* (THINGSBOARD, 2026b). A afirmação merece leitura cuidadosa: os atores mantêm estado em
@@ -492,3 +503,5 @@ THINGSBOARD. **Database layer**. ThingsBoard documentation. 2026g. Disponível e
 
 THINGSBOARD. **Tenant profiles**. ThingsBoard documentation. 2026h. Disponível em:
 <https://thingsboard.io/docs/user-guide/tenant-profiles/>. Acesso em: 18 out. 2026.
+
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

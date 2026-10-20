@@ -424,4 +424,4 @@ Acesso em: 18 out. 2026.
 RICHARDS, M.; FORD, N. **Fundamentals of software architecture**: an engineering approach.
 Sebastopol: O'Reilly, 2020.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

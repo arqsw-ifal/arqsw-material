@@ -21,31 +21,47 @@ nível, como visão computacional, e se comunica com o controlador de voo por en
 Fora do veículo, a **estação em solo** executa o QGroundControl, e o **rádio controle** transmite os
 comandos do piloto (PX4, 2026a).
 
-**Figura 4.8.1** – *Containers* (C4, nível 2) de um sistema PX4 com computador de missão.
+**Figura 4.8.1** – *Containers* (C4, nível 2) de um sistema PX4 com computador de missão e o
+caminho de um ciclo de controle.
 
-```mermaid
-flowchart LR
-    subgraph Veiculo["Veículo"]
-        subgraph FC["Controlador de voo - NuttX"]
-            FW["Firmware PX4<br/><small>módulos e uORB</small>"]
-            SD[("Cartão SD<br/><small>logs, parâmetros, missões</small>")]
-        end
-        subgraph MC["Computador de missão - Linux"]
-            AG["Agente Micro XRCE-DDS"]
-            ROS["Aplicações ROS 2<br/><small>visão, modos externos</small>"]
-        end
-    end
-    QGC["QGroundControl<br/><small>estação em solo</small>"]
-    RC["Receptor de rádio controle"]
-    FW -- "grava" --> SD
-    FW -. "uXRCE-DDS, serial ou UDP" .-> AG
-    AG -. "tópicos DDS" .-> ROS
-    FW -. "MAVLink por rádio de telemetria" .-> QGC
-    RC -- "sinais de controle" --> FW
-```
+![Containers de um sistema PX4: QGroundControl no solo; rádio de telemetria; computador de missão Linux com o agente Micro XRCE-DDS e aplicações ROS 2; controlador de voo NuttX com o firmware PX4 aberto em seus módulos (drivers, uORB, ekf2, controladores, mavlink, uxrce_dds_client, logger) e o cartão SD; sensores, receptor de rádio controle e ESCs, com o fluxo numerado de um ciclo de controle e da telemetria](../assets/diagramas/px4-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base em PX4 (2026a, 2026b). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+Passos numerados (um ciclo de controle e sua telemetria, detalhados nas Figuras 5.8.1 e 5.8.2):
+
+1. Os *drivers* de entrada leem as amostras dos sensores (IMU, bússola, barômetro, GNSS) pelos
+   barramentos da placa, como SPI, I2C, CAN ou UART.
+2. Os *drivers* publicam as medidas no uORB, em tópicos como `sensor_combined` e
+   `vehicle_angular_velocity`.
+3. O estimador `ekf2` recebe `sensor_combined`.
+4. O `ekf2` publica a estimativa do estado, em tópicos como `vehicle_attitude` e
+   `vehicle_local_position`.
+5. Os controladores em cascata (posição, atitude e taxa angular) recebem a estimativa e o
+   *setpoint* do nível de cima; cada nível publica o *setpoint* do nível de baixo, até a taxa
+   angular.
+6. O controlador de taxa publica `vehicle_torque_setpoint` e `vehicle_thrust_setpoint`, e a
+   alocação de controle (`control_allocator`) converte-os, conforme a geometria do veículo, em
+   `actuator_motors`.
+7. Os *drivers* de saída recebem `actuator_motors`.
+8. Os *drivers* comandam os ESCs e os motores por PWM, DShot ou DroneCAN.
+9. Em paralelo, o módulo `mavlink` lê os tópicos de estado que compõem a telemetria.
+10. O `mavlink` envia mensagens MAVLink, pequenas e sem reenvio, ao rádio de telemetria.
+11. A telemetria chega ao QGroundControl pelo enlace de rádio.
+12. O `uxrce_dds_client` troca com o uORB os tópicos listados em `dds_topics.yaml`: publica, por
+    exemplo, `vehicle_attitude` e recebe `trajectory_setpoint`.
+13. O cliente comunica-se com o agente Micro XRCE-DDS por enlace serial ou UDP.
+14. O agente, que atua como *proxy* do cliente, entrega e recebe os tópicos DDS das aplicações
+    ROS 2.
+
+Dentro do controlador de voo, todas as setas numeradas passam pelo uORB, porque nenhum módulo chama
+outro (Seção 5.8). As setas duplas reúnem, num único rótulo, a assinatura e a publicação de um mesmo
+módulo (passos 3 e 4, 5 e 6) e os dois sentidos da ponte uXRCE-DDS (passos 12 a 14). As setas
+finas sem número representam relações que não pertencem a esse fluxo: o receptor de rádio controle
+entrega os sinais do piloto aos *drivers* de entrada, e o `logger` grava registros de voo no cartão
+SD, onde o `dataman` mantém parâmetros e missões.
+
+Fonte: elaborado pelo autor (2026), com base em PX4 (2026a; 2026b; 2026e) e no estilo de diagrama
+de Xu (2020). Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona (no
+controlador de voo, tópicos uORB). Código-fonte da figura: `diagramas/d2/px4-50k.d2`.
 
 O armazenamento local merece uma nota. O *firmware* grava registros de voo e mantém parâmetros e
 dados de missão; o repositório contém módulos específicos para isso, como `logger` e `dataman`
@@ -395,3 +411,5 @@ Sebastopol: O'Reilly, 2020.
 
 RTCA. **DO-178C**: software considerations in airborne systems and equipment certification.
 Washington: RTCA, 2011.
+
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

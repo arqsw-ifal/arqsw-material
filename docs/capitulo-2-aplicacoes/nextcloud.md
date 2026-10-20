@@ -209,4 +209,4 @@ NEXTCLOUD. **nextcloud/all-in-one**: Nextcloud All-in-One. GitHub, 2026c. Dispon
 RICHARDS, M.; FORD, N. **Fundamentals of software architecture**: an engineering approach.
 Sebastopol: O'Reilly, 2020.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

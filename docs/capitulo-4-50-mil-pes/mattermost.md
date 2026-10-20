@@ -121,44 +121,45 @@ simplicidade operacional.
 
 ## 4.3.4 Os *containers* do Mattermost
 
-A Figura 4.3.1 apresenta o diagrama de *containers* de uma implantação do Mattermost em *cluster*,
+A Figura 4.3.1 apresenta os *containers* de uma implantação do Mattermost em *cluster* e o caminho
+de uma mensagem, da publicação à entrega em tempo real e à notificação *push*. O diagrama foi
 reconstruído a partir da documentação de alta disponibilidade (MATTERMOST, 2026b) e do código do
-servidor (MATTERMOST, 2026a).
+servidor (MATTERMOST, 2026a); a sequência dos passos acompanha a Figura 5.3.2 e a difusão entre os
+nós, a Figura 5.3.4.
 
-**Figura 4.3.1** – Diagrama de *containers* (C4, nível 2) do Mattermost em *cluster*.
+**Figura 4.3.1** – *Containers* do Mattermost em *cluster* e o caminho de uma mensagem.
 
-```mermaid
-flowchart TB
-    C["Clientes<br/><small>web React, desktop, móvel</small>"]
-    P["Proxy reverso<br/><small>NGINX: TLS, balanceamento, upgrade WebSocket</small>"]
-    subgraph CL["Cluster de aplicação"]
-        N1["Servidor Mattermost 1<br/><small>Go: API REST + hub WebSocket</small>"]
-        N2["Servidor Mattermost 2<br/><small>Go: API REST + hub WebSocket</small>"]
-        PL1["Processos de plugins<br/><small>subprocessos via RPC</small>"]
-        PL2["Processos de plugins<br/><small>subprocessos via RPC</small>"]
-    end
-    DB[("PostgreSQL<br/><small>primário e réplicas de leitura</small>")]
-    FS[("Armazenamento de arquivos<br/><small>S3 ou NAS compartilhado</small>")]
-    SE[("Busca corporativa<br/><small>opcional</small>")]
-    PP["Proxy de push<br/><small>HPNS ou próprio</small>"]
-    C -- "HTTPS: comandos REST" --> P
-    C -. "WSS: eventos" .-> P
-    P --> N1
-    P --> N2
-    N1 <-.->|"gossip, porta 8074"| N2
-    N1 --- PL1
-    N2 --- PL2
-    N1 --> DB
-    N2 --> DB
-    N1 --> FS
-    N2 --> FS
-    N1 --> SE
-    N1 -.-> PP
-    N2 -.-> PP
-```
+![Containers de uma implantação do Mattermost em cluster: clientes, proxy reverso NGINX, dois servidores Mattermost em Go com seus processos de plugins, PostgreSQL, armazenamento de arquivos, busca corporativa, proxy de push e os serviços APNs e FCM, com o fluxo numerado do envio e da entrega de uma mensagem](../assets/diagramas/mattermost-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base em Mattermost (2026a, 2026b, 2026c). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Passos numerados (envio de uma mensagem e entrega em tempo real):
+
+1. O cliente envia a mensagem, `POST /api/v4/posts` com o `pending_post_id`, ao proxy reverso.
+2. O NGINX repassa a requisição a um dos nós saudáveis do *cluster*, aqui o servidor 1.
+3. O nó executa o gancho `MessageWillBePosted` nos processos de *plugins*, por RPC; um *plugin*
+   pode alterar ou rejeitar a mensagem.
+4. O nó grava a mensagem no PostgreSQL. Nenhum cliente é avisado antes dessa gravação, e o
+   cliente que publicou recebe a resposta.
+5. O nó publica o evento `posted` nos seus *hubs* locais e o envia aos demais nós como mensagem de
+   *cluster* em modo confiável, pelo canal de fofoca da porta 8074.
+6. Cada nó entrega o evento, pelos seus *hubs* de WebSocket, às conexões que mantém, e a conexão
+   WSS do cliente passa pelo proxy reverso. A seta mostra a entrega pelo servidor 2, que recebe a
+   mensagem de *cluster* e não a retransmite; o servidor 1 faz o mesmo com as suas conexões.
+7. Para os destinatários ausentes, o nó envia o pedido de notificação ao proxy de *push* (HPNS ou
+   próprio).
+8. O proxy de *push* repassa a notificação, por TLS, ao APNs da Apple ou ao FCM do Google, que a
+   entregam ao aparelho. Com as notificações somente com identificador, o aplicativo busca o
+   conteúdo no servidor da organização.
+
+As setas finas sem número representam relações que não pertencem a esse fluxo: o proxy reverso
+também distribui requisições e conexões ao servidor 2, que tem seus próprios processos de
+*plugins*, grava no mesmo PostgreSQL e também envia pedidos ao proxy de *push*; os dois nós usam o
+armazenamento compartilhado de arquivos, e o servidor 1 consulta a busca corporativa opcional. A
+conexão WSS entre o cliente e o proxy aparece na seta 6, desenhada do nó ao cliente para não se
+sobrepor à seta 1.
+
+Fonte: elaborado pelo autor (2026), com base em Mattermost (2026a, 2026b, 2026c, 2026f) e no estilo
+de diagrama de Xu (2020). Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação
+assíncrona. Código-fonte da figura: `diagramas/d2/mattermost-50k.d2`.
 
 Os *containers* e suas responsabilidades são os seguintes:
 

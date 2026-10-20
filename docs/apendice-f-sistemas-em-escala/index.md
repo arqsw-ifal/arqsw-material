@@ -2000,7 +2000,7 @@ Sebastopol: O'Reilly, 2020.
 WARNER, J. **October 21 post-incident analysis**. The GitHub Blog, 30 out. 2018. Disponível em:
 <https://github.blog/news-insights/company-news/oct21-post-incident-analysis/>. Acesso em: 18 out. 2026.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.
 
 ## Material complementar
 

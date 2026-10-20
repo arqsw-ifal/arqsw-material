@@ -56,38 +56,43 @@ de objetos para o conteúdo, otimizado para durabilidade e custo por *byte*.
 
 ## 4.5.2 Os *containers* do Nextcloud
 
-A Figura 4.5.2 apresenta os *containers* de uma instalação do Nextcloud no nível 2 do modelo C4.
+A Figura 4.5.2 apresenta os *containers* de uma instalação do Nextcloud no nível 2 do modelo C4 e
+o caminho de um arquivo enviado pelo cliente *desktop*, do envio por WebDAV à notificação dos
+demais clientes. A sequência dos passos no servidor acompanha a Figura 5.5.3.
 
-**Figura 4.5.2** – Diagrama de *containers* (C4, nível 2) do Nextcloud.
+**Figura 4.5.2** – *Containers* do Nextcloud e o caminho de um arquivo sincronizado.
 
-```mermaid
-flowchart TB
-    subgraph Clientes
-        WEB["Navegador<br/><small>interface web em JavaScript</small>"]
-        DESK["Cliente desktop<br/><small>C++/Qt, motor de sincronização</small>"]
-        MOB["Apps móveis"]
-    end
-    subgraph Servidor["Instalação Nextcloud"]
-        PHP["Aplicação PHP<br/><small>núcleo + apps</small>"]
-        CRON["Tarefas em segundo plano<br/><small>cron.php</small>"]
-        PUSH["notify_push<br/><small>opcional, Rust, WebSocket</small>"]
-    end
-    DB[("Banco relacional<br/><small>MariaDB, MySQL ou PostgreSQL</small>")]
-    REDIS[("Redis<br/><small>cache distribuído e locking</small>")]
-    STOR[("Armazenamento primário<br/><small>disco local ou objetos S3/Swift/Azure</small>")]
-    WEB -- "HTTPS / OCS / WebDAV" --> PHP
-    DESK -- "WebDAV" --> PHP
-    MOB -- "WebDAV" --> PHP
-    DESK -. "WebSocket" .-> PUSH
-    PUSH -. "eventos" .-> REDIS
-    PHP --> DB
-    PHP --> REDIS
-    PHP --> STOR
-    CRON --> DB
-    CRON --> STOR
-```
+![Containers de uma instalação Nextcloud: cliente desktop, navegador e apps móveis; aplicação PHP, tarefas em segundo plano e notify_push; Redis, armazenamento primário e banco relacional, com o fluxo numerado do envio de um arquivo e da notificação aos demais clientes](../assets/diagramas/nextcloud-50k.svg)
 
-Fonte: elaborado pelo autor (2026), com base na documentação de administração do Nextcloud e no repositório `nextcloud/notify_push`. Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Passos numerados (envio e sincronização de um arquivo):
+
+1. Ao detectar uma alteração local, o cliente *desktop* envia o arquivo à aplicação PHP por WebDAV,
+   `PUT /remote.php/dav/files/<usuário>/<caminho>`. O servidor sabre/dav autentica a requisição, e
+   o `QuotaPlugin` verifica a cota antes que qualquer *byte* seja gravado.
+2. O provedor de *locks*, no Redis, converte o *lock* compartilhado do arquivo em exclusivo.
+3. O conteúdo é gravado em um arquivo parcial no armazenamento primário e depois movido para o
+   destino, o que impede que outro cliente baixe um arquivo truncado.
+4. O `Updater` atualiza a tabela `filecache` no banco relacional e propaga uma nova *ETag* ao
+   arquivo e às pastas ancestrais, até a raiz. O *lock* volta a ser compartilhado, e o cliente
+   recebe `201` ou `204` com a nova *ETag*.
+5. Quando presente, o `notify_push` obtém do Redis o evento da alteração.
+6. O `notify_push` avisa os demais clientes pela conexão WebSocket que eles mantêm abertas. O aviso
+   é de melhor esforço.
+7. Avisados, ou na consulta periódica, a cada 30 segundos por padrão, os outros clientes comparam a
+   *ETag* da raiz com a última que conhecem, descem apenas pelas pastas cujas *ETags* mudaram e
+   baixam o arquivo novo.
+
+As setas finas sem número representam relações que não pertencem a esse fluxo: o navegador e os
+*apps* móveis também acessam a aplicação PHP, por HTTPS, OCS e WebDAV, e as tarefas em segundo
+plano (`cron.php`) usam o banco relacional e o armazenamento primário. A seta 2 representa também
+o uso do Redis como *cache* distribuído. A seta 6 é desenhada no sentido do aviso, embora a conexão
+WebSocket seja aberta pelo cliente. A figura não tem a faixa "Borda", porque a versão anterior,
+à qual ela é fiel, não representa um proxy reverso.
+
+Fonte: elaborado pelo autor (2026), com base na documentação de administração do Nextcloud, no
+repositório `nextcloud/notify_push` e no estilo de diagrama de Xu (2020). Linhas contínuas:
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/nextcloud-50k.d2`.
 
 Comparado à Figura 4.5.1, o desenho do Nextcloud é muito mais compacto. Não há servidores de
 blocos separados, e o serviço de notificação é opcional: o mesmo processo PHP atende às
@@ -570,4 +575,4 @@ Sebastopol: O'Reilly, 2020.
 
 VOGELS, W. Eventually consistent. **Communications of the ACM**, v. 52, n. 1, p. 40-44, 2009.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

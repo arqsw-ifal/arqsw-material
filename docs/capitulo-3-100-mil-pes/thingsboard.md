@@ -434,4 +434,4 @@ THINGSBOARD. **Tenant profiles**. ThingsBoard documentation. 2026e. Disponível 
 WASHIZAKI, H. (ed.). **Guide to the software engineering body of knowledge (SWEBOK Guide)**:
 version 4.0. Los Alamitos: IEEE Computer Society, 2024.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

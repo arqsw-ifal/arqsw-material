@@ -453,5 +453,4 @@ Disponível em: <https://github.com/mastodon/mastodon/tree/v4.7.3>. Acesso em: 1
 RICHARDS, M.; FORD, N. **Fundamentals of software architecture**: an engineering approach.
 Sebastopol: O'Reilly, 2020.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Independently
-published, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

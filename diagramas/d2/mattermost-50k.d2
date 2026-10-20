@@ -1,0 +1,67 @@
+# Mattermost a 50.000 pés: containers do cluster e fluxo de uma mensagem (estilo de Xu, 2020).
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Setas numeradas: passos do fluxo, descritos no texto abaixo da figura.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 24; bold: true}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 24; bold: true}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 22; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18; border-radius: 6}}
+}
+
+usuarios: {
+  class: livre
+  grid-rows: 4
+  grid-gap: 70
+  topo: {class: livre; width: 230; height: 60}
+  clientes: "Clientes\nweb, desktop e móvel" {icon: https://icons.terrastruct.com/essentials%2F359-users.svg; shape: image; width: 120; height: 120; style.font-size: 18}
+  push: "Proxy de push\nHPNS ou próprio" {class: no; icon: https://icons.terrastruct.com/essentials%2F108-megaphone.svg}
+  lojas: "APNs e FCM\nApple e Google" {icon: https://icons.terrastruct.com/tech%2Fantenna.svg; shape: image; width: 120; height: 120; style.font-size: 18}
+}
+
+borda: "Borda" {
+  class: faixa
+  nginx: "Proxy reverso\nNGINX" {class: no; icon: https://icons.terrastruct.com/dev%2Fnginx.svg}
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 4
+  grid-gap: 50
+  pl2: "Plugins do nó 2\nsubprocessos RPC" {class: no; icon: https://icons.terrastruct.com/infra%2F025-plug-in.svg}
+  n2: "Servidor Mattermost 2\nGo: REST + hub WS" {class: no; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+  n1: "Servidor Mattermost 1\nGo: REST + hub WS" {class: no; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+  pl1: "Plugins do nó 1\nsubprocessos RPC" {class: no; icon: https://icons.terrastruct.com/infra%2F025-plug-in.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  arquivos: "Arquivos\nS3 ou NAS" {class: no; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+  pg: "PostgreSQL\nprimário e réplicas" {class: banco; height: 200; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  busca: "Busca corporativa\nopcional" {class: no; icon: https://icons.terrastruct.com/essentials%2F313-search.svg}
+}
+
+usuarios.clientes -> borda.nginx: "1" {class: sinc}
+borda.nginx -> app.n1: "2" {class: sinc}
+app.n1 -> app.pl1: "3" {class: sinc}
+app.n1 -> dados.pg: "4" {class: sinc}
+app.n1 -> app.n2: "5" {class: assinc}
+app.n2 -> usuarios.clientes: "6" {class: assinc}
+app.n1 -> usuarios.push: "7" {class: assinc}
+usuarios.push -> usuarios.lojas: "8" {class: sinc}
+borda.nginx -> app.n2 {class: apoio}
+app.n2 -> app.pl2 {class: apoio}
+app.n2 -> dados.pg {class: apoio}
+app.n1 -> dados.arquivos {class: apoio}
+app.n2 -> dados.arquivos {class: apoio}
+app.n1 -> dados.busca {class: apoio}
+app.n2 -> usuarios.push {class: apoio}

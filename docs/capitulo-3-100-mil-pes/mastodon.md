@@ -449,5 +449,4 @@ ROCHKO, E. **Twitter suspends Mastodon account, prevents sharing links**. Mastod
 <https://blog.joinmastodon.org/2022/12/twitter-suspends-mastodon-account-prevents-sharing-links/>.
 Acesso em: 18 out. 2026.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Independently
-published, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

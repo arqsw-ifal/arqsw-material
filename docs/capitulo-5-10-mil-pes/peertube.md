@@ -490,4 +490,4 @@ Sebastopol: O'Reilly, 2020.
 SODAGAR, I. The MPEG-DASH standard for multimedia streaming over the internet. **IEEE
 MultiMedia**, v. 18, n. 4, p. 62-67, 2011.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

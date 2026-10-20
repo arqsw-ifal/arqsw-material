@@ -250,5 +250,4 @@ Disponível em:
 <https://blog.x.com/engineering/en_us/topics/open-source/2023/twitter-recommendation-algorithm>.
 Acesso em: 18 out. 2026.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Independently
-published, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

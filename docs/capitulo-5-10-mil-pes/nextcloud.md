@@ -554,4 +554,4 @@ Sebastopol: O'Reilly, 2020.
 TRIDGELL, A.; MACKERRAS, P. **The rsync algorithm**. Canberra: Australian National University,
 1996. Technical Report TR-CS-96-05.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.

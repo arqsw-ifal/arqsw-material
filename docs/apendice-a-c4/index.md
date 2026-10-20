@@ -382,12 +382,12 @@ a segunda limita as inconsistências ao custo de expressividade. Os diagramas de
 um a um em Mermaid, seguem a abordagem sintética, e sua consistência é mantida por revisão. As
 ferramentas baseadas em modelo, discutidas na Seção A.8, seguem a abordagem projetiva.
 
-## A.7 Convenções Mermaid usadas no livro
+## A.7 Convenções de notação usadas no livro
 
 ### A.7.1 Por que `flowchart`
 
-Os diagramas do livro são escritos em Mermaid, linguagem textual renderizada no navegador pelo tema
-do MkDocs. O Mermaid oferece uma sintaxe específica para o C4 (`C4Context`, `C4Container`,
+A maior parte dos diagramas do livro é escrita em Mermaid, linguagem textual renderizada no navegador
+pelo tema do MkDocs; a exceção são as figuras de *containers* a 50.000 pés, tratadas na Seção A.7.5. O Mermaid oferece uma sintaxe específica para o C4 (`C4Context`, `C4Container`,
 `C4Component`, `C4Dynamic`, `C4Deployment`), que sua documentação classifica como experimental
 (MERMAID, 2026). Por isso, o livro adota o tipo `flowchart` com convenções próprias para os
 diagramas estruturais e `sequenceDiagram` para os dinâmicos. A decisão tem as consequências usuais de
@@ -402,15 +402,15 @@ A Tabela A.4 resume as convenções, e a Listagem A.1 mostra um esqueleto que as
 
 | Elemento | Sintaxe | Exemplo no livro |
 |---|---|---|
-| Pessoa, sistema, *container* ou componente | Retângulo com nome em destaque e descrição ou tecnologia em `<small>`: `X["Web<br/><small>Rails + Puma</small>"]` | Figura 4.2.1 |
+| Pessoa, sistema, *container* ou componente | Retângulo com nome em destaque e descrição ou tecnologia em `<small>`: `X["Web<br/><small>Rails + Puma</small>"]` | Figura 5.2.1 |
 | Tipo explícito, quando ambíguo | Tipo entre colchetes na linha menor: `<small>[Sistema de software]</small>` | Figura A.2 |
-| Armazenamento de dados | Cilindro: `PG[("PostgreSQL")]` | Figuras 4.2.1 e 4.3.1 |
-| Fronteira de sistema, *container* ou nó | `subgraph` com rótulo | Figuras 5.2.1 e 4.3.1 |
-| Nó de implantação aninhado | `subgraph` dentro de `subgraph` | Figuras 4.8.1 e 4.2.2 |
-| Comunicação síncrona (chamada HTTP, gRPC ou RPC, consulta a banco, chamada de método, leitura de *cache*) | Seta contínua com rótulo: `A -- "HTTPS" --> B` ou `A -->|"HTTPS"| B` | Figura 4.2.1 |
-| Comunicação assíncrona (fila, tópico, evento publicado, *pub/sub*, *webhook* assíncrono, replicação assíncrona, notificação *push*) | Seta tracejada com rótulo: `A -. "enfileira" .-> B` ou `A -.->|"enfileira"| B` | Figuras 4.2.1, 4.7.1 e 5.8.1 |
+| Armazenamento de dados | Cilindro: `PG[("PostgreSQL")]` | Figuras 4.2.2 e 4.3.2 |
+| Fronteira de sistema, *container* ou nó | `subgraph` com rótulo | Figuras 5.2.1 e 4.3.2 |
+| Nó de implantação aninhado | `subgraph` dentro de `subgraph` | Figura 4.8.2 |
+| Comunicação síncrona (chamada HTTP, gRPC ou RPC, consulta a banco, chamada de método, leitura de *cache*) | Seta contínua com rótulo: `A -- "HTTPS" --> B` ou `A -->|"HTTPS"| B` | Figura 4.2.2 |
+| Comunicação assíncrona (fila, tópico, evento publicado, *pub/sub*, *webhook* assíncrono, replicação assíncrona, notificação *push*) | Seta tracejada com rótulo: `A -. "enfileira" .-> B` ou `A -.->|"enfileira"| B` | Figuras 4.2.2, 5.7.1 e 5.8.1 |
 | Relação que não é comunicação (implementa, depende de, gerencia, influência, retroalimentação de processo) | Seta contínua com rótulo explícito: `A -->|"implementa"| B`; nunca tracejada | Figuras 1.3, 3.8.4 e 7.4 |
-| Relação simétrica | Seta dupla com rótulo, como exceção, contínua ou tracejada conforme a comunicação | Figura 4.3.1 |
+| Relação simétrica | Seta dupla com rótulo, como exceção, contínua ou tracejada conforme a comunicação | Figura 4.3.2 |
 | Interação no tempo | `sequenceDiagram` com participantes nomeados como componentes; `->>` para mensagem síncrona, `-->>` para retorno e `-)` para mensagem assíncrona | Figura 5.2.2 |
 | Direção | `LR` para contexto e componentes; `TB` para *containers* e implantação | Capítulos 3 a 5 |
 
@@ -463,6 +463,24 @@ Todas as figuras têm legenda numerada acima ("Figura N.M – título") e linha 
 documentação ou a *tag* de que derivam. A fonte é uma exigência de rastreabilidade: o diagrama da
 Figura 4.2.1, "com base no arquivo `docker-compose.yml` da *tag* v4.7.3", pode ser conferido por
 qualquer leitor; um diagrama sem fonte só pode ser acreditado.
+
+### A.7.5 Diagramas D2 a 50.000 pés
+
+As figuras de *containers* da altitude de 50.000 pés (Figuras 4.2.1, 4.3.1, 4.4.1, 4.5.2, 4.6.1,
+4.7.1 e 4.8.1) seguem outra notação. Elas adotam o estilo dos diagramas de Xu (2020): ícones dos
+produtos reais (nginx, PostgreSQL, Redis, Kafka), faixas que agrupam os *containers* por camada e o
+caminho de uma operação representativa marcado por setas numeradas, cujos passos são descritos em
+lista logo abaixo da figura. Esse estilo privilegia a leitura do fluxo, que é o que interessa nessa
+altitude, e é difícil de obter com o Mermaid, cujos nós não comportam ícones e cujo *layout* não
+admite posicionamento por faixas.
+
+Essas figuras são escritas em D2, outra linguagem de diagramas como código (TERRASTRUCT, 2026), e
+renderizadas para SVG antes da publicação. As convenções são as mesmas das demais figuras:
+linha contínua para comunicação síncrona, tracejada para assíncrona, e linhas finas sem número
+para relações que existem, mas não pertencem ao fluxo descrito. As faixas seguem a ordem usuários e
+sistemas externos, borda, aplicação e dados, da esquerda para a direita; os rótulos das setas trazem
+apenas o número do passo. O código-fonte de cada figura está no diretório `diagramas/d2/` do
+repositório, e as regras completas, em `diagramas/README.md`.
 
 ## A.8 Diagramas como código
 
@@ -678,11 +696,15 @@ Sebastopol: O'Reilly, 2020.
 STRUCTURIZR. **Structurizr DSL**: language reference. 2026. Disponível em:
 <https://docs.structurizr.com/dsl>. Acesso em: 18 out. 2026.
 
+TERRASTRUCT. **D2 documentation**. 2026. Disponível em: <https://d2lang.com/>. Acesso em: 20 out. 2026.
+
 THE OPEN GROUP. **ArchiMate 3.2 specification**. Reading: The Open Group, 2022. Disponível em:
 <https://pubs.opengroup.org/architecture/archimate32-doc/>. Acesso em: 18 out. 2026.
 
 WASHIZAKI, H. (ed.). **Guide to the software engineering body of knowledge (SWEBOK Guide)**:
 version 4.0. Los Alamitos: IEEE Computer Society, 2024.
+
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.
 
 ## Material complementar
 

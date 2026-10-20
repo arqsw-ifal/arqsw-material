@@ -1658,7 +1658,7 @@ VERNON, V. **Implementing domain-driven design**. Upper Saddle River: Addison-We
 WASHIZAKI, H. (ed.). **Guide to the software engineering body of knowledge (SWEBOK Guide)**:
 version 4.0. Los Alamitos: IEEE Computer Society, 2024.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [S. l.]: Byte Code LLC, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.
 
 ZACHMAN, J. A. A framework for information systems architecture. **IBM Systems Journal**,
 v. 26, n. 3, p. 276-292, 1987.

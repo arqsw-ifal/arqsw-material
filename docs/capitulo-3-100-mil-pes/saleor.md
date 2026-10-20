@@ -360,5 +360,4 @@ SALEOR. **Webhooks overview**. Documentação do Saleor, 2026b. Disponível em:
 
 VERNON, V. **Implementing domain-driven design**. Upper Saddle River: Addison-Wesley, 2013.
 
-XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Independently
-published, 2020.
+XU, A. **System design interview**: an insider's guide. 2. ed. [*S. l.*]: Byte Code LLC, 2020.
