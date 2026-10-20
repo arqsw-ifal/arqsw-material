@@ -54,27 +54,37 @@ quase tudo entregue na forma de *apps*.
 
 **Licença e comunidade.** O servidor é distribuído sob a licença AGPL-3.0, que exige a
 disponibilização do código-fonte também quando o software é oferecido como serviço em rede; o
-cliente *desktop*, escrito em C++ com o *framework* Qt, é distribuído sob a GPL-2.0. Em outubro de
+cliente *desktop* é distribuído sob a GPL-2.0. Em outubro de
 2026, o repositório `nextcloud/server` no GitHub reunia mais de 37 mil estrelas e mais de 1.400
 contribuidores registrados. O desenvolvimento é coordenado pela Nextcloud GmbH, empresa alemã que
 vende suporte e assinaturas empresariais, com participação de uma comunidade ampla de
 desenvolvedores independentes e de outras empresas.
 
-**Tecnologias.** A Tabela 2.5.1 resume a pilha tecnológica.
+**Tecnologias.** A Tabela 2.5.1 reúne a ficha técnica das versões adotadas. Diferentemente dos
+pares anteriores, o sistema estudado tem dois artefatos principais, o servidor e o cliente
+*desktop*, escritos em linguagens distintas e versionados em repositórios separados. A ficha
+também evidencia a principal consequência de ser um **produto** instalado por terceiros: em quase
+todas as linhas há alternativas (vários bancos, vários armazenamentos, vários servidores web), e
+cabe a cada organização escolher entre elas. O protocolo de sincronização, ao contrário, é um
+padrão aberto, o WebDAV, e não uma API própria.
 
-**Tabela 2.5.1** – Tecnologias do Nextcloud.
+**Tabela 2.5.1** – Ficha técnica do Nextcloud v35.0.2 (servidor) e v35.0.0 (cliente *desktop*).
 
-| Elemento | Tecnologia |
+| Item | Descrição |
 |---|---|
-| Servidor | PHP (8.3 a 8.5 na versão 35), Apache 2.4 ou nginx com PHP-FPM |
-| Protocolo de sincronização | WebDAV (RFC 4918), com a biblioteca sabre/dav |
-| Banco de dados | MariaDB, MySQL ou PostgreSQL; SQLite apenas para testes e instâncias mínimas; Oracle em assinatura empresarial |
-| *Cache* e *locking* | APCu (*cache* local) e Redis (*cache* distribuído e *locks*) |
-| Armazenamento primário | disco local ou armazenamento de objetos (S3, Swift, Azure) |
-| Cliente *desktop* | C++ e Qt |
-| Notificação de mudanças | consulta periódica e, opcionalmente, WebSocket com o *app* `notify_push` |
+| **Linguagem(ns) do servidor/núcleo** | PHP 8.3 a 8.5 (servidor, na versão 35); C++ (cliente *desktop*); Rust (`notify_push`, opcional) |
+| ***Frameworks* principais** | núcleo próprio, estendido por *apps* por meio de uma API pública; sabre/dav (WebDAV, CalDAV e CardDAV); Vue 3 (interface web); Qt (cliente *desktop*) |
+| **Interface e clientes** | interface web em JavaScript; cliente *desktop* de sincronização (C++/Qt); aplicativos móveis |
+| **Banco(s) de dados** | MariaDB, MySQL ou PostgreSQL; SQLite apenas para testes e instâncias mínimas; Oracle em assinatura empresarial |
+| ***Cache*, filas e mensageria** | APCu (*cache* local); Redis (*cache* distribuído e *locks* transacionais); tarefas em segundo plano enfileiradas no banco e executadas pelo `cron.php` |
+| **Armazenamento de arquivos/objetos** | primário em disco local ou armazenamento de objetos (S3, Swift, Azure); armazenamentos externos (S3, SMB, SFTP) pelo *app* `files_external` |
+| **Protocolos e APIs expostas** | WebDAV (RFC 4918) para arquivos; CalDAV e CardDAV; API OCS; WebSocket opcional com o `notify_push` |
+| **Execução e implantação** | Apache 2.4 ou nginx com PHP-FPM; Nextcloud All-in-One (contêineres Docker administrados por um contêiner mestre, ou arquivo Docker Compose do AIO); vários servidores de aplicação atrás de um balanceador |
+| **Licença (da versão adotada)** | AGPL-3.0 (servidor); GPL-2.0 (cliente *desktop*) |
+| **Versão adotada no livro (*tag*)** | [`v35.0.2`](https://github.com/nextcloud/server/tree/v35.0.2) (`nextcloud/server`); [`v35.0.0`](https://github.com/nextcloud/desktop/tree/v35.0.0) (`nextcloud/desktop`) |
 
-Fonte: elaborado pelo autor (2026), com base em Nextcloud (2026b) e no repositório `nextcloud/server`.
+Fonte: elaborado pelo autor (2026), com base em Nextcloud (2026a; 2026b; 2026c) e nas Seções 4.5
+e 5.5.
 
 **Como executar localmente.** O método de instalação que o próprio projeto apresenta como oficial
 é o **Nextcloud All-in-One** (AIO), um conjunto de contêineres Docker administrado por um
@@ -108,10 +118,9 @@ comando `docker run`, por facilitar atualizações. Para quem deseja apenas expl
 alternativa é clonar o repositório e seguir o guia de ambiente de desenvolvimento da
 documentação para desenvolvedores.
 
-**Versões adotadas no livro.** Nomes de pastas, classes e arquivos mudam entre versões. Este livro
-fixa a *tag* [`v35.0.2`](https://github.com/nextcloud/server/tree/v35.0.2) do repositório
-`nextcloud/server` e a *tag* [`v35.0.0`](https://github.com/nextcloud/desktop/tree/v35.0.0) do
-repositório `nextcloud/desktop`. Todos os caminhos e trechos de código citados nas Seções 3.5 a 6.5
+**Versões adotadas no livro.** Nomes de pastas, classes e arquivos mudam entre versões. Por isso,
+este livro fixa as duas *tags* indicadas na Tabela 2.5.1, uma para o servidor e outra para o
+cliente *desktop*. Todos os caminhos e trechos de código citados nas Seções 3.5 a 6.5
 foram conferidos nessas versões. O AIO instala sempre a versão estável mais recente, que pode ser
 posterior; a diferença não altera a arquitetura discutida.
 

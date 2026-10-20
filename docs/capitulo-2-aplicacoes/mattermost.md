@@ -76,16 +76,34 @@ por que a soberania de dados ocupa, no Mattermost, o lugar que a escalabilidade 
 ### Tecnologias
 
 O servidor é escrito em Go e entregue como um **binário único** que contém a API REST, o serviço
-de WebSocket, o serviço de notificações e o gerenciamento de dados (MATTERMOST, 2026c). O cliente
-web é escrito em React e TypeScript; há também clientes para *desktop* e para dispositivos
-móveis. A persistência usa PostgreSQL, na versão 14 ou superior segundo a documentação atual
-(MATTERMOST, 2026e). Os anexos são guardados em sistema de arquivos local, em armazenamento
-compatível com S3 ou em NAS. A busca pode usar um índice embutido, o Bleve, cujo diretório
+de WebSocket, o serviço de notificações e o gerenciamento de dados (MATTERMOST, 2026c). A Tabela
+2.3.1 reúne a ficha técnica da versão adotada. Chama a atenção, em comparação com o Mastodon
+(Seção 2.2), a ausência de um intermediário de mensagens: a implantação de referência tem apenas
+o servidor e o banco, e a difusão de eventos fica a cargo do próprio binário. Dois itens da ficha
+merecem comentário adicional. A busca pode usar um índice embutido, o Bleve, cujo diretório
 aparece no arquivo Docker Compose oficial (MATTERMOST, 2026j), ou, em implantações com mais de 2,5
 milhões de mensagens, um mecanismo de busca corporativo recomendado pela documentação
-(MATTERMOST, 2026b). As extensões de servidor
-(*plugins*) são programas Go separados, executados como subprocessos e acessados por RPC por meio
-da biblioteca `go-plugin` da HashiCorp (MATTERMOST, 2026g).
+(MATTERMOST, 2026b). E as extensões de servidor (*plugins*) são programas Go separados,
+executados como subprocessos e acessados por RPC por meio da biblioteca `go-plugin` da HashiCorp
+(MATTERMOST, 2026g), escolha que a Seção 4.3 reconstrói como decisão arquitetural.
+
+**Tabela 2.3.1** – Ficha técnica do Mattermost v11.11.1.
+
+| Item | Descrição |
+|---|---|
+| **Linguagem(ns) do servidor/núcleo** | Go (servidor); TypeScript (cliente web) |
+| ***Frameworks* principais** | React (cliente web); `go-plugin`, da HashiCorp, para *plugins* de servidor em subprocessos; Bleve (índice de busca embutido) |
+| **Interface e clientes** | cliente web em React e TypeScript; clientes *desktop* para Windows, macOS e Linux; clientes móveis para Android e iOS |
+| **Banco(s) de dados** | PostgreSQL 14 ou superior, com réplicas de leitura opcionais em alta disponibilidade |
+| ***Cache*, filas e mensageria** | *caches* em memória em cada nó; sem intermediário de mensagens externo: eventos difundidos pelo *hub* de WebSocket e, em *cluster*, entre os nós; notificações *push* encaminhadas por um *proxy* (HPNS ou próprio) |
+| **Armazenamento de arquivos/objetos** | sistema de arquivos local, armazenamento compatível com S3 ou NAS; em *cluster*, armazenamento compartilhado obrigatório |
+| **Protocolos e APIs expostas** | API REST sobre HTTPS; WebSocket para eventos em tempo real; *webhooks*, comandos de barra e API de *plugins* |
+| **Execução e implantação** | binário único para Linux; imagem Docker de demonstração (`mattermost-preview`); Docker Compose do repositório `mattermost/docker`; pacote `tar` e guias para Ubuntu, Kubernetes e Helm |
+| **Licença (da versão adotada)** | AGPL v3.0 (servidor); Apache 2.0 (`server/public/`, `webapp/`); MIT (binários compilados pela empresa); modelo *open core* |
+| **Versão adotada no livro (*tag*)** | [`v11.11.1`](https://github.com/mattermost/mattermost/tree/v11.11.1), publicada em 24 de setembro de 2026 |
+
+Fonte: elaborado pelo autor (2026), com base em Mattermost (2026a; 2026b; 2026c; 2026e; 2026g;
+2026i; 2026j) e na Seção 4.3.
 
 ### Versão adotada no livro
 
@@ -167,14 +185,12 @@ como decisão arquitetural na [Seção 4.3](../capitulo-4-50-mil-pes/mattermost.
   dispositivos; a rede dos clientes móveis é instável; a organização usuária, e não o fornecedor,
   opera a infraestrutura.
 
-**Tabela 2.3.1** – Resumo do par estudado.
+**Tabela 2.3.2** – Resumo do par estudado.
 
 | Item | Descrição |
 |---|---|
 | **Sistema real** | Slack (mensagens para equipes); WhatsApp como contraponto |
-| **Gêmeo open source** | [Mattermost](https://github.com/mattermost/mattermost), *tag* v11.11.1 · [documentação](https://docs.mattermost.com) |
-| **Tecnologias do gêmeo** | Go, React/TypeScript, PostgreSQL, WebSocket, *plugins* em subprocessos via RPC |
-| **Licença** | AGPL v3.0 (núcleo), Apache 2.0 (`server/public/`, `webapp/`), *open core* |
+| **Gêmeo open source** | [Mattermost](https://github.com/mattermost/mattermost), *tag* v11.11.1 · [documentação](https://docs.mattermost.com); ficha técnica na Tabela 2.3.1 |
 | **Estilo dominante** | núcleo monolítico com difusão orientada a eventos e extensão por *plugins* |
 | **Dilema ilustrado** | serviço *stateful* de conexões; extensibilidade segura; soberania × conveniência |
 

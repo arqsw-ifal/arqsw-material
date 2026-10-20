@@ -58,22 +58,36 @@ padrão de *hardware* aberto **Pixhawk** e a biblioteca **MAVSDK**, todos integr
 **MAVLink** (PX4, 2026d). O QGroundControl é usado para planejar missões, acompanhar a telemetria,
 configurar o veículo e instalar o *firmware* no controlador de voo (PX4, 2026d).
 
-As tecnologias do gêmeo estão resumidas na Tabela 2.8.1.
+A Tabela 2.8.1 apresenta a ficha técnica do gêmeo na mesma estrutura usada para os demais pares.
+Várias linhas, pensadas para aplicações em rede, não se aplicam a um *firmware* embarcado, e essa
+ausência é, ela própria, informativa: não há banco de dados, servidor de *cache* nem
+intermediário de mensagens externo, porque todo o sistema de voo executa num único processador,
+e a troca de mensagens entre os módulos acontece em memória. O que ocupa o lugar dos serviços de
+infraestrutura das aplicações web é o sistema operacional de tempo real e o barramento interno
+uORB, examinados na Seção 4.8.
 
-**Tabela 2.8.1** – Ficha técnica do PX4 Autopilot na versão adotada.
+**Tabela 2.8.1** – Ficha técnica do PX4 Autopilot v1.17.0.
 
-| Item | Valor |
+| Item | Descrição |
 |---|---|
-| Linguagem principal | C++ (com partes em C e geradores em Python) |
-| Sistema operacional embarcado | NuttX, sistema operacional de tempo real; também Linux, macOS e QuRT |
-| Comunicação interna | uORB, *publish/subscribe* em memória compartilhada |
-| Comunicação externa | MAVLink (estação em solo, SDKs) e uXRCE-DDS (ponte para ROS 2) |
-| Simulação | *Software in the loop* (SITL) com Gazebo e outros simuladores |
-| Licença | BSD de três cláusulas |
-| Governança | Dronecode, Linux Foundation |
-| Versão adotada no livro | *tag* `v1.17.0`, versão estável publicada em maio de 2026 |
+| **Linguagem(ns) do servidor/núcleo** | C++ (com partes em C e geradores de código em Python) |
+| ***Frameworks* principais** | NuttX, sistema operacional de tempo real (também Linux, macOS e QuRT, conforme o alvo); uORB, *publish/subscribe* em memória compartilhada entre os módulos |
+| **Interface e clientes** | estação em solo QGroundControl; biblioteca MAVSDK; aplicações ROS 2 no computador de missão; rádio controle |
+| **Banco(s) de dados** | Não se aplica (ver nota *a*) |
+| ***Cache*, filas e mensageria** | Não se aplica como serviço externo (ver nota *b*) |
+| **Armazenamento de arquivos/objetos** | cartão SD do controlador de voo, com registros de voo, parâmetros e missões (módulos `logger` e `dataman`) |
+| **Protocolos e APIs expostas** | MAVLink (estação em solo e SDKs); uXRCE-DDS, por enlace serial ou UDP (ponte para ROS 2) |
+| **Execução e implantação** | imagem de *firmware* gravada no controlador de voo (*hardware* do padrão Pixhawk, entre outros); simulação *software in the loop* (SITL) com Gazebo; imagens Docker `px4io/` apenas como ambiente de compilação |
+| **Licença (da versão adotada)** | BSD de três cláusulas (código); CC BY 4.0 (documentação) |
+| **Versão adotada no livro (*tag*)** | [`v1.17.0`](https://github.com/PX4/PX4-Autopilot/tree/v1.17.0), versão estável publicada em maio de 2026 |
 
-Fonte: elaborado pelo autor (2026), com base em PX4 (2026a, 2026c, 2026e).
+Fonte: elaborado pelo autor (2026), com base em PX4 (2026a; 2026c; 2026d; 2026e; 2026j) e na
+Seção 4.8.
+
+Notas: (*a*) o *firmware* não usa banco de dados; os dados de longo prazo, como os registros de
+voo, são gravados no cartão SD e analisados fora do veículo, depois do pouso. (*b*) a troca de
+mensagens entre os módulos é feita pelo uORB, dentro do próprio *firmware*, sem um intermediário
+de mensagens separado.
 
 ### 2.8.2.1 Versão adotada e mudanças relevantes entre versões
 

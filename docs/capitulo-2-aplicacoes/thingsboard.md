@@ -79,28 +79,33 @@ dependência envolve também a avaliação de quem a mantém e sob quais termos.
 
 ### Tecnologias
 
-A Tabela 2.7.1 resume as tecnologias do gêmeo na versão adotada, conferidas nos arquivos `pom.xml`
-do repositório e na documentação de arquitetura.
+A Tabela 2.7.1 reúne a ficha técnica do gêmeo na versão adotada, conferida nos arquivos `pom.xml`
+do repositório e na documentação de arquitetura. Ela antecipa as duas escolhas que a Seção 4.7
+examina em detalhe: a aceitação das mensagens, feita por transportes específicos de cada
+protocolo, é separada do processamento por uma fila, que pode ser em memória ou o Apache Kafka; e
+as entidades e as séries temporais podem ficar em bancos distintos, porque crescem e são
+consultadas de maneiras muito diferentes.
 
-**Tabela 2.7.1** – Tecnologias do ThingsBoard v4.3.1.6.
+**Tabela 2.7.1** – Ficha técnica do ThingsBoard v4.3.1.6.
 
-| Camada | Tecnologia |
+| Item | Descrição |
 |---|---|
-| Linguagem e *framework* | Java 17, Spring Boot 3.5 |
-| Transporte MQTT | Netty |
-| Transporte CoAP | Eclipse Californium |
-| Transporte LwM2M | Eclipse Leshan (sobre Californium) |
-| Outros transportes | HTTP, SNMP |
-| Concorrência | Sistema de atores próprio (módulo `common/actor`) |
-| Fila | Em memória (desenvolvimento) ou Apache Kafka (produção) |
-| Entidades | PostgreSQL |
-| Séries temporais | PostgreSQL, Cassandra ou TimescaleDB |
-| *Cache* | Valkey ou Redis |
-| Coordenação de *cluster* | Zookeeper |
-| *Scripts* de usuário | JavaScript e TBEL; executor Node.js separado na topologia de microsserviços |
-| Interface | Angular |
+| **Linguagem(ns) do servidor/núcleo** | Java 17 (núcleo, transportes e motor de regras); JavaScript sobre Node.js no executor de *scripts* (`tb-js-executor`) da topologia de microsserviços |
+| ***Frameworks* principais** | Spring Boot 3.5; Netty (MQTT); Eclipse Californium (CoAP); Eclipse Leshan (LwM2M, sobre Californium); sistema de atores próprio (módulo `common/actor`); JavaScript e TBEL para *scripts* de usuário |
+| **Interface e clientes** | interface web em Angular (`tb-web-ui` na topologia de microsserviços), com painéis atualizados por WebSocket; dispositivos como clientes dos transportes |
+| **Banco(s) de dados** | PostgreSQL para entidades (obrigatório); séries temporais em PostgreSQL, Cassandra ou TimescaleDB |
+| ***Cache*, filas e mensageria** | fila em memória (desenvolvimento) ou Apache Kafka (produção); Valkey ou Redis como *cache* de credenciais, sessões e perfis; Zookeeper para coordenação do *cluster* |
+| **Armazenamento de arquivos/objetos** | Não se aplica (ver nota) |
+| **Protocolos e APIs expostas** | MQTT (portas 1883 e 8883 com TLS), CoAP e LwM2M (UDP 5683 a 5688), HTTP e SNMP para dispositivos; API REST e WebSocket (porta 8080) para usuários e aplicações |
+| **Execução e implantação** | monólito em nó único (Docker Compose com a imagem `thingsboard/tb-node:4.3.1.6` e PostgreSQL, com variante que usa Kafka) ou microsserviços comunicados por Kafka |
+| **Licença (da versão adotada)** | Apache 2.0 (a partir da *tag* `v4.4`, *Business Source License* 1.1) |
+| **Versão adotada no livro (*tag*)** | [`v4.3.1.6`](https://github.com/thingsboard/thingsboard/tree/v4.3.1.6), publicada em 29 de setembro de 2026 |
 
-Fonte: elaborado pelo autor (2026), com base em ThingsBoard (2026a; 2026d).
+Fonte: elaborado pelo autor (2026), com base em ThingsBoard (2026a; 2026b; 2026d; 2026e).
+
+Nota: a documentação de arquitetura não inclui um serviço de armazenamento de arquivos ou de
+objetos entre os *containers* de infraestrutura; os dados da plataforma ficam nos bancos e no
+*cache* indicados nas linhas anteriores (Seção 4.7).
 
 ### Como executar localmente
 

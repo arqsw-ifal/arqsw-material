@@ -90,27 +90,30 @@ estende as obrigações da GPL ao uso pela rede: quem modifica o software e o of
 precisa disponibilizar o código modificado aos usuários. Para uma rede federada, a escolha é
 coerente, pois as instâncias tendem a convergir para versões abertas do mesmo código.
 
-A pilha tecnológica, segundo o `README.md` da versão estudada, é a seguinte: Ruby on Rails para a
-API REST e as páginas; PostgreSQL como banco principal; Redis e Sidekiq para cache e filas;
-Node.js para a API de *streaming*; React e Redux para a interface. Os requisitos mínimos declarados
-são Ruby 3.3, PostgreSQL 14, Redis 7.0, Node.js 22 e FFmpeg 5.1 (MASTODON, 2026c). A Tabela 2.2.1
-resume a ficha do par.
+A Tabela 2.2.1 reúne a ficha técnica do gêmeo na versão estudada, com as versões mínimas das
+dependências declaradas no `README.md` (MASTODON, 2026c). Dois traços dessa ficha orientam a
+leitura dos capítulos seguintes. O primeiro é que o sistema, embora seja um monólito Rails, não é
+um processo único: a API de *streaming* é escrita em outra linguagem e executada à parte, e as
+tarefas assíncronas rodam em processos Sidekiq separados. O segundo é que o Redis acumula três
+papéis, *cache*, fila e canal de *pub/sub*, o que faz dele uma peça central, e não acessória, da
+arquitetura, como mostra a Seção 4.2.
 
-**Tabela 2.2.1** – Ficha do par Twitter/X e Mastodon.
+**Tabela 2.2.1** – Ficha técnica do Mastodon v4.7.3.
 
 | Item | Descrição |
 |---|---|
-| **Sistema real** | Twitter/X (código fechado; fontes: blog de engenharia e palestras públicas) |
-| **Gêmeo open source** | [Mastodon](https://github.com/mastodon/mastodon) · [documentação](https://docs.joinmastodon.org) |
-| **Licença** | GNU AGPL v3 |
-| **Versão estudada** | *tag* [`v4.7.3`](https://github.com/mastodon/mastodon/tree/v4.7.3), publicada em 1.º de outubro de 2026 |
-| **Linguagens principais** | Ruby (servidor), JavaScript/TypeScript (interface e *streaming*) |
-| **Tecnologias** | Ruby on Rails (Puma), Sidekiq, Node.js, PostgreSQL, Redis, armazenamento compatível com S3, React |
-| **Protocolo de federação** | ActivityPub (W3C, 2018) |
-| **Estilo dominante** | monólito em camadas + processamento assíncrono por filas + federação |
-| **Pergunta-guia** | quando e onde montar a *timeline* de cada usuário? |
+| **Linguagem(ns) do servidor/núcleo** | Ruby 3.3 ou superior (aplicação Rails e *workers*); JavaScript sobre Node.js 22 ou superior (servidor de *streaming*) |
+| ***Frameworks* principais** | Ruby on Rails, servido pelo Puma; Sidekiq (tarefas assíncronas); React e Redux (interface); FFmpeg 5.1 ou superior (processamento de mídia) |
+| **Interface e clientes** | interface web em React e Redux; demais clientes, como aplicativos móveis, acessam a API REST |
+| **Banco(s) de dados** | PostgreSQL 14 ou superior |
+| ***Cache*, filas e mensageria** | Redis 7.0 ou superior: *cache*, filas do Sidekiq, *timelines* pré-computadas e *pub/sub* para o *streaming* |
+| **Armazenamento de arquivos/objetos** | disco local ou armazenamento de objetos compatível com S3, para mídia local e *cache* de mídia remota |
+| **Protocolos e APIs expostas** | API REST com autenticação OAuth 2; API de *streaming* por WebSocket e *Server-Sent Events*; ActivityPub para federação (LEMMER-WEBBER *et al.*, 2018) |
+| **Execução e implantação** | Docker Compose (`docker-compose.yml` com os serviços `db`, `redis`, `web`, `streaming` e `sidekiq`); instalação a partir do código com três serviços systemd; *charts* Helm mantidos no repositório `mastodon/chart` |
+| **Licença (da versão adotada)** | GNU AGPL v3 |
+| **Versão adotada no livro (*tag*)** | [`v4.7.3`](https://github.com/mastodon/mastodon/tree/v4.7.3), publicada em 1.º de outubro de 2026 |
 
-Fonte: elaborado pelo autor (2026), com base em Mastodon (2026a; 2026c).
+Fonte: elaborado pelo autor (2026), com base em Mastodon (2026c; 2026e) e na Seção 4.2.
 
 A versão é fixada porque nomes de pastas, classes e arquivos mudam entre lançamentos. Todas as
 listagens de código real das Seções 5.2 e 6.2 foram conferidas na *tag* `v4.7.3` e apontam para

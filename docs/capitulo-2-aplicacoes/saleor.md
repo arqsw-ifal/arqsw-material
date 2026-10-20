@@ -80,13 +80,30 @@ repositórios próprios, que consomem a mesma API pública. Entre os recursos de
 multicanal (preços, moedas, estoques e produtos por canal), múltiplos depósitos, promoções e
 cupons, devoluções e uma API de pagamentos extensível a qualquer meio.
 
-As tecnologias, confirmadas no arquivo `pyproject.toml` da versão estudada, são: Python 3.12,
-Django 5.2, Graphene para a API GraphQL, o *driver* `psycopg` para PostgreSQL e Celery para
-tarefas assíncronas, com Redis ou SQS como intermediário de mensagens (SALEOR, 2026a). A
-imagem Docker oficial executa a aplicação ASGI com o servidor Uvicorn na porta 8000
-(`Dockerfile`). As integrações com pagamento, impostos, frete e outros serviços externos são
-feitas por **apps**: aplicações externas, em qualquer linguagem, que se comunicam com o
-Saleor por *webhooks* e pela API (SALEOR, 2026c).
+A Tabela 2.6.1 reúne a ficha técnica da versão estudada, conferida no `pyproject.toml`, no
+`Dockerfile` e no código da *tag* (SALEOR, 2026a) e no arquivo Docker Compose do repositório
+`saleor-platform` (SALEOR, 2026d). A linha de interface e clientes é a que mais distingue o Saleor
+dos demais gêmeos: o núcleo não tem interface própria, e tudo o que o usuário vê é cliente da API
+GraphQL. A outra particularidade decorre da primeira: as integrações com pagamento, impostos,
+frete e outros serviços externos são feitas por **apps**, aplicações externas, em qualquer linguagem, que se comunicam com o Saleor por *webhooks* e pela
+API (SALEOR, 2026c).
+
+**Tabela 2.6.1** – Ficha técnica do Saleor 3.23.42.
+
+| Item | Descrição |
+|---|---|
+| **Linguagem(ns) do servidor/núcleo** | Python 3.12 |
+| ***Frameworks* principais** | Django 5.2; Graphene (API GraphQL); Celery (tarefas assíncronas); Uvicorn (servidor ASGI) |
+| **Interface e clientes** | nenhuma no núcleo (*headless*); Saleor Dashboard, vitrine de referência e *apps* são projetos separados que consomem a API GraphQL |
+| **Banco(s) de dados** | PostgreSQL, pelo *driver* `psycopg`, com réplica de leitura opcional; PostgreSQL 15 no `saleor-platform` |
+| ***Cache*, filas e mensageria** | Redis ou Amazon SQS como intermediário do Celery, com filas dedicadas a *webhooks*; Valkey 8.1 como *cache* e intermediário no `saleor-platform` |
+| **Armazenamento de arquivos/objetos** | mídia fora do banco: volume compartilhado entre API e *worker* no `saleor-platform`, ou armazenamento de objetos em produção |
+| **Protocolos e APIs expostas** | API GraphQL (`/graphql/`), única forma de interagir com o *backend*; *webhooks* síncronos e assíncronos, entregues por HTTP(S), Amazon SQS ou Google Pub/Sub |
+| **Execução e implantação** | imagem Docker oficial (`ghcr.io/saleor/saleor`), com a aplicação ASGI na porta 8000; Docker Compose do `saleor-platform`; oferta gerenciada Saleor Cloud |
+| **Licença (da versão adotada)** | BSD de 3 cláusulas |
+| **Versão adotada no livro (*tag*)** | [`3.23.42`](https://github.com/saleor/saleor/tree/3.23.42) (*commit* `cb24c741`), publicada em 16 de outubro de 2026 |
+
+Fonte: elaborado pelo autor (2026), com base em Saleor (2026a; 2026d) e na Seção 4.6.
 
 ### Como executar localmente
 
@@ -152,7 +169,7 @@ descrição curta de negócio. A ficha a seguir descreve um comércio eletrônic
 serve de denominador comum para a Amazon, o Mercado Livre e uma loja construída sobre o
 Saleor.
 
-**Tabela 2.6.1** – Ficha *kata* do comércio eletrônico.
+**Tabela 2.6.2** – Ficha *kata* do comércio eletrônico.
 
 | Item | Conteúdo |
 |---|---|
@@ -163,13 +180,12 @@ Saleor.
 
 Fonte: elaborado pelo autor (2026).
 
-**Tabela 2.6.2** – Plano de voo do par.
+**Tabela 2.6.3** – Plano de voo do par.
 
 | | |
 |---|---|
 | **Sistemas reais** | Amazon e Mercado Livre (código fechado; análise baseada em fontes públicas) |
-| **Gêmeo de código aberto** | [Saleor](https://github.com/saleor/saleor), *tag* `3.23.42` (*commit* `cb24c741`) · [documentação](https://docs.saleor.io) |
-| **Tecnologias do gêmeo** | Python 3.12, Django 5.2, Graphene (GraphQL), PostgreSQL, Celery (Redis ou SQS), *apps* e *webhooks* |
+| **Gêmeo de código aberto** | [Saleor](https://github.com/saleor/saleor), *tag* `3.23.42` (*commit* `cb24c741`) · [documentação](https://docs.saleor.io); ficha técnica na Tabela 2.6.1 |
 | **Estilo dominante** | monólito modular *headless*, estendido por *apps* externas; contraste com microsserviços |
 | **Conceitos centrais** | subdomínios, contextos delimitados, mapa de contextos, camada anticorrupção, sagas, idempotência, *Remote Facade*, DTO, *Active Record* |
 | **Atividade prática** | dois contextos delimitados (Pedido e Pagamento) que só se comunicam por camada anticorrupção, verificados com ArchUnit (Seção 6.6) |

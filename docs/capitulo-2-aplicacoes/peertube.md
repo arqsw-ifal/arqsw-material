@@ -71,15 +71,34 @@ mesmo usado pelo Mastodon (Seção 2.2). Segundo, os espectadores podem trocar e
 vídeo que estão assistindo, por conexões par a par (P2P) estabelecidas pelo navegador via
 WebRTC, o que reduz a banda consumida do servidor (PEERTUBE, 2026).
 
-A documentação de arquitetura do projeto descreve um servidor escrito em TypeScript sobre
-Node.js e Express, responsável pela API REST, pelo ActivityPub, por um rastreador P2P, pelas
-notificações via Socket.IO e pelas tarefas agendadas, entre elas a transcodificação com ffmpeg;
-um cliente Angular de página única; o PostgreSQL para os metadados; o Redis como *cache* e como
-suporte à fila de *jobs*, implementada com a biblioteca BullMQ; e um proxy reverso NGINX, que
-termina as conexões TLS e serve arquivos estáticos (PEERTUBE, 2026). O repositório é um
-monorrepositório que reúne o servidor (`server/core/`), o cliente (`client/`), pacotes
-compartilhados (`packages/`) e aplicações auxiliares (`apps/`), entre elas o *PeerTube runner*,
-programa que executa transcodificações em máquinas remotas.
+A documentação de arquitetura do projeto descreve um servidor que concentra, num único processo,
+a API REST, o ActivityPub, um rastreador P2P, as notificações e as tarefas agendadas, entre elas
+a transcodificação, protegido por um proxy reverso que termina as conexões TLS e serve arquivos
+estáticos (PEERTUBE, 2026). A Tabela 2.4.1 reúne a ficha técnica da versão adotada. Observa-se
+nela que uma única linguagem, o TypeScript, cobre servidor e cliente, e que a lista de protocolos
+é mais longa do que a dos pares anteriores, porque o PeerTube precisa ao mesmo tempo federar
+(ActivityPub), entregar vídeo (HLS), repartir a entrega entre espectadores (WebRTC) e receber
+transmissões ao vivo (RTMP). O repositório é um monorrepositório que reúne o servidor
+(`server/core/`), o cliente (`client/`), pacotes compartilhados (`packages/`) e aplicações
+auxiliares (`apps/`), entre elas o *PeerTube runner*, programa que executa transcodificações em
+máquinas remotas.
+
+**Tabela 2.4.1** – Ficha técnica do PeerTube v8.3.1.
+
+| Item | Descrição |
+|---|---|
+| **Linguagem(ns) do servidor/núcleo** | TypeScript sobre Node.js (servidor, cliente e *runner*) |
+| ***Frameworks* principais** | Express (servidor); Angular (cliente); BullMQ (fila de *jobs*); ffmpeg (transcodificação); hls.js e `p2p-media-loader` (reprodutor) |
+| **Interface e clientes** | cliente web Angular de página única, com reprodutor HLS e P2P; *PeerTube runner* como cliente remoto de transcodificação |
+| **Banco(s) de dados** | PostgreSQL, para metadados (imagem `postgres:17-alpine` no arquivo de composição de referência) |
+| ***Cache*, filas e mensageria** | Redis como *cache* e como suporte à fila BullMQ (imagem `redis:8-alpine`); Socket.IO para notificações aos navegadores e aos *runners* |
+| **Armazenamento de arquivos/objetos** | disco local ou, opcionalmente, armazenamento de objetos compatível com S3 |
+| **Protocolos e APIs expostas** | API REST descrita em OpenAPI; ActivityPub; HLS sobre HTTP; P2P por WebRTC, com rastreador via WebSocket; RTMP para transmissões ao vivo |
+| **Execução e implantação** | Docker Compose V2 (`support/docker/production/docker-compose.yml`, sete serviços num único *host*, com NGINX como proxy reverso); instalação de produção segundo o guia oficial; *runners* em máquinas remotas |
+| **Licença (da versão adotada)** | AGPL-3.0 |
+| **Versão adotada no livro (*tag*)** | [`v8.3.1`](https://github.com/Chocobozzz/PeerTube/tree/v8.3.1), publicada em setembro de 2026 |
+
+Fonte: elaborado pelo autor (2026), com base em PeerTube (2026) e nas Seções 4.4 e 5.4.
 
 O registro de mudanças (*changelog*) do projeto permite reconstruir a ordem em que os problemas
 arquiteturais foram enfrentados (PEERTUBE, 2026, `CHANGELOG.md`). O *upload* retomável foi
@@ -175,16 +194,14 @@ A ficha *kata*, formato de exercício proposto por Ted Neward e adaptado por Ric
     dominantes. Poucos vídeos concentram a maior parte das visualizações (cauda longa). No
     PeerTube, quem paga a infraestrutura é o administrador da instância.
 
-A Tabela 2.4.1 resume o plano de voo do par.
+A Tabela 2.4.2 resume o plano de voo do par.
 
-**Tabela 2.4.1** – Plano de voo do par YouTube–PeerTube.
+**Tabela 2.4.2** – Plano de voo do par YouTube–PeerTube.
 
 | Item | Descrição |
 |---|---|
 | **Sistema real** | YouTube; Netflix como caso complementar |
-| **Gêmeo open source** | [PeerTube](https://github.com/Chocobozzz/PeerTube), AGPL-3.0 · [documentação](https://docs.joinpeertube.org) |
-| **Versão estudada** | *tag* `v8.3.1` (setembro de 2026) |
-| **Tecnologias** | TypeScript/Node.js com Express; Angular; PostgreSQL; Redis com BullMQ; ffmpeg; HLS com P2P via WebRTC; ActivityPub; *runners* remotos |
+| **Gêmeo open source** | [PeerTube](https://github.com/Chocobozzz/PeerTube), *tag* `v8.3.1` · [documentação](https://docs.joinpeertube.org); ficha técnica na Tabela 2.4.1 |
 | **Estilo dominante** | *pipes and filters* com fila de *jobs* no processamento; cliente-servidor com CDN e P2P na entrega; federação entre instâncias |
 | **Padrões no código** | *Chain of Responsibility*, *Template Method*, *Strategy*; *Active Record* |
 | **Exercício automático** | *Pipeline* de transcodificação em Java com ArchUnit (Seção 6.4) |
