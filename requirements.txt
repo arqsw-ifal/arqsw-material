@@ -2,3 +2,7 @@
 # Instale com: pip install -r requirements.txt
 mkdocs-material==9.7.6
 mkdocs-glightbox==0.5.2
+# Versões fixadas: o selectolax 1.x (dependência do glightbox) remove as
+# imagens <img> das páginas; mantenha 0.4.x até nova verificação.
+selectolax==0.4.10
+Markdown==3.10.2
