@@ -83,33 +83,11 @@ para instâncias pequenas e médias.
 
 **Figura 4.2.2** – Diagrama de implantação em servidor único, segundo o roteiro oficial.
 
-```mermaid
-flowchart TB
-    subgraph VM["Servidor Linux: Ubuntu 24.04 ou Debian 13"]
-        NG["nginx<br/><small>TLS Let's Encrypt, arquivos estáticos</small>"]
-        WEB["mastodon-web.service<br/><small>Puma, porta 3000</small>"]
-        STR["mastodon-streaming.service<br/><small>Node.js, porta 4000</small>"]
-        SKQ["mastodon-sidekiq.service<br/><small>Sidekiq</small>"]
-        PGS[("postgresql")]
-        RDS[("redis-server")]
-        DISK["Disco local<br/><small>public/system</small>"]
-        NG --> WEB
-        NG --> STR
-        WEB --> PGS
-        WEB --> RDS
-        STR --> PGS
-        STR -.->|"SUBSCRIBE"| RDS
-        SKQ --> PGS
-        SKQ --> RDS
-        WEB --> DISK
-        SKQ --> DISK
-    end
-    I["Internet: clientes e instâncias remotas"] -->|"HTTPS 443"| NG
-    SKQ -->|"HTTPS de saída"| I
-```
+![Implantação do Mastodon em um único servidor Linux: o nginx recebe HTTPS na porta 443 e encaminha aos serviços systemd mastodon-web (Puma, porta 3000) e mastodon-streaming (Node.js, porta 4000); esses serviços e o mastodon-sidekiq usam o PostgreSQL, o Redis e o disco local; o Sidekiq faz as entregas HTTPS de saída às instâncias remotas](../assets/diagramas/mastodon-impl-unico.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Mastodon (2026c). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mastodon-impl-unico.d2`.
 
 A implantação por contêineres segue a mesma topologia. No `docker-compose.yml`, banco e Redis
 ficam numa rede marcada como `internal: true`, sem acesso à internet, enquanto `web`, `streaming`
@@ -134,29 +112,11 @@ essa configuração.
 
 **Figura 4.2.3** – Diagrama de implantação de uma instância maior.
 
-```mermaid
-flowchart TB
-    LB["Balanceador / nginx"] --> W1["Puma 1"]
-    LB --> W2["Puma N"]
-    LB --> S1["Streaming :4000"]
-    LB --> S2["Streaming :4001"]
-    W1 --> PB["PgBouncer"]
-    W2 --> PB
-    Q1["Sidekiq: default"] --> PB
-    Q2["Sidekiq: push e ingress"] --> PB
-    Q3["Sidekiq: pull e scheduler"] --> PB
-    PB --> PP[("PostgreSQL primário")]
-    PP -.->|"replicação"| PR[("Réplica somente leitura")]
-    W1 --> RQ[("Redis: timelines, filas, pub/sub")]
-    Q1 --> RQ
-    S1 -.->|"SUBSCRIBE"| RQ
-    W1 --> RC[("Redis: cache")]
-    W1 --> OS["Armazenamento S3 + CDN"]
-    Q1 --> OS
-```
+![Implantação de uma instância maior do Mastodon: o balanceador ou nginx distribui as requisições entre os processos Puma 1 a Puma N e os processos de streaming nas portas 4000 e 4001; os Puma e as três filas do Sidekiq (default, push e ingress, pull e scheduler) acessam o PostgreSQL primário pelo PgBouncer, e o primário replica de forma assíncrona para uma réplica somente leitura; Puma e Sidekiq usam o Redis de timelines, filas e pub/sub, que o streaming assina com SUBSCRIBE; o Puma usa ainda um Redis de cache, e Puma e Sidekiq gravam no armazenamento S3 com CDN](../assets/diagramas/mastodon-impl-escala.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Mastodon (2026b; 2026d). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mastodon-impl-escala.d2`.
 
 A figura é instrutiva pelo que **não** contém: nenhum novo serviço de aplicação, nenhum
 *broker* de mensagens dedicado, nenhum banco adicional. Uma instância grande é uma instância

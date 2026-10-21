@@ -1,0 +1,71 @@
+# Mastodon a 50.000 pés: implantação de uma instância maior (Figura 4.2.3).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo ou papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 3
+grid-gap: 260
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+borda: "Borda" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 30
+  topo: {class: livre; width: 230; height: 260}
+  lb: "Balanceador / nginx" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FElastic-Load-Balancing.svg}
+  base: {class: livre; width: 230; height: 260}
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 7
+  grid-gap: 30
+  s2: "Streaming :4001" {class: no; icon: https://icons.terrastruct.com/dev%2Fnodejs.svg}
+  s1: "Streaming :4000" {class: no; icon: https://icons.terrastruct.com/dev%2Fnodejs.svg}
+  w2: "Puma N" {class: no; icon: https://icons.terrastruct.com/dev%2Frails.svg}
+  w1: "Puma 1" {class: no; icon: https://icons.terrastruct.com/dev%2Frails.svg}
+  q1: "Sidekiq: default" {class: no; icon: https://icons.terrastruct.com/dev%2Fruby.svg}
+  q2: "Sidekiq: push e ingress" {class: no; icon: https://icons.terrastruct.com/dev%2Fruby.svg}
+  q3: "Sidekiq: pull e scheduler" {class: no; icon: https://icons.terrastruct.com/dev%2Fruby.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 30
+  vertical-gap: 60
+  rc: "Redis: cache" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  rq: "Redis: timelines,\nfilas, pub/sub" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  os: "Armazenamento\nS3 + CDN" {class: no; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+  pb: "PgBouncer" {class: no; icon: https://icons.terrastruct.com/infra%2F019-network.svg}
+  pp: "PostgreSQL primário" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  pr: "Réplica somente leitura" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+}
+
+borda.lb -> app.w1 {class: sinc}
+borda.lb -> app.w2 {class: sinc}
+borda.lb -> app.s1 {class: sinc}
+borda.lb -> app.s2 {class: sinc}
+app.w1 -> dados.pb {class: sinc}
+app.w2 -> dados.pb {class: sinc}
+app.q1 -> dados.pb {class: sinc}
+app.q2 -> dados.pb {class: sinc}
+app.q3 -> dados.pb {class: sinc}
+dados.pb -> dados.pp {class: sinc}
+dados.pp -> dados.pr: "replicação" {class: assinc}
+app.w1 -> dados.rq {class: sinc}
+app.q1 -> dados.rq {class: sinc}
+app.s1 -> dados.rq: "SUBSCRIBE" {class: assinc}
+app.w1 -> dados.rc {class: sinc}
+app.w1 -> dados.os {class: sinc}
+app.q1 -> dados.os {class: sinc}

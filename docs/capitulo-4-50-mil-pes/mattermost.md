@@ -202,27 +202,11 @@ sincronização estudados na [Seção 5.3](../capitulo-5-10-mil-pes/mattermost.m
 
 **Figura 4.3.2** – Implantação: servidor único com Docker Compose e *cluster* de alta disponibilidade.
 
-```mermaid
-flowchart TB
-    subgraph S1["Servidor único: Docker Compose"]
-        NG1["nginx<br/><small>opcional, TLS</small>"] --> APP1["mattermost<br/><small>porta 8065, read_only, 4 GB</small>"]
-        APP1 --> PG1[("postgres")]
-        APP1 --> VOL[("volumes: config, data, logs,<br/>plugins, bleve-indexes")]
-    end
-    subgraph S2["Alta disponibilidade"]
-        LB["Proxies redundantes<br/><small>health check em /api/v4/system/ping</small>"] --> A1["Nó 1"]
-        LB --> A2["Nó 2"]
-        LB --> A3["Nó 3"]
-        A1 <-.->|"gossip 8074"| A2
-        A2 <-.->|"gossip 8074"| A3
-        A1 --> PGP[("PostgreSQL primário")]
-        A2 --> PGR[("Réplicas de leitura")]
-        A3 --> S3[("S3 ou NAS compartilhado")]
-    end
-```
+![Duas implantações do Mattermost. No servidor único com Docker Compose, um nginx opcional com TLS encaminha ao contêiner mattermost (porta 8065, read_only, 4 GB), que usa o postgres e os volumes de config, data, logs, plugins e bleve-indexes. Na alta disponibilidade, proxies redundantes com health check em /api/v4/system/ping distribuem entre os nós 1, 2 e 3, que trocam gossip assíncrono na porta 8074; os nós acessam o PostgreSQL primário, as réplicas de leitura e o S3 ou NAS compartilhado](../assets/diagramas/mattermost-impl.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Mattermost (2026b, 2026j). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mattermost-impl.d2`.
 
 A diferença entre as duas configurações é quase inteiramente de **infraestrutura**, e não de
 código: o mesmo binário funciona como nó único ou como membro de um *cluster*, conforme a

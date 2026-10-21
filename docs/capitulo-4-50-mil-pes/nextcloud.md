@@ -22,29 +22,10 @@ notificação e uma fila para clientes desconectados.
 
 **Figura 4.5.1** – *Containers* do projeto de referência.
 
-```mermaid
-flowchart LR
-    C["Clientes<br/><small>web, desktop, móvel</small>"]
-    LB["Balanceador<br/>de carga"]
-    API["Servidores de API<br/><small>autenticação, metadados</small>"]
-    BS["Servidores de blocos<br/><small>divide, comprime, cifra</small>"]
-    MC[("Cache de<br/>metadados")]
-    MDB[("Banco de<br/>metadados")]
-    CS[("Armazenamento<br/>de blocos")]
-    COLD[("Armazenamento<br/>frio")]
-    NS["Serviço de<br/>notificação"]
-    Q["Fila de backup<br/>offline"]
-    C --> LB --> API
-    C --> BS --> CS
-    CS -->|"move dados inativos"| COLD
-    API --> MC --> MDB
-    API -.-> NS
-    NS -. "long polling" .-> C
-    API -.-> Q
-```
+![Projeto de referência de Xu para um serviço de armazenamento e sincronização de arquivos: os clientes acessam os servidores de API pelo balanceador de carga e enviam blocos aos servidores de blocos, que os gravam no armazenamento de blocos, de onde os dados inativos vão para o armazenamento frio; os servidores de API usam o cache e o banco de metadados e publicam, de forma assíncrona, no serviço de notificação, que avisa os clientes por long polling, e na fila de backup offline](../assets/diagramas/nextcloud-xu-referencia.svg)
 
 Fonte: adaptado de Xu (2020, cap. 15). Linhas contínuas: comunicação síncrona; linhas tracejadas:
-comunicação assíncrona.
+comunicação assíncrona. Código-fonte da figura: `diagramas/d2/nextcloud-xu-referencia.d2`.
 
 A decisão estrutural mais importante desse desenho é a separação entre o **caminho do conteúdo**
 (clientes, servidores de blocos e armazenamento de blocos) e o **caminho dos metadados**
@@ -145,31 +126,11 @@ essa topologia.
 
 **Figura 4.5.3** – Implantação em um único servidor com o Nextcloud All-in-One.
 
-```mermaid
-flowchart TB
-    subgraph Host["Servidor Linux com Docker"]
-        MASTER["Contêiner mestre<br/><small>instala e atualiza os demais</small>"]
-        APACHE["Proxy Apache<br/><small>TLS, roteamento</small>"]
-        NC["Nextcloud<br/><small>PHP-FPM, núcleo + apps</small>"]
-        PG[("PostgreSQL")]
-        RD[("Redis")]
-        NP["notify_push"]
-        OPT["Opcionais<br/><small>editor de documentos, antivírus, backup</small>"]
-        VOL[("Volume de dados")]
-    end
-    MASTER -- "gerencia" --> APACHE
-    MASTER -- "gerencia" --> NC
-    APACHE --> NC
-    APACHE -. "WebSocket" .-> NP
-    NC --> PG
-    NC --> RD
-    NP -. "eventos" .-> RD
-    NC --> VOL
-    NC --> OPT
-```
+![Implantação do Nextcloud All-in-One em um servidor Linux com Docker: o contêiner mestre gerencia o proxy Apache e o contêiner Nextcloud; o Apache encaminha as requisições ao Nextcloud (PHP-FPM) e as conexões WebSocket ao notify_push; o Nextcloud usa o PostgreSQL, o Redis, o volume de dados e os componentes opcionais, e o notify_push recebe eventos do Redis](../assets/diagramas/nextcloud-impl-aio.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Nextcloud (2026f). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/nextcloud-impl-aio.d2`.
 
 A segunda é uma topologia de **vários servidores de aplicação**, adequada à universidade da
 Seção 3.5. Os processos PHP são, em princípio, sem estado entre requisições: o estado fica no
@@ -182,39 +143,12 @@ topologia.
 
 **Figura 4.5.4** – Implantação com vários servidores de aplicação.
 
-```mermaid
-flowchart TB
-    LB["Balanceador de carga<br/><small>TLS</small>"]
-    subgraph App["Servidores de aplicação"]
-        A1["Web + PHP-FPM<br/><small>APCu local</small>"]
-        A2["Web + PHP-FPM<br/><small>APCu local</small>"]
-        A3["Web + PHP-FPM<br/><small>APCu local</small>"]
-    end
-    NP["notify_push"]
-    CR["Nó de tarefas<br/><small>cron a cada 5 min</small>"]
-    RD[("Redis<br/><small>cache distribuído e locks</small>")]
-    DB[("Banco relacional<br/><small>primário + réplica</small>")]
-    OBJ[("Armazenamento de objetos<br/><small>S3 do centro de dados</small>")]
-    LB --> A1
-    LB --> A2
-    LB --> A3
-    LB -. "WebSocket" .-> NP
-    A1 --> RD
-    A2 --> RD
-    A3 --> RD
-    NP -. "eventos" .-> RD
-    A1 --> DB
-    A2 --> DB
-    A3 --> DB
-    A1 --> OBJ
-    A2 --> OBJ
-    A3 --> OBJ
-    CR --> DB
-    CR --> OBJ
-```
+![Implantação do Nextcloud com vários servidores de aplicação: o balanceador de carga com TLS distribui as requisições entre três servidores Web + PHP-FPM, cada um com APCu local, e encaminha as conexões WebSocket ao notify_push; os servidores de aplicação compartilham o Redis, o banco relacional com réplica e o armazenamento de objetos; o nó de tarefas usa o banco e o armazenamento de objetos, e o notify_push recebe eventos do Redis](../assets/diagramas/nextcloud-impl-cluster.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Nextcloud (2026a; 2026c; 2026d). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. As ligações dos servidores 2 e 3
+aos serviços compartilhados, idênticas às do servidor 1, aparecem em cinza. Código-fonte da figura:
+`diagramas/d2/nextcloud-impl-cluster.d2`.
 
 Para a carga estimada na Seção 3.5.2, de cerca de 22 *uploads* por segundo no pico, um único
 servidor de aplicação seria suficiente; a multiplicação de servidores atende sobretudo à

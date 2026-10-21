@@ -98,37 +98,10 @@ A Figura 4.4.2 representa essa implantação.
 
 **Figura 4.4.2** – Diagrama de implantação de referência (Docker Compose, um único *host*).
 
-```mermaid
-flowchart TB
-    internet["Internet<br/><small>espectadores, criadores, instâncias, runners</small>"]
-    subgraph host["Host Docker da instância"]
-        web["webserver: NGINX<br/><small>portas 80 e 443</small>"]
-        cert["certbot<br/><small>renova certificados</small>"]
-        rel["webserver-reloader<br/><small>recarga a cada 6 h</small>"]
-        pt["peertube: Node.js<br/><small>porta 9000 interna; 1935 RTMP publicada</small>"]
-        pg[("postgres 17")]
-        rd[("redis 8")]
-        pf["postfix<br/><small>relay de e-mail</small>"]
-        vol[("volume docker-volume/data<br/><small>vídeos, playlists, miniaturas</small>")]
-    end
-    s3[("Armazenamento de objetos S3<br/><small>opcional, externo</small>")]
-    lab["Runners remotos<br/><small>outros hosts</small>"]
-    internet --> web
-    internet -->|"RTMP ao vivo"| pt
-    web -->|"proxy da API"| pt
-    web -->|"lê arquivos estáticos"| vol
-    pt --> pg
-    pt --> rd
-    pt --> pf
-    pt --> vol
-    pt -->|"(opcional)"| s3
-    lab -->|"HTTPS"| web
-    rel -->|"recarrega a configuração"| web
-    cert -->|"fornece certificados"| web
-```
+![Implantação de referência do PeerTube em um host Docker: a internet acessa o webserver NGINX nas portas 80 e 443 e, para transmissões ao vivo, o contêiner peertube por RTMP na porta 1935; runners remotos acessam o NGINX por HTTPS; o certbot fornece certificados e o webserver-reloader recarrega a configuração do NGINX; o NGINX faz proxy da API para o peertube e lê arquivos estáticos do volume de dados; o peertube usa o postgres 17, o redis 8, o relay de e-mail postfix, o volume de dados e, opcionalmente, um armazenamento de objetos S3 externo](../assets/diagramas/peertube-impl.svg)
 
 Fonte: elaborado pelo autor (2026), com base em `support/docker/production/docker-compose.yml`
-(PEERTUBE, 2026, *tag* `v8.3.1`).
+(PEERTUBE, 2026, *tag* `v8.3.1`). Código-fonte da figura: `diagramas/d2/peertube-impl.d2`.
 
 O ponto mais importante do diagrama é a seta do NGINX para o volume de dados. A configuração de
 referência do NGINX define a raiz de arquivos como o diretório de armazenamento da instância e

@@ -1,0 +1,70 @@
+# Mastodon a 50.000 pés: implantação em servidor único, segundo o roteiro oficial (Figura 4.2.2).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo ou porta.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 2
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+externo: {
+  class: livre
+  grid-rows: 2
+  grid-gap: 140
+  internet: "Internet\nclientes e instâncias remotas" {icon: https://icons.terrastruct.com/essentials%2F140-internet.svg; shape: image; style.font-size: 18}
+  remotas: "Instâncias remotas\nentregas ActivityPub" {icon: https://icons.terrastruct.com/essentials%2F092-network.svg; shape: image; style.font-size: 18}
+}
+
+vm: "Servidor Linux: Ubuntu 24.04 ou Debian 13" {
+  class: host
+  icon: https://icons.terrastruct.com/tech%2Fservers.svg
+  icon.near: top-left
+  grid-columns: 3
+  grid-gap: 90
+
+  borda: "Borda" {
+    class: faixa
+    nginx: "nginx\nTLS Let's Encrypt\narquivos estáticos" {class: no; icon: https://icons.terrastruct.com/dev%2Fnginx.svg}
+  }
+
+  app: "Serviços systemd" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    web: "mastodon-web\nPuma, porta 3000" {class: no; icon: https://icons.terrastruct.com/dev%2Frails.svg}
+    streaming: "mastodon-streaming\nNode.js, porta 4000" {class: no; icon: https://icons.terrastruct.com/dev%2Fnodejs.svg}
+    sidekiq: "mastodon-sidekiq\nSidekiq" {class: no; icon: https://icons.terrastruct.com/dev%2Fruby.svg}
+  }
+
+  dados: "Dados" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    pg: "postgresql" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+    redis: "redis-server" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+    disco: "Disco local\npublic/system" {class: no; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Elastic-Block-Store-EBS.svg}
+  }
+}
+
+externo.internet -> vm.borda.nginx: "HTTPS 443" {class: sinc}
+vm.app.sidekiq -> externo.remotas: "HTTPS de saída" {class: sinc}
+vm.borda.nginx -> vm.app.web {class: sinc}
+vm.borda.nginx -> vm.app.streaming {class: sinc}
+vm.app.web -> vm.dados.pg {class: sinc}
+vm.app.web -> vm.dados.redis {class: sinc}
+vm.app.streaming -> vm.dados.redis: "SUBSCRIBE" {class: assinc}
+vm.app.sidekiq -> vm.dados.redis {class: sinc}
+vm.app.sidekiq -> vm.dados.pg {class: sinc}
+vm.app.streaming -> vm.dados.pg {class: apoio}
+vm.app.web -> vm.dados.disco {class: apoio}
+vm.app.sidekiq -> vm.dados.disco {class: apoio}

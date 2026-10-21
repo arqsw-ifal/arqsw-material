@@ -116,53 +116,11 @@ Figura 4.7.2 apresenta o diagrama de implantação correspondente.
 
 **Figura 4.7.2** – Implantação de referência em microsserviços.
 
-```mermaid
-flowchart TB
-    subgraph Borda["Zona de borda"]
-        HA["haproxy<br/><small>HTTP, MQTT, CoAP</small>"]
-    end
-    subgraph Transportes["Nós de transporte"]
-        M1["tb-mqtt-transport1"]
-        M2["tb-mqtt-transport2"]
-        H1["tb-http-transport1 e 2"]
-        C1["tb-coap-transport"]
-        L1["tb-lwm2m-transport"]
-    end
-    subgraph Aplicacao["Nós de aplicação"]
-        CO1["tb-core1"]
-        CO2["tb-core2"]
-        RE1["tb-rule-engine1"]
-        RE2["tb-rule-engine2"]
-        JS1["tb-js-executor"]
-        UI1["tb-web-ui1 e 2"]
-    end
-    subgraph Dados["Nós de dados"]
-        KF[("Kafka")]
-        ZK["Zookeeper"]
-        PG[("PostgreSQL")]
-        CS[("Cassandra")]
-        VK[("Valkey")]
-    end
-    HA --> M1
-    HA --> M2
-    HA --> H1
-    HA --> C1
-    HA --> L1
-    HA --> UI1
-    M1 -.-> KF
-    M2 -.-> KF
-    KF -.-> CO1
-    KF -.-> RE1
-    RE1 --> PG
-    RE1 --> CS
-    CO1 --> VK
-    ZK -->|"coordenação"| CO1
-    ZK -->|"coordenação"| RE1
-```
+![Implantação de referência do ThingsBoard em microsserviços: o haproxy da zona de borda encaminha o tráfego HTTP, MQTT, CoAP e LwM2M aos nós de transporte e o acesso web ao tb-web-ui; os transportes MQTT publicam no Kafka, que entrega as mensagens ao tb-core e ao tb-rule-engine, coordenados pelo Zookeeper; o motor de regras grava no PostgreSQL e no Cassandra, e o núcleo usa o Valkey como cache](../assets/diagramas/thingsboard-impl.svg)
 
 Fonte: elaborado pelo autor (2026), com base no diretório `docker/` da *tag* v4.3.1.6 e em
 ThingsBoard (2026b). Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação
-assíncrona.
+assíncrona. Código-fonte da figura: `diagramas/d2/thingsboard-impl.d2`.
 
 ## 4.7.4 A fila como espinha dorsal
 

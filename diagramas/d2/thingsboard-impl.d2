@@ -1,0 +1,96 @@
+# ThingsBoard a 50.000 pés: implantação de referência em microsserviços (Figura 4.7.2).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo ou papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Os nós de dados da figura original foram divididos em duas faixas (mensageria e persistência)
+# para que as setas transporte -> Kafka -> aplicação não atravessem a faixa de aplicação.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 5
+grid-gap: 150
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+borda: "Zona de borda" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  v1: {class: livre; width: 230; height: 130}
+  v2: {class: livre; width: 230; height: 130}
+  v3: {class: livre; width: 230; height: 130}
+  ha: "haproxy\nHTTP, MQTT, CoAP" {class: no; icon: https://icons.terrastruct.com/tech%2Frouter.svg}
+  v4: {class: livre; width: 230; height: 130}
+  v5: {class: livre; width: 230; height: 130}
+}
+
+transp: "Nós de transporte" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  m1: "tb-mqtt-transport1" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_MQTT-protocol_light-bg.svg}
+  m2: "tb-mqtt-transport2" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_MQTT-protocol_light-bg.svg}
+  h1: "tb-http-transport1 e 2" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_HTTP-protocol_light-bg.svg}
+  v6: {class: livre; width: 230; height: 130}
+  c1: "tb-coap-transport" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Generic_light-bg.svg}
+  l1: "tb-lwm2m-transport" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Thermostat_light-bg.svg}
+}
+
+msg: "Nós de dados:\nmensageria" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  kf: "Kafka" {class: banco; icon: https://icons.terrastruct.com/aws%2FAnalytics%2FAmazon-Managed-Streaming-for-Kafka.svg}
+  v1: {class: livre; width: 230; height: 130}
+  zk: "Zookeeper" {class: no; icon: https://icons.terrastruct.com/essentials%2F204-settings.svg}
+  v2: {class: livre; width: 230; height: 130}
+  v3: {class: livre; width: 230; height: 130}
+  v4: {class: livre; width: 230; height: 130}
+}
+
+app: "Nós de aplicação" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  co1: "tb-core1" {class: no; icon: https://icons.terrastruct.com/dev%2Fjava.svg}
+  re1: "tb-rule-engine1" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Rule_light-bg.svg}
+  js1: "tb-js-executor" {class: no; icon: https://icons.terrastruct.com/dev%2Fjavascript.svg}
+  ui1: "tb-web-ui1 e 2" {class: no; icon: https://icons.terrastruct.com/dev%2Fangularjs.svg}
+  co2: "tb-core2" {class: no; icon: https://icons.terrastruct.com/dev%2Fjava.svg}
+  re2: "tb-rule-engine2" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Rule_light-bg.svg}
+}
+
+pers: "Nós de dados:\npersistência" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  vk: "Valkey" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  pg: "PostgreSQL" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  cs: "Cassandra" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-Managed-Apache-Cassandra-Service.svg}
+  v1: {class: livre; width: 230; height: 130}
+  v2: {class: livre; width: 230; height: 130}
+  v3: {class: livre; width: 230; height: 130}
+}
+
+borda.ha -> transp.m1 {class: sinc}
+borda.ha -> transp.m2 {class: sinc}
+borda.ha -> transp.h1 {class: sinc}
+borda.ha -> transp.c1 {class: sinc}
+borda.ha -> transp.l1 {class: sinc}
+borda.ha -> app.ui1 {class: sinc}
+transp.m1 -> msg.kf {class: assinc}
+transp.m2 -> msg.kf {class: assinc}
+msg.kf -> app.co1 {class: assinc}
+msg.kf -> app.re1 {class: assinc}
+app.re1 -> pers.pg {class: sinc}
+app.re1 -> pers.cs {class: sinc}
+app.co1 -> pers.vk {class: sinc}
+msg.zk -> app.co1: "coordenação" {class: sinc}
+msg.zk -> app.re1: "coordenação" {class: sinc}

@@ -76,26 +76,12 @@ uma topologia que o Saleor suporta sem alterações.
 
 **Figura 4.6.2** – Diagrama de implantação de produção (ilustrativo).
 
-```mermaid
-flowchart TB
-    CDN["CDN<br/><small>vitrine estática e mídia</small>"] --> LB["Balanceador de carga"]
-    LB --> A1["API Saleor<br/>réplica 1"]
-    LB --> A2["API Saleor<br/>réplica 2"]
-    LB --> AN["API Saleor<br/>réplica N"]
-    A1 --> PG[("PostgreSQL<br/>primário")]
-    A1 -- "leituras" --> PR[("PostgreSQL<br/>réplica")]
-    PG -. "replicação" .-> PR
-    A1 --> R[("Redis<br/><small>cache e broker</small>")]
-    R -.-> WG["Workers Celery<br/><small>fila geral</small>"]
-    R -.-> WW["Workers Celery<br/><small>fila de webhooks</small>"]
-    WG --> PG
-    WW -. "webhooks assíncronos" .-> APPS["Apps externas"]
-    S3[("Armazenamento<br/>de objetos")] --- A1
-```
+![Implantação ilustrativa de produção do Saleor: a CDN da vitrine estática e da mídia encaminha ao balanceador de carga, que distribui entre as réplicas 1, 2 e N da API; a réplica 1 grava no PostgreSQL primário, faz leituras na réplica do PostgreSQL, que recebe replicação assíncrona do primário, usa o Redis de cache e broker e se apoia no armazenamento de objetos; o Redis entrega tarefas de forma assíncrona aos workers Celery da fila geral, que gravam no PostgreSQL primário, e da fila de webhooks, que enviam webhooks assíncronos às apps externas](../assets/diagramas/saleor-impl.svg)
 
 Fonte: elaborado pelo autor (2026), com base nos parâmetros de configuração de Saleor
 (2026a). A topologia é ilustrativa; o número de réplicas depende da medição. Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/saleor-impl.d2`.
 
 Três pontos de configuração sustentam a figura. O primeiro é a **réplica de leitura**:
 `settings.py` define uma segunda conexão de banco chamada `replica`, lida da variável

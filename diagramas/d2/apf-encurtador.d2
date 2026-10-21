@@ -1,0 +1,73 @@
+# Apêndice F: diagrama de containers (C4, nível 2) do encurtador de URL (Figura F.3),
+# com base em Xu (2020, cap. 8). Sem passos numerados; rótulos curtos de papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# As setas saem do Serviço de aplicação 1; as do Serviço 2, idênticas, ficam em `apoio`.
+# Nós "vazio" são espaçadores invisíveis que alinham as linhas da grade.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 230; height: 130; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 190; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+
+usuarios: "Usuários" {
+  class: faixa
+  v: "Visitante e\ncriador de links" {icon: https://icons.terrastruct.com/essentials%2F359-users.svg; shape: image; style.font-size: 18}
+}
+
+borda: "Borda" {
+  class: faixa
+  grid-rows: 2
+  grid-gap: 200
+  lb: "Balanceador de carga" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FElastic-Load-Balancing.svg}
+  rl: "Limitador de taxa\nmiddleware" {class: no; icon: https://icons.terrastruct.com/aws%2FSecurity%2C%20Identity%2C%20%26%20Compliance%2FAWS-WAF.svg}
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 2
+  grid-gap: 280
+  a1: "Serviço de aplicação 1\nsem estado" {class: no; icon: https://icons.terrastruct.com/aws%2FCompute%2FAmazon-EC2.svg}
+  a2: "Serviço de aplicação 2\nsem estado" {class: no; icon: https://icons.terrastruct.com/aws%2FCompute%2FAmazon-EC2.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 4
+  grid-columns: 2
+  horizontal-gap: 90
+  vertical-gap: 50
+  ids: "Gerador de IDs" {class: no; icon: https://icons.terrastruct.com/essentials%2F204-settings.svg}
+  v1: {class: vazio}
+  cache: "Cache distribuído\ncódigo para URL" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-ElastiCache.svg}
+  v2: {class: vazio}
+  db: "Banco\nprimário e réplicas" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-RDS.svg}
+  v3: {class: vazio}
+  fila: "Fila" {class: no; icon: https://icons.terrastruct.com/aws%2FApplication%20Integration%2FAmazon-Simple-Queue-Service-SQS.svg}
+  an: "Armazém analítico" {class: banco; icon: https://icons.terrastruct.com/aws%2FAnalytics%2FAmazon-Redshift.svg}
+}
+
+usuarios.v -> borda.lb {class: sinc}
+borda.lb -> borda.rl {class: sinc}
+borda.rl -> app.a1 {class: sinc}
+borda.rl -> app.a2 {class: sinc}
+app.a1 -> dados.cache {class: sinc}
+app.a1 -> dados.ids {class: sinc}
+app.a1 -> dados.db {class: sinc}
+app.a1 -> dados.fila: "evento de clique" {class: assinc}
+dados.fila -> dados.an {class: assinc}
+app.a2 -> dados.cache {class: apoio}
+app.a2 -> dados.ids {class: apoio}
+app.a2 -> dados.db {class: apoio}
+app.a2 -> dados.fila {class: apoio}

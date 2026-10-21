@@ -1,0 +1,97 @@
+# Mattermost a 50.000 pés: implantação em servidor único com Docker Compose e em cluster de alta
+# disponibilidade (Figura 4.3.2).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo, porta ou papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-rows: 2
+grid-gap: 70
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+unico: "Servidor único: Docker Compose" {
+  class: host
+  icon: https://icons.terrastruct.com/dev%2Fdocker.svg
+  icon.near: top-left
+  grid-columns: 3
+  grid-gap: 100
+
+  borda: "Borda" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 30
+    t: {class: livre; width: 230; height: 150}
+    ng: "nginx\nopcional, TLS" {class: no; icon: https://icons.terrastruct.com/dev%2Fnginx.svg}
+    b: {class: livre; width: 230; height: 150}
+  }
+  app: "Aplicação" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 30
+    t: {class: livre; width: 270; height: 150}
+    mm: "mattermost\nporta 8065, read_only, 4 GB" {class: no; width: 270; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+    b: {class: livre; width: 270; height: 150}
+  }
+  dados: "Dados" {
+    class: faixa
+    grid-rows: 2
+    grid-gap: 40
+    pg: "postgres" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+    vol: "volumes: config, data,\nlogs, plugins,\nbleve-indexes" {class: banco; height: 220; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Elastic-Block-Store-EBS.svg}
+  }
+}
+
+ha: "Alta disponibilidade" {
+  class: host
+  icon: https://icons.terrastruct.com/tech%2Fservers.svg
+  icon.near: top-left
+  grid-columns: 3
+  grid-gap: 100
+
+  borda: "Borda" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 40
+    t: {class: livre; width: 230; height: 150}
+    lb: "Proxies redundantes\nhealth check em\n/api/v4/system/ping" {class: no; width: 250; height: 150; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FElastic-Load-Balancing.svg}
+    b: {class: livre; width: 230; height: 150}
+  }
+  app: "Aplicação" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 80
+    a1: "Nó 1" {class: no; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+    a2: "Nó 2" {class: no; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+    a3: "Nó 3" {class: no; icon: https://icons.terrastruct.com/dev%2Fgo.svg}
+  }
+  dados: "Dados" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 40
+    pgp: "PostgreSQL primário" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+    pgr: "Réplicas de leitura" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+    s3: "S3 ou NAS\ncompartilhado" {class: banco; height: 190; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+  }
+}
+
+unico.borda.ng -> unico.app.mm {class: sinc}
+unico.app.mm -> unico.dados.pg {class: sinc}
+unico.app.mm -> unico.dados.vol {class: sinc}
+
+ha.borda.lb -> ha.app.a1 {class: sinc}
+ha.borda.lb -> ha.app.a2 {class: sinc}
+ha.borda.lb -> ha.app.a3 {class: sinc}
+ha.app.a1 <-> ha.app.a2: "gossip 8074" {class: assinc}
+ha.app.a2 <-> ha.app.a3: "gossip 8074" {class: assinc}
+ha.app.a1 -> ha.dados.pgp {class: sinc}
+ha.app.a2 -> ha.dados.pgr {class: sinc}
+ha.app.a3 -> ha.dados.s3 {class: sinc}

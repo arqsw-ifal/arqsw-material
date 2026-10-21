@@ -451,30 +451,10 @@ ferramentas de automação. A tabela mostra o reverso de cada recomendação.
 
 **Figura F.1** – Arquitetura ao fim da evolução "do zero a milhões" (um *data center* mostrado).
 
-```mermaid
-flowchart LR
-    U["Usuários web e móveis"] --> DNS["GeoDNS"]
-    U --> CDN["CDN: arquivos estáticos"]
-    U --> LB["Balanceador de carga"]
-    subgraph DC["Data center 1"]
-        LB --> W1["Servidor web 1"]
-        LB --> W2["Servidor web 2"]
-        W1 --> C[("Cache distribuído")]
-        W2 --> C
-        W1 --> S[("Sessões compartilhadas")]
-        W2 --> S
-        W1 --> SH0[("Shard 0: primário e réplicas")]
-        W2 --> SH1[("Shard 1: primário e réplicas")]
-        W1 -.-> Q["Fila de mensagens"]
-        W2 -.-> Q
-        Q -.-> WK["Workers"]
-        OBS["Registros, métricas e automação"]
-    end
-    DC -. "replicação assíncrona" .-> DC2["Data center 2"]
-```
+![Arquitetura ao fim da evolução do zero a milhões: usuários web e móveis consultam o GeoDNS, a CDN de arquivos estáticos e o balanceador de carga; no data center 1, dois servidores web sem estado acessam cache distribuído, sessões compartilhadas e os shards 0 e 1, e publicam mensagens numa fila consumida por workers, ao lado de registros, métricas e automação; o data center 1 replica de forma assíncrona para o data center 2](../assets/diagramas/apf-zero-a-milhoes.svg)
 
 Fonte: adaptado de Xu (2020, cap. 1). Linhas contínuas: comunicação síncrona; linhas tracejadas:
-comunicação assíncrona.
+comunicação assíncrona. Código-fonte da figura: `diagramas/d2/apf-zero-a-milhoes.d2`.
 
 **Tabela F.3** – Cada passo da evolução: o que melhora, o que piora e que falácia passa a valer.
 
@@ -812,25 +792,11 @@ da equipe e dos serviços já disponíveis do que do problema em si.
 
 **Figura F.3** – Diagrama de *containers* (C4, nível 2) do encurtador de URL.
 
-```mermaid
-flowchart LR
-    V["Visitante e criador de links"] --> LB["Balanceador de carga"]
-    LB --> RL["Limitador de taxa: middleware"]
-    RL --> A1["Serviço de aplicação 1: sem estado"]
-    RL --> A2["Serviço de aplicação 2: sem estado"]
-    A1 --> C[("Cache distribuído: código para URL")]
-    A2 --> C
-    A1 --> ID["Gerador de IDs"]
-    A2 --> ID
-    A1 --> DB[("Banco: primário e réplicas")]
-    A2 --> DB
-    A1 -. "evento de clique" .-> Q["Fila"]
-    A2 -. "evento de clique" .-> Q
-    Q -.-> AN[("Armazém analítico")]
-```
+![Containers do encurtador de URL: o visitante e criador de links chega ao balanceador de carga, que passa pelo limitador de taxa e distribui entre dois serviços de aplicação sem estado; cada serviço consulta o gerador de IDs, o cache distribuído de código para URL e o banco primário com réplicas, e publica eventos de clique numa fila que alimenta o armazém analítico](../assets/diagramas/apf-encurtador.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Xu (2020, cap. 8). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+síncrona; linhas tracejadas: comunicação assíncrona. As setas do serviço de aplicação 2, idênticas às
+do serviço 1, aparecem em cinza claro. Código-fonte da figura: `diagramas/d2/apf-encurtador.d2`.
 
 Dois *containers* da figura não aparecem no projeto de alto nível de Xu. A **fila de eventos de
 clique** decorre da escolha do 302: gravar a estatística de forma síncrona acrescentaria latência

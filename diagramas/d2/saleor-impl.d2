@@ -1,0 +1,74 @@
+# Saleor a 50.000 pés: implantação de produção, ilustrativa (Figura 4.6.2).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo ou papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Linhas vazias (sp*) da grade deixam passar as setas sem cruzar as caixas.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 5
+grid-gap: 150
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+borda: "Borda" {
+  class: faixa
+  grid-rows: 2
+  grid-gap: 80
+  cdn: "CDN\nvitrine estática e mídia" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FAmazon-CloudFront.svg}
+  lb: "Balanceador de carga" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FElastic-Load-Balancing.svg}
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 60
+  vertical-gap: 180
+  a2: "API Saleor\nréplica 2" {class: no; icon: https://icons.terrastruct.com/dev%2Fdjango.svg}
+  a1: "API Saleor\nréplica 1" {class: no; icon: https://icons.terrastruct.com/dev%2Fdjango.svg}
+  an: "API Saleor\nréplica N" {class: no; icon: https://icons.terrastruct.com/dev%2Fdjango.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 4
+  grid-gap: 60
+  s3: "Armazenamento\nde objetos" {class: banco; height: 190; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+  r: "Redis\ncache e broker" {class: banco; height: 190; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  pg: "PostgreSQL\nprimário" {class: banco; height: 190; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  pr: "PostgreSQL\nréplica" {class: banco; height: 190; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+}
+
+workers: "Workers" {
+  class: faixa
+  grid-rows: 2
+  grid-gap: 80
+  wg: "Workers Celery\nfila geral" {class: no; icon: https://icons.terrastruct.com/dev%2Fpython.svg}
+  ww: "Workers Celery\nfila de webhooks" {class: no; icon: https://icons.terrastruct.com/dev%2Fpython.svg}
+}
+
+externo: {
+  class: livre
+  apps: "Apps externas" {icon: https://icons.terrastruct.com/essentials%2F092-network.svg; shape: image; width: 110; height: 110; style.font-size: 18}
+}
+
+borda.cdn -> borda.lb {class: sinc}
+borda.lb -> app.a1 {class: sinc}
+borda.lb -> app.a2 {class: sinc}
+borda.lb -> app.an {class: sinc}
+app.a1 -> dados.pg {class: sinc}
+app.a1 -> dados.pr: "leituras" {class: sinc}
+dados.pg -> dados.pr: "replicação" {class: assinc}
+app.a1 -> dados.r {class: sinc}
+dados.r -> workers.wg {class: assinc}
+dados.r -> workers.ww {class: assinc}
+workers.wg -> dados.pg {class: sinc}
+workers.ww -> externo.apps: "webhooks\nassíncronos" {class: assinc}
+dados.s3 -- app.a1 {class: apoio}

@@ -1,0 +1,92 @@
+# Apêndice F: arquitetura ao fim da evolução "do zero a milhões" (Figura F.1), adaptada de
+# Xu (2020, cap. 1). Diagrama sem passos numerados; rótulos curtos de papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 190; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+
+usuarios: "Usuários web e móveis" {
+  class: livre
+  grid-rows: 1
+  u: "Usuários web e móveis" {icon: https://icons.terrastruct.com/essentials%2F359-users.svg; shape: image; style.font-size: 18}
+}
+
+borda: "Borda" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 60
+  dns: "GeoDNS" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FAmazon-Route-53.svg}
+  cdn: "CDN\narquivos estáticos" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FAmazon-CloudFront.svg}
+  lb: "Balanceador de carga" {class: no; icon: https://icons.terrastruct.com/aws%2FNetworking%20%26%20Content%20Delivery%2FElastic-Load-Balancing.svg}
+}
+
+dc1: "Data center 1" {
+  class: host
+  icon: https://icons.terrastruct.com/tech%2Fservers.svg
+  icon.near: top-left
+  grid-rows: 3
+  grid-gap: 90
+
+  dados: "Dados" {
+    class: faixa
+    grid-columns: 4
+    grid-gap: 50
+    cache: "Cache distribuído" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-ElastiCache.svg}
+    sessoes: "Sessões\ncompartilhadas" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-DynamoDB.svg}
+    sh0: "Shard 0\nprimário e réplicas" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-RDS.svg}
+    sh1: "Shard 1\nprimário e réplicas" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-RDS.svg}
+  }
+
+  web: "Camada web sem estado" {
+    class: faixa
+    label.near: top-left
+    grid-columns: 2
+    grid-gap: 200
+    w1: "Servidor web 1" {class: no; icon: https://icons.terrastruct.com/aws%2FCompute%2FAmazon-EC2.svg}
+    w2: "Servidor web 2" {class: no; icon: https://icons.terrastruct.com/aws%2FCompute%2FAmazon-EC2.svg}
+  }
+
+  assinc: "Processamento assíncrono e operação" {
+    class: faixa
+    grid-columns: 3
+    grid-gap: 90
+    fila: "Fila de mensagens" {class: no; icon: https://icons.terrastruct.com/aws%2FApplication%20Integration%2FAmazon-Simple-Queue-Service-SQS.svg}
+    workers: "Workers" {class: no; icon: https://icons.terrastruct.com/aws%2FCompute%2FAWS-Batch.svg}
+    obs: "Registros, métricas\ne automação" {class: no; icon: https://icons.terrastruct.com/aws%2FManagement%20%26%20Governance%2FAmazon-CloudWatch.svg}
+  }
+}
+
+remoto: {
+  class: livre
+  grid-rows: 1
+  dc2: "Data center 2" {class: no; icon: https://icons.terrastruct.com/tech%2Fservers.svg; style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; font-size: 22; bold: true}}
+}
+
+usuarios.u -> borda.dns {class: sinc}
+usuarios.u -> borda.cdn {class: sinc}
+usuarios.u -> borda.lb {class: sinc}
+borda.lb -> dc1.web.w1 {class: sinc}
+borda.lb -> dc1.web.w2 {class: sinc}
+dc1.web.w1 -> dc1.dados.cache {class: sinc}
+dc1.web.w2 -> dc1.dados.cache {class: sinc}
+dc1.web.w1 -> dc1.dados.sessoes {class: sinc}
+dc1.web.w2 -> dc1.dados.sessoes {class: sinc}
+dc1.web.w1 -> dc1.dados.sh0 {class: sinc}
+dc1.web.w2 -> dc1.dados.sh1 {class: sinc}
+dc1.web.w1 -> dc1.assinc.fila {class: assinc}
+dc1.web.w2 -> dc1.assinc.fila {class: assinc}
+dc1.assinc.fila -> dc1.assinc.workers {class: assinc}
+dc1 -> remoto.dc2: "replicação assíncrona" {class: assinc}

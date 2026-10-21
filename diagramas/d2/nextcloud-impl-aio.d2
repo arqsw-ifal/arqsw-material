@@ -1,0 +1,69 @@
+# Nextcloud a 50.000 pés: implantação em um único servidor com o Nextcloud All-in-One (Figura 4.5.3).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de protocolo ou papel.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+vm: "Servidor Linux com Docker" {
+  class: host
+  icon: https://icons.terrastruct.com/tech%2Fservers.svg
+  icon.near: top-left
+  grid-columns: 4
+  grid-gap: 90
+
+  gestao: "Gestão" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    v1: {class: livre; width: 230; height: 130}
+    master: "Contêiner mestre\ninstala e atualiza\nos demais" {class: no; height: 150; icon: https://icons.terrastruct.com/dev%2Fdocker.svg}
+    v2: {class: livre; width: 230; height: 130}
+  }
+
+  borda: "Borda" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    apache: "Proxy Apache\nTLS, roteamento" {class: no; icon: https://icons.terrastruct.com/dev%2Fapache.svg}
+    v1: {class: livre; width: 230; height: 130}
+    v2: {class: livre; width: 230; height: 130}
+  }
+
+  app: "Aplicação" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    np: "notify_push" {class: no; icon: https://icons.terrastruct.com/dev%2Frust.svg}
+    nc: "Nextcloud\nPHP-FPM, núcleo + apps" {class: no; icon: https://icons.terrastruct.com/dev%2Fphp.svg}
+    opt: "Opcionais\neditor de documentos,\nantivírus, backup" {class: no; height: 150; icon: https://icons.terrastruct.com/essentials%2F263-notepad.svg}
+  }
+
+  dados: "Dados" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 50
+    rd: "Redis" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+    pg: "PostgreSQL" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+    vol: "Volume de dados" {class: banco; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Elastic-Block-Store-EBS.svg}
+  }
+}
+
+vm.gestao.master -> vm.borda.apache: "gerencia" {class: sinc}
+vm.gestao.master -> vm.app.nc: "gerencia" {class: sinc}
+vm.borda.apache -> vm.app.nc {class: sinc}
+vm.borda.apache -> vm.app.np: "WebSocket" {class: assinc}
+vm.app.nc -> vm.dados.pg {class: sinc}
+vm.app.nc -> vm.dados.rd {class: sinc}
+vm.app.np -> vm.dados.rd: "eventos" {class: assinc}
+vm.app.nc -> vm.dados.vol {class: sinc}
+vm.app.nc -> vm.app.opt {class: sinc}

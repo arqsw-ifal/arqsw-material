@@ -1,0 +1,70 @@
+# PX4: implantação física de um sistema típico (Figura 4.8.2), no estilo de Xu (2020).
+# Diagrama de implantação: sem passos numerados; rótulos curtos de barramento ou enlace.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 2
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  host: {style: {fill: "#E8EDF4"; stroke: "#1A2E4A"; stroke-width: 3; border-radius: 4; font-size: 22; bold: true}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 160; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+solo: "Solo" {
+  class: host
+  icon: https://icons.terrastruct.com/essentials%2F092-network.svg
+  icon.near: top-left
+  grid-rows: 2
+  grid-gap: 140
+  tx: "Transmissor de\nrádio controle" {class: no; icon: https://icons.terrastruct.com/tech%2F041-joystick.svg}
+  nb: "Notebook ou tablet\nQGroundControl" {class: no; icon: https://icons.terrastruct.com/tech%2Flaptop.svg}
+}
+
+aeronave: "Aeronave" {
+  class: host
+  icon: https://icons.terrastruct.com/tech%2Fantenna.svg
+  icon.near: top-left
+  grid-columns: 3
+  grid-gap: 90
+
+  radios: "Enlaces de rádio" {
+    class: faixa
+    grid-rows: 2
+    grid-gap: 140
+    rx: "Receptor de\nrádio controle" {class: no; icon: https://icons.terrastruct.com/tech%2Fantenna.svg}
+    tel: "Rádio de telemetria" {class: no; icon: https://icons.terrastruct.com/essentials%2F103-wireless%20internet.svg}
+  }
+
+  placa: "Controlador de voo\nmicrocontrolador + NuttX" {
+    class: faixa
+    grid-rows: 2
+    grid-gap: 140
+    imu: "IMUs, bússola,\nbarômetro internos" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Sensor_light-bg.svg}
+    px4: "Imagem de\nfirmware PX4" {class: no; icon: https://icons.terrastruct.com/tech%2F014-cpu.svg}
+  }
+
+  perif: "Periféricos" {
+    class: faixa
+    grid-rows: 3
+    grid-gap: 60
+    gnss: "Receptor GNSS e\nbússola externa\nUART, I2C ou CAN" {class: no; icon: https://icons.terrastruct.com/essentials%2F142-target.svg}
+    esc: "ESCs e motores\nPWM, DShot ou DroneCAN" {class: no; icon: https://icons.terrastruct.com/tech%2F009-cooler.svg}
+    cmp: "Computador de missão\nLinux, ROS 2" {class: no; icon: https://icons.terrastruct.com/aws%2FRobotics%2FAWS-RoboMaker_Cloud-Extension-ROS_light-bg.svg}
+  }
+}
+
+aeronave.placa.imu -> aeronave.placa.px4: "SPI" {class: sinc}
+aeronave.perif.gnss -> aeronave.placa.px4 {class: sinc}
+aeronave.placa.px4 -> aeronave.perif.esc {class: sinc}
+aeronave.radios.rx -> aeronave.placa.px4 {class: sinc}
+solo.tx -> aeronave.radios.rx: "enlace de rádio" {class: sinc}
+aeronave.placa.px4 <-> aeronave.radios.tel {class: sinc}
+aeronave.radios.tel -> solo.nb: "enlace de rádio, MAVLink" {class: assinc}
+aeronave.placa.px4 <-> aeronave.perif.cmp: "serial ou Ethernet" {class: sinc}

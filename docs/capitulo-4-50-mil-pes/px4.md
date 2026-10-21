@@ -88,36 +88,12 @@ de comunicação.
 
 **Figura 4.8.2** – Diagrama de implantação de um sistema PX4 típico.
 
-```mermaid
-flowchart TB
-    subgraph Aeronave["Aeronave"]
-        subgraph Placa["Controlador de voo<br/>microcontrolador + NuttX"]
-            PX4["Imagem de firmware PX4"]
-            IMU["IMUs, bússola, barômetro internos"]
-        end
-        GNSS["Receptor GNSS e bússola externa<br/><small>UART, I2C ou CAN</small>"]
-        ESC["ESCs e motores<br/><small>PWM, DShot ou DroneCAN</small>"]
-        RX["Receptor de rádio controle"]
-        TEL["Rádio de telemetria"]
-        CMP["Computador de missão<br/><small>Linux, ROS 2</small>"]
-    end
-    subgraph Solo["Solo"]
-        NB["Notebook ou tablet<br/><small>QGroundControl</small>"]
-        TX["Transmissor de rádio controle"]
-    end
-    IMU -- "SPI" --> PX4
-    GNSS --> PX4
-    PX4 --> ESC
-    RX --> PX4
-    TX -- "enlace de rádio" --> RX
-    PX4 <--> TEL
-    TEL -. "enlace de rádio, MAVLink" .-> NB
-    PX4 <-- "serial ou Ethernet" --> CMP
-```
+![Implantação física de um sistema PX4 típico: na aeronave, o controlador de voo (microcontrolador com NuttX) roda a imagem de firmware PX4 e recebe as IMUs internas por SPI, o receptor GNSS e o receptor de rádio controle, comanda ESCs e motores e troca dados com o rádio de telemetria e, por serial ou Ethernet, com o computador de missão Linux com ROS 2; no solo, o transmissor de rádio controle envia comandos por enlace de rádio ao receptor e o notebook ou tablet com QGroundControl recebe MAVLink do rádio de telemetria](../assets/diagramas/px4-impl.svg)
 
 Fonte: elaborado pelo autor (2026), com base em PX4 (2026a). Os barramentos indicados são
 exemplos; a documentação cita I2C, SPI, CAN e UART para sensores e PWM ou DroneCAN para ESCs.
-Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da
+figura: `diagramas/d2/px4-impl.d2`.
 
 A unidade de implantação do PX4 é uma **imagem de *firmware***, compilada para uma placa
 específica e gravada em sua memória, em geral pelo próprio QGroundControl (PX4, 2026c). Não há
