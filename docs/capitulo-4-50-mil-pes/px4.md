@@ -22,11 +22,20 @@ Fora do veículo, a **estação em solo** executa o QGroundControl, e o **rádio
 comandos do piloto (PX4, 2026a).
 
 **Figura 4.8.1** – *Containers* (C4, nível 2) de um sistema PX4 com computador de missão e o
-caminho de um ciclo de controle.
+caminho de um ciclo de controle: (a) o laço de controle no controlador de voo; (b) enlaces com o
+solo e com o computador de missão.
 
-![Containers de um sistema PX4: QGroundControl no solo; rádio de telemetria; computador de missão Linux com o agente Micro XRCE-DDS e aplicações ROS 2; controlador de voo NuttX com o firmware PX4 aberto em seus módulos (drivers, uORB, ekf2, controladores, mavlink, uxrce_dds_client, logger) e o cartão SD; sensores, receptor de rádio controle e ESCs, com o fluxo numerado de um ciclo de controle e da telemetria](../assets/diagramas/px4-50k.svg)
+(a)
 
-Passos numerados (um ciclo de controle e sua telemetria, detalhados nas Figuras 5.8.1 e 5.8.2):
+![Parte (a): o laço de controle dentro do controlador de voo NuttX. Sensores (IMU, bússola, barômetro, GNSS) ligam-se aos drivers de entrada, que publicam no uORB; o uORB troca tópicos com o ekf2 e com os controladores e a alocação de controle e entrega os comandos aos drivers de saída, que acionam os ESCs e os motores; o logger e dataman grava no cartão SD. Passos 1 a 8](../assets/diagramas/px4-50k-a.svg)
+
+(b)
+
+![Parte (b): enlaces externos. O firmware PX4, com o uORB, aparece como um único nó no controlador de voo; o módulo mavlink envia a telemetria ao rádio de telemetria e daí ao QGroundControl no solo; o uxrce_dds_client troca tópicos com o agente Micro XRCE-DDS, que os entrega às aplicações ROS 2 no computador de missão Linux; o receptor de rádio controle liga-se ao firmware. Passos 9 a 14](../assets/diagramas/px4-50k-b.svg)
+
+Passos numerados (um ciclo de controle e sua telemetria, detalhados nas Figuras 5.8.1 e 5.8.2). Os
+passos 1 a 8 aparecem na parte (a), o laço de controle; os passos 9 a 14, na parte (b), os enlaces
+externos, em que o nó "Firmware PX4" representa o uORB e os módulos da parte (a):
 
 1. Os *drivers* de entrada leem as amostras dos sensores (IMU, bússola, barômetro, GNSS) pelos
    barramentos da placa, como SPI, I2C, CAN ou UART.
@@ -56,12 +65,14 @@ Dentro do controlador de voo, todas as setas numeradas passam pelo uORB, porque 
 outro (Seção 5.8). As setas duplas reúnem, num único rótulo, a assinatura e a publicação de um mesmo
 módulo (passos 3 e 4, 5 e 6) e os dois sentidos da ponte uXRCE-DDS (passos 12 a 14). As setas
 finas sem número representam relações que não pertencem a esse fluxo: o receptor de rádio controle
-entrega os sinais do piloto aos *drivers* de entrada, e o `logger` grava registros de voo no cartão
+entrega os sinais do piloto aos *drivers* de entrada (na parte (b), ao nó do firmware, que os
+contém), e o `logger` grava registros de voo no cartão
 SD, onde o `dataman` mantém parâmetros e missões.
 
 Fonte: elaborado pelo autor (2026), com base em PX4 (2026a; 2026b; 2026e) e no estilo de diagrama
 de Xu (2020). Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona (no
-controlador de voo, tópicos uORB). Código-fonte da figura: `diagramas/d2/px4-50k.d2`.
+controlador de voo, tópicos uORB). Código-fonte da figura: `diagramas/d2/px4-50k-a.d2` e
+`diagramas/d2/px4-50k-b.d2`.
 
 O armazenamento local merece uma nota. O *firmware* grava registros de voo e mantém parâmetros e
 dados de missão; o repositório contém módulos específicos para isso, como `logger` e `dataman`

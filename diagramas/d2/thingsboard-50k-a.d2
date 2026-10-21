@@ -1,0 +1,67 @@
+# ThingsBoard a 50.000 pés, parte (a): ingestão de uma telemetria (estilo de Xu, 2020).
+# Passos 1 a 6; a parte (b), thingsboard-50k-b.d2, continua com os passos 7 a 13.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Setas numeradas: passos do fluxo, descritos no texto abaixo da figura.
+# Faixas extras: "Transportes" e "Fila". A quarta coluna empilha Fila, Aplicação e Dados
+# para manter a grade em 4 colunas.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 70
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 28; bold: true}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 28; bold: true}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 26; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 250; height: 260; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 24}}
+  no: {width: 250; height: 180; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 24; border-radius: 6}}
+}
+
+externos: {
+  class: livre
+  dev: "Dispositivos" {icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Sensor_light-bg.svg; shape: image; width: 90; height: 90; style.font-size: 24}
+}
+
+borda: "Borda" {
+  class: faixa
+  lb: "Balanceador\nHAProxy" {class: no; icon: https://icons.terrastruct.com/tech%2Frouter.svg}
+}
+
+transp: "Transportes" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  mqtt: "tb-mqtt-transport" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_MQTT-protocol_light-bg.svg}
+  coap: "tb-coap-transport" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Generic_light-bg.svg}
+  http: "tb-http-transport" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_HTTP-protocol_light-bg.svg}
+}
+
+nucleo: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 60
+  fila: "Fila" {
+    class: faixa
+    kafka: "Kafka\ntópicos\nparticionados" {class: banco; icon: https://icons.terrastruct.com/aws%2FAnalytics%2FAmazon-Managed-Streaming-for-Kafka.svg}
+  }
+  app: "Aplicação" {
+    class: faixa
+    core: "tb-core\nREST · WebSocket\natores" {class: no; icon: https://icons.terrastruct.com/dev%2Fjava.svg}
+  }
+  dados: "Dados" {
+    class: faixa
+    valkey: "Valkey\ncache" {class: banco; icon: https://icons.terrastruct.com/dev%2Fredis.svg}
+  }
+}
+
+externos.dev -> borda.lb: "1" {class: sinc}
+borda.lb -> transp.mqtt: "2" {class: sinc}
+transp.mqtt -> nucleo.fila.kafka: "3, 6" {class: assinc}
+nucleo.fila.kafka -> nucleo.app.core: "4" {class: assinc}
+nucleo.app.core -> nucleo.dados.valkey: "5" {class: sinc}
+borda.lb -> transp.coap {class: apoio}
+borda.lb -> transp.http {class: apoio}
+transp.coap -> nucleo.fila.kafka {class: apoio}
+transp.http -> nucleo.fila.kafka {class: apoio}

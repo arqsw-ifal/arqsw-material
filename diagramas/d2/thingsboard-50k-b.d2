@@ -1,0 +1,74 @@
+# ThingsBoard a 50.000 pés, parte (b): processamento e visualização de uma telemetria (estilo de Xu, 2020).
+# Passos 7 a 13; continua a parte (a), thingsboard-50k-a.d2, que termina com a publicação no Kafka.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+# Setas numeradas: passos do fluxo, descritos no texto abaixo da figura.
+# A segunda coluna empilha as faixas "Fila" e "Borda" para manter a grade em 4 colunas.
+# Nós "vazio" são espaçadores invisíveis que alinham as linhas da grade entre as colunas.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 70
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 28; bold: true}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 28; bold: true}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 26; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 250; height: 180; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 250; height: 260; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 24}}
+  no: {width: 250; height: 180; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 24; border-radius: 6}}
+}
+
+externos: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 60
+  v1: {class: vazio; width: 90}
+  v2: {class: vazio; width: 90}
+  usr: "Usuários" {icon: https://icons.terrastruct.com/essentials%2F359-users.svg; shape: image; width: 90; height: 90; style.font-size: 24}
+}
+
+meio: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 60
+  fila: "Fila" {
+    class: faixa
+    kafka: "Kafka\ntópicos\nparticionados" {class: banco; icon: https://icons.terrastruct.com/aws%2FAnalytics%2FAmazon-Managed-Streaming-for-Kafka.svg}
+  }
+  v1: {class: vazio}
+  borda: "Borda" {
+    class: faixa
+    ui: "tb-web-ui" {class: no; icon: https://icons.terrastruct.com/tech%2Fbrowser-2.svg}
+  }
+}
+
+app: "Aplicação" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  re: "tb-rule-engine\nmotor de regras" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Rule_light-bg.svg}
+  js: "tb-js-executor\nscripts em Node.js" {class: no; icon: https://icons.terrastruct.com/dev%2Fnodejs.svg}
+  core: "tb-core\nREST · WebSocket\natores" {class: no; icon: https://icons.terrastruct.com/dev%2Fjava.svg}
+}
+
+dados: "Dados" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 50
+  ts: "Séries temporais\nCassandra ou\nTimescaleDB" {class: banco; icon: https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-Managed-Apache-Cassandra-Service.svg}
+  pg: "PostgreSQL\nentidades\ne alarmes" {class: banco; icon: https://icons.terrastruct.com/dev%2Fpostgresql.svg}
+  zk: "Zookeeper\ncoordenação" {class: no; icon: https://icons.terrastruct.com/essentials%2F204-settings.svg}
+}
+
+meio.fila.kafka <-> app.re: "7, 9, 12" {class: assinc}
+app.re -> dados.ts: "8" {class: sinc}
+meio.fila.kafka -> app.js: "10" {class: assinc}
+app.re -> dados.pg: "11" {class: sinc}
+meio.fila.kafka -> app.core: "12" {class: assinc}
+app.core <-> meio.borda.ui: "13" {class: assinc}
+meio.borda.ui <-> externos.usr: "13" {class: assinc}
+app.core -> dados.pg {class: apoio}
+# O Zookeeper coordena os serviços da faixa (tb-rule-engine e tb-core): uma única seta para a faixa.
+dados.zk -> app {class: apoio}

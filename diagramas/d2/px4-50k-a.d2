@@ -1,0 +1,55 @@
+# PX4 a 50.000 pés, parte (a): o laço de controle dentro do controlador de voo (estilo de Xu, 2020).
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona (tópicos uORB).
+# Setas numeradas: passos 1 a 8 do fluxo, descritos no texto abaixo da figura.
+# A parte (b), px4-50k-b.d2, mostra os enlaces externos (passos 9 a 14).
+# Nós "vazio" são espaçadores invisíveis que alinham as linhas da grade.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 4
+grid-gap: 110
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 24; bold: true}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 24; bold: true}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 22; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 230; height: 130; style: {fill: transparent; stroke: transparent}}
+  banco: {width: 230; height: 190; shape: cylinder; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18}}
+  no: {width: 230; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 18; border-radius: 6}}
+}
+
+hw: "Sensores e atuadores" {
+  class: faixa
+  grid-rows: 3
+  vertical-gap: 100
+  imu: "IMU, bússola,\nbarômetro, GNSS" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Sensor_light-bg.svg}
+  v1: {class: vazio}
+  esc: "ESCs e motores" {class: no; icon: https://icons.terrastruct.com/tech%2F009-cooler.svg}
+}
+
+fc: "Controlador de voo · NuttX · firmware PX4" {
+  class: faixa
+  grid-rows: 3
+  grid-columns: 3
+  horizontal-gap: 110
+  vertical-gap: 100
+  entrada: "Drivers de entrada\nsensores e RC" {class: no; icon: https://icons.terrastruct.com/tech%2F014-cpu.svg}
+  v1: {class: vazio}
+  ekf2: "ekf2\nestimador" {class: no; icon: https://icons.terrastruct.com/essentials%2F142-target.svg}
+  v2: {class: vazio}
+  uorb: "uORB\npublish/subscribe" {class: no; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Topic_light-bg.svg}
+  ctrl: "Controladores\ne alocação de controle" {class: no; icon: https://icons.terrastruct.com/essentials%2F178-controls.svg}
+  saida: "Drivers de saída\nPWM · DShot · CAN" {class: no; icon: https://icons.terrastruct.com/tech%2F012-cpu-2.svg}
+  sd: "Cartão SD\nlogs · parâmetros · missões" {class: banco; icon: https://icons.terrastruct.com/tech%2Fdiskette.svg}
+  logger: "logger e dataman" {class: no; icon: https://icons.terrastruct.com/essentials%2F263-notepad.svg}
+}
+
+hw.imu -> fc.entrada: "1" {class: sinc}
+fc.entrada -> fc.uorb: "2" {class: assinc}
+fc.uorb <-> fc.ekf2: "3, 4" {class: assinc}
+fc.uorb <-> fc.ctrl: "5, 6" {class: assinc}
+fc.uorb -> fc.saida: "7" {class: assinc}
+fc.saida -> hw.esc: "8" {class: sinc}
+fc.uorb -> fc.logger {class: apoio}
+fc.logger -> fc.sd {class: apoio}
