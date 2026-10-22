@@ -323,28 +323,11 @@ usual em sistemas web. A diferença resume a mudança de perspectiva desta aplic
 
 **Figura 3.8.4** – Diagrama de contexto (C4, nível 1) final de um sistema baseado no PX4.
 
-```mermaid
-flowchart TB
-    OP["Operador<br/><small>piloto remoto</small>"]
-    PS["Pessoas em solo"]
-    RC["Rádio controle<br/><small>sistema externo</small>"]
-    GCS["Estação em solo<br/><small>QGroundControl</small>"]
-    CC["Computador de missão<br/><small>Linux e ROS 2</small>"]
-    PX4["Piloto automático PX4<br/><small>software de voo embarcado</small>"]
-    HW["Sensores e atuadores<br/><small>IMUs redundantes, GNSS, barômetro, ESCs, servos</small>"]
-    REG["Regulação<br/><small>ANAC, DECEA</small>"]
-    OP -- "comandos manuais" --> RC
-    RC -- "sinais de controle" --> PX4
-    OP -- "planeja missões, monitora" --> GCS
-    GCS -. "MAVLink" .-> PX4
-    CC -. "uXRCE-DDS ou MAVLink<br/><small>modos externos não críticos</small>" .-> PX4
-    PX4 -- "lê e comanda" --> HW
-    PX4 -- "risco físico" --> PS
-    REG -- "restringe a operação" --> OP
-```
+![Diagrama de contexto final de um sistema baseado no PX4: a regulação restringe a operação do operador, que envia comandos manuais ao rádio controle e planeja missões e monitora pela estação em solo; o rádio controle envia sinais de controle ao piloto automático PX4, a estação em solo fala MAVLink e o computador de missão usa uXRCE-DDS ou MAVLink para modos externos não críticos; o PX4 lê e comanda sensores e atuadores e representa risco físico para pessoas em solo](../assets/diagramas/px4-100k.svg)
 
 Fonte: elaborado pelo autor (2026), com base em PX4 (2026d). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/px4-100k.d2`.
 
 Ao fim da conversa, o sistema está delimitado: um software embarcado de tempo real crítico, com
 duas fronteiras de comunicação de naturezas opostas, sensores redundantes e um compromisso

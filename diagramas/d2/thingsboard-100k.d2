@@ -1,0 +1,82 @@
+# ThingsBoard a 100.000 pés: diagrama de contexto final (C4, nível 1) (Figura 3.7.5).
+# Três colunas: a faixa "Dispositivos" à esquerda, a plataforma no centro (com a faixa "Pessoas"
+# acima dela) e os sistemas externos à direita. Células "vazio" alinham as faixas laterais
+# com a plataforma.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 3
+grid-gap: 160
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 300; height: 330; style: {fill: transparent; stroke: transparent}}
+  pessoa: {shape: image; style.font-size: 17}
+  sistema: {width: 300; height: 200; label.near: top-center; icon.near: bottom-center; style: {fill: "#1A2E4A"; stroke: "#1A2E4A"; font-color: "#FFFFFF"; font-size: 20; bold: true; border-radius: 10}}
+  externo: {width: 250; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+esquerda: {
+  class: livre
+  grid-rows: 2
+  grid-gap: 0
+  v: {class: vazio; width: 250; height: 330}
+  dispositivos: "Dispositivos" {
+    class: faixa
+    grid-rows: 2
+    grid-gap: 90
+    dispositivos: "Dispositivos\nmedidores, sensores, máquinas" {class: externo; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Sensor_light-bg.svg}
+    gateways: "Gateways\nModbus, BLE no campo" {class: externo; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FAWS-IoT-Greengrass.svg}
+  }
+}
+
+centro: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 0
+  pessoas: "Pessoas" {
+    class: faixa
+    grid-columns: 4
+    grid-gap: 130
+    operador: "Operador de planta" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F365-user.svg}
+    integrador: "Integrador\nadministrador do inquilino" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F005-programmer.svg}
+    admin: "Administrador\nda plataforma" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F204-settings.svg}
+    seguranca: "Equipe de segurança" {class: pessoa; icon: https://icons.terrastruct.com/infra%2F033-protection.svg}
+  }
+  topo: {class: vazio; height: 200}
+  linha: {
+    class: livre
+    grid-columns: 3
+    grid-gap: 0
+    e: {class: vazio; width: 496; height: 200}
+    plataforma: "Plataforma de IoT\nThingsBoard ou AWS IoT Core" {class: sistema; icon: https://icons.terrastruct.com/dev%2Fjava.svg}
+    d: {class: vazio; width: 496; height: 200}
+  }
+}
+
+direita: {
+  class: livre
+  grid-rows: 2
+  grid-gap: 0
+  v: {class: vazio; width: 250; height: 330}
+  externos: "Sistemas externos" {
+    class: faixa
+    grid-rows: 2
+    grid-gap: 90
+    sistemas: "Sistemas externos\nERP, e-mail, SMS, data lake" {class: externo; icon: https://icons.terrastruct.com/infra%2F010-data-sharing.svg}
+    fabricantes: "Fabricantes\npacotes de firmware" {class: externo; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Factory_light-bg.svg}
+  }
+}
+
+esquerda.dispositivos.dispositivos <-> centro.linha.plataforma: "telemetria e atributos (MQTT, CoAP,\nHTTP, LwM2M); RPC, configuração, OTA" {class: sinc}
+esquerda.dispositivos.gateways -> centro.linha.plataforma: "MQTT v1/gateway" {class: sinc}
+centro.pessoas.operador -> centro.linha.plataforma: "painéis e alarmes" {class: sinc}
+centro.pessoas.integrador -> centro.linha.plataforma: "regras, perfis, clientes" {class: sinc}
+centro.pessoas.admin -> centro.linha.plataforma: "perfis e limites" {class: sinc}
+centro.pessoas.seguranca -> centro.linha.plataforma: "auditoria e revogação" {class: sinc}
+centro.linha.plataforma -> direita.externos.sistemas: "integrações e notificações" {class: sinc}
+direita.externos.fabricantes -> centro.linha.plataforma: "versões de firmware" {class: sinc}

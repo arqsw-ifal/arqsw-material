@@ -289,32 +289,10 @@ apresenta o diagrama de contexto final.
 
 **Figura 3.5.5** – Diagrama de contexto final (C4, nível 1).
 
-```mermaid
-flowchart TB
-    U["Pessoa da universidade<br/><small>navegador, cliente desktop, app móvel</small>"]
-    A["Equipe de TI<br/><small>instala, atualiza, configura apps</small>"]
-    ENC["Encarregado de dados"]
-    NC["Instalação Nextcloud<br/><small>arquivos, compartilhamento, colaboração</small>"]
-    LDAP["Diretório institucional<br/><small>LDAP</small>"]
-    EXT["Armazenamentos externos<br/><small>SMB, SFTP, S3, WebDAV</small>"]
-    OBJ["Armazenamento de objetos<br/><small>armazenamento primário</small>"]
-    MAIL["Servidor de e-mail"]
-    DOC["Servidor de documentos<br/><small>edição no navegador</small>"]
-    STORE["Loja de apps"]
-    FED["Outras instalações Nextcloud<br/><small>compartilhamento federado</small>"]
-    U -- "WebDAV / HTTPS" --> NC
-    A -- "interface web, linha de comando" --> NC
-    ENC -- "relatórios de auditoria" --> NC
-    NC -- "autentica usuários" --> LDAP
-    NC -- "monta pastas" --> EXT
-    NC -- "grava conteúdo" --> OBJ
-    NC -- "notificações" --> MAIL
-    NC -- "edição colaborativa" --> DOC
-    NC -- "instala apps" --> STORE
-    NC <-- "federação" --> FED
-```
+![Diagrama de contexto final da instalação Nextcloud: pessoas da universidade, equipe de TI e encarregado de dados acessam a instalação; a instalação autentica usuários no diretório institucional, monta armazenamentos externos, grava conteúdo no armazenamento de objetos, envia notificações por e-mail, usa o servidor de documentos para edição colaborativa, instala apps da loja e federa com outras instalações Nextcloud](../assets/diagramas/nextcloud-100k.svg)
 
-Fonte: elaborado pelo autor (2026), com base na documentação do Nextcloud.
+Fonte: elaborado pelo autor (2026), com base na documentação do Nextcloud. Código-fonte da figura:
+`diagramas/d2/nextcloud-100k.d2`.
 
 O diagrama final revela o caráter integrador do produto. Dos sete sistemas externos, seis são
 pontos de variação entre organizações: diretórios, armazenamentos, servidores de e-mail e de

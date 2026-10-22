@@ -60,6 +60,20 @@ três mudanças:
   setas de todas as réplicas para o mesmo destino poluírem a figura, desenhe-as a partir de uma
   réplica e registre `apoio` nas demais, explicando no texto.
 
+## Diagramas de contexto finais (100.000 pés)
+
+A versão final do diagrama de contexto de cada sistema no Capítulo 3 (`<sistema>-100k.d2`) também
+é feita em D2. As versões intermediárias da conversa com o cliente continuam em Mermaid. O modelo
+de referência é `d2/mastodon-100k.d2`:
+
+- três colunas: faixa "Pessoas" à esquerda, o sistema no centro e faixa "Sistemas externos" à
+  direita. Um sistema externo que atua como usuário (aplicativo cliente, *gateway*) pode ficar à
+  esquerda;
+- o sistema em projeto usa a classe `sistema` (caixa azul-escura, texto branco), centralizado na
+  vertical por células `vazio`;
+- pessoas são `shape: image` (classe `pessoa`); sistemas externos usam a classe `externo`;
+- rótulos curtos descrevendo a interação, como nos diagramas de implantação.
+
 ## Inserção no livro
 
 ````markdown

@@ -297,25 +297,12 @@ o núcleo aciona por *webhooks* síncronos; a emissão da NF-e reage a *webhooks
 **Figura 3.6.4** – Diagrama de contexto final (C4, nível 1) de uma loja construída sobre o
 Saleor.
 
-```mermaid
-flowchart TB
-    C["Comprador"] --> V["Vitrine web e app<br/><small>projeto separado</small>"]
-    L["Equipe da marca"] --> D["Saleor Dashboard"]
-    PA["Lojas parceiras"] --> S
-    V -- "GraphQL" --> S["Saleor<br/><small>núcleo headless</small>"]
-    D -- "GraphQL" --> S
-    S -- "webhooks síncronos" --> P["App de pagamento"]
-    S -- "webhooks síncronos" --> T["App de impostos"]
-    S -- "webhooks síncronos" --> F["App de frete"]
-    S -. "webhooks assíncronos" .-> N["App fiscal"]
-    P --> PSP["Provedor de pagamento<br/><small>cartão, Pix, boleto</small>"]
-    F --> TR["Transportadoras<br/>e Correios"]
-    N --> SF["SEFAZ"]
-```
+![Diagrama de contexto final de uma loja construída sobre o Saleor: o comprador usa a vitrine web e app, a equipe da marca usa o Saleor Dashboard e as lojas parceiras acessam o Saleor diretamente; vitrine e dashboard falam GraphQL com o núcleo headless, que aciona por webhooks síncronos as apps de pagamento, impostos e frete e por webhooks assíncronos a app fiscal; essas apps conversam com o provedor de pagamento, as transportadoras e Correios e a SEFAZ](../assets/diagramas/saleor-100k.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Saleor (2026a; 2026b). As *apps* fiscal, de
 impostos e de frete são hipotéticas no contexto brasileiro; o mecanismo de *webhooks* é o
 documentado. Linhas contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+Código-fonte da figura: `diagramas/d2/saleor-100k.d2`.
 
 O diagrama evidencia um fato que orientará as próximas altitudes: todos os sistemas externos
 estão em posição de **montante** em relação à loja, isto é, a loja nunca dita o modelo do outro

@@ -373,31 +373,11 @@ conversa.
 
 **Figura 3.4.5** – Diagrama de contexto final da instância PeerTube do instituto.
 
-```mermaid
-flowchart TB
-    prof["Professor<br/><small>envia videoaulas</small>"]
-    est["Estudante<br/><small>assiste e comenta</small>"]
-    est2["Outros estudantes<br/><small>pares WebRTC</small>"]
-    admin["Administrador<br/><small>configura e modera</small>"]
-    pt["Instância PeerTube<br/><small>publica, processa e entrega vídeos</small>"]
-    idp["Provedor de identidade<br/><small>login institucional</small>"]
-    mail["Servidor de e-mail"]
-    outras["Instâncias parceiras<br/><small>fediverso</small>"]
-    runner["Runners<br/><small>estações do laboratório</small>"]
-    s3["Armazenamento de objetos<br/><small>S3 da TI central</small>"]
-    prof -->|"envio retomável"| pt
-    est -->|"API REST, HLS por HTTP"| pt
-    est <-->|"segmentos via WebRTC"| est2
-    admin -->|"configuração e moderação"| pt
-    pt -->|"autentica via plugin"| idp
-    pt -->|"notificações"| mail
-    pt <-.->|"ActivityPub assinado"| outras
-    runner -->|"pede tarefas por HTTP"| pt
-    pt -->|"grava e serve arquivos"| s3
-```
+![Diagrama de contexto final da instância PeerTube do instituto: professor, estudante, administrador e runners acessam a instância; o estudante troca segmentos via WebRTC com outros estudantes; a instância autentica no provedor de identidade, envia notificações pelo servidor de e-mail, troca atividades ActivityPub assinadas com instâncias parceiras e grava e serve arquivos no armazenamento de objetos](../assets/diagramas/peertube-100k.svg)
 
 Fonte: elaborado pelo autor (2026), com base em PeerTube (2026). Linhas contínuas: comunicação
-síncrona; linhas tracejadas: comunicação assíncrona.
+síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/peertube-100k.d2`.
 
 O diagrama final evidencia três características pouco comuns em sistemas de informação
 institucionais. Os espectadores trocam dados entre si, o que significa que parte da

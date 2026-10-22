@@ -1,0 +1,80 @@
+# Saleor a 100.000 pés: diagrama de contexto final (C4, nível 1) (Figura 3.6.4).
+# Cinco colunas: pessoas, clientes do Saleor (projetos separados do núcleo), o Saleor no centro,
+# as apps acionadas por webhooks e os serviços externos com que cada app conversa.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 5
+grid-gap: 230
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 300; height: 330; style: {fill: transparent; stroke: transparent}}
+  pessoa: {shape: image; style.font-size: 17}
+  sistema: {width: 300; height: 200; label.near: top-center; icon.near: bottom-center; style: {fill: "#1A2E4A"; stroke: "#1A2E4A"; font-color: "#FFFFFF"; font-size: 20; bold: true; border-radius: 10}}
+  externo: {width: 250; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+pessoas: "Pessoas" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 70
+  comprador: "Comprador" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F365-user.svg}
+  equipe: "Equipe da marca" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F359-users.svg}
+  parceiras: "Lojas parceiras" {class: pessoa; icon: https://icons.terrastruct.com/aws%2F_General%2FAWS-Marketplace.svg}
+}
+
+clientes: "Clientes do Saleor" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 90
+  vitrine: "Vitrine web e app\nprojeto separado" {class: externo; icon: https://icons.terrastruct.com/aws%2FInternet%20of%20Things%2FIoT_Cart_light-bg.svg}
+  dashboard: "Saleor Dashboard" {class: externo; icon: https://icons.terrastruct.com/essentials%2F001-analytics.svg}
+  v: {class: vazio; width: 250; height: 130}
+}
+
+centro: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 0
+  topo: {class: vazio; height: 235}
+  saleor: "Saleor\nnúcleo headless" {class: sistema; icon: https://icons.terrastruct.com/dev%2Fdjango.svg}
+  base: {class: vazio; height: 235}
+}
+
+apps: "Apps" {
+  class: faixa
+  grid-rows: 4
+  grid-gap: 50
+  pagamento: "App de pagamento" {class: externo; icon: https://icons.terrastruct.com/essentials%2Fsalary.svg}
+  impostos: "App de impostos" {class: externo; icon: https://icons.terrastruct.com/essentials%2Fprofits.svg}
+  frete: "App de frete" {class: externo; icon: https://icons.terrastruct.com/infra%2F013-transfer.svg}
+  fiscal: "App fiscal" {class: externo; icon: https://icons.terrastruct.com/essentials%2F263-notepad.svg}
+}
+
+servicos: "Serviços externos" {
+  class: faixa
+  grid-rows: 4
+  grid-gap: 50
+  psp: "Provedor de pagamento\ncartão, Pix, boleto" {class: externo; icon: https://icons.terrastruct.com/essentials%2F214-worldwide.svg}
+  v: {class: vazio; width: 250; height: 130}
+  transportadoras: "Transportadoras\ne Correios" {class: externo; icon: https://icons.terrastruct.com/essentials%2F353-placeholder.svg}
+  sefaz: "SEFAZ" {class: externo; icon: https://icons.terrastruct.com/aws%2FSecurity%2C%20Identity%2C%20%26%20Compliance%2FAWS-Artifact.svg}
+}
+
+pessoas.comprador -> clientes.vitrine {class: sinc}
+pessoas.equipe -> clientes.dashboard {class: sinc}
+pessoas.parceiras -> centro.saleor {class: sinc}
+clientes.vitrine -> centro.saleor: "GraphQL" {class: sinc}
+clientes.dashboard -> centro.saleor: "GraphQL" {class: sinc}
+centro.saleor -> apps.pagamento: "webhooks síncronos" {class: sinc}
+centro.saleor -> apps.impostos: "webhooks síncronos" {class: sinc}
+centro.saleor -> apps.frete: "webhooks síncronos" {class: sinc}
+centro.saleor -> apps.fiscal: "webhooks assíncronos" {class: assinc}
+apps.pagamento -> servicos.psp {class: sinc}
+apps.frete -> servicos.transportadoras {class: sinc}
+apps.fiscal -> servicos.sefaz {class: sinc}

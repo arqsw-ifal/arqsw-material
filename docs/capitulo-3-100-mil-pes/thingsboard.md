@@ -339,29 +339,9 @@ A Figura 3.7.5 consolida as rodadas no diagrama de contexto final, ponto de part
 
 **Figura 3.7.5** – Contexto final da plataforma de IoT (C4, nível 1).
 
-```mermaid
-flowchart TB
-    D["Dispositivos<br/><small>medidores, sensores, máquinas</small>"]
-    G["Gateways<br/><small>Modbus, BLE no campo</small>"]
-    O["Operador de planta"]
-    I["Integrador<br/><small>administrador do inquilino</small>"]
-    SA["Administrador da plataforma"]
-    SEC["Equipe de segurança"]
-    P["Plataforma de IoT<br/><small>ThingsBoard ou AWS IoT Core</small>"]
-    E["Sistemas externos<br/><small>ERP, e-mail, SMS, data lake</small>"]
-    F["Fabricantes<br/><small>pacotes de firmware</small>"]
-    D -- "telemetria e atributos<br/>MQTT, CoAP, HTTP, LwM2M" --> P
-    G -- "MQTT v1/gateway" --> P
-    P -- "RPC, configuração, OTA" --> D
-    O -- "painéis e alarmes" --> P
-    I -- "regras, perfis, clientes" --> P
-    SA -- "perfis e limites" --> P
-    SEC -- "auditoria e revogação" --> P
-    P -- "integrações e notificações" --> E
-    F -- "versões de firmware" --> P
-```
+![Diagrama de contexto final da plataforma de IoT: dispositivos trocam telemetria e atributos (MQTT, CoAP, HTTP, LwM2M) e recebem RPC, configuração e OTA da plataforma, e gateways usam MQTT v1/gateway; operador de planta, integrador, administrador da plataforma e equipe de segurança acessam a plataforma; a plataforma envia integrações e notificações a sistemas externos e recebe versões de firmware dos fabricantes](../assets/diagramas/thingsboard-100k.svg)
 
-Fonte: elaborado pelo autor (2026).
+Fonte: elaborado pelo autor (2026). Código-fonte da figura: `diagramas/d2/thingsboard-100k.d2`.
 
 A comparação com o sistema real fecha a análise a esta altitude. O AWS IoT Core responde às
 mesmas rodadas com um contrato diferente: o cliente não planeja capacidade, mas aceita cotas e

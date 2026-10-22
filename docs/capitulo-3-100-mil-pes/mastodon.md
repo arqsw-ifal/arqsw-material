@@ -371,22 +371,11 @@ publicações públicas (Seção 5.2), e a possibilidade de uma instância remot
 
 **Figura 3.2.4** – Diagrama de contexto final de uma instância Mastodon.
 
-```mermaid
-flowchart LR
-    U["Usuários locais<br/><small>navegador ou aplicativo</small>"] -->|"API REST, WebSocket, OAuth2"| M["Instância Mastodon<br/><small>ex.: social.exemplo.org</small>"]
-    D["Aplicativos de terceiros"] -->|"API REST e streaming"| M
-    AD["Administradores e moderadores"] -->|"painel de administração"| M
-    M -.->|"ActivityPub: POST assinado"| O["Outras instâncias<br/><small>Mastodon, Pixelfed, PeerTube...</small>"]
-    O -.->|"ActivityPub: POST assinado"| M
-    M -.->|"ActivityPub"| RL["Relays"]
-    M -->|"bloqueio de domínio<br/>(relação de moderação)"| B["Instâncias bloqueadas"]
-    M -->|"API S3"| S["Armazenamento de objetos"]
-    M -->|"SMTP"| E["Serviço de e-mail"]
-    M -.->|"Web Push"| P["Serviços de notificação push"]
-```
+![Diagrama de contexto final de uma instância Mastodon: usuários locais, aplicativos de terceiros e administradores acessam a instância; a instância troca atividades ActivityPub assinadas com outras instâncias, publica em relays, bloqueia domínios e usa armazenamento de objetos, serviço de e-mail e serviços de notificação push](../assets/diagramas/mastodon-100k.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Mastodon (2026a; 2026c; 2026d; 2026e). Linhas
-contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+contínuas: comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mastodon-100k.d2`.
 
 O diagrama deixa explícita a diferença em relação a um diagrama de contexto convencional: a seta
 bidirecional com outras instâncias significa que o sistema troca dados com **pares**, e não com

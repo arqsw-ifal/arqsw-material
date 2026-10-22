@@ -268,29 +268,11 @@ A Figura 3.3.4 consolida o contexto após as seis rodadas, segundo as convençõ
 
 **Figura 3.3.4** – Contexto, versão final (C4, nível 1) do Mattermost.
 
-```mermaid
-flowchart TB
-    U["Membro de equipe<br/><small>web, desktop e celular</small>"]
-    A["Administrador e corregedoria<br/><small>operação e conformidade</small>"]
-    D["Desenvolvedor de integrações<br/><small>bots, webhooks, plugins</small>"]
-    MM["Mattermost<br/><small>infraestrutura própria do órgão</small>"]
-    IDP["Diretório corporativo<br/><small>LDAP, SAML, OpenID</small>"]
-    PUSH["Serviço de push<br/><small>HPNS ou proxy próprio</small>"]
-    APNS["APNs e FCM<br/><small>Apple e Google</small>"]
-    EXT["Sistemas externos<br/><small>monitoramento, chamados</small>"]
-    U -- "envia e recebe mensagens" --> MM
-    A -- "configura, audita, exporta" --> MM
-    D -- "estende" --> MM
-    MM -- "autentica usuários" --> IDP
-    MM -. "solicita notificação" .-> PUSH
-    PUSH -. "encaminha" .-> APNS
-    APNS -. "entrega ao celular" .-> U
-    EXT -- "webhooks de entrada" --> MM
-    MM -- "webhooks de saída e comandos" --> EXT
-```
+![Diagrama de contexto final do Mattermost: membros de equipe, administradores e corregedoria e desenvolvedores de integrações acessam o Mattermost; o Mattermost autentica usuários no diretório corporativo, troca webhooks e comandos com sistemas externos e solicita notificações ao serviço de push, que as encaminha ao APNs e ao FCM para entrega no celular do membro de equipe](../assets/diagramas/mattermost-100k.svg)
 
 Fonte: elaborado pelo autor (2026), com base em Mattermost (2026b, 2026d, 2026f). Linhas contínuas:
-comunicação síncrona; linhas tracejadas: comunicação assíncrona.
+comunicação síncrona; linhas tracejadas: comunicação assíncrona. Código-fonte da figura:
+`diagramas/d2/mattermost-100k.d2`.
 
 As seis rodadas produziram, além do diagrama, quatro conclusões que orientam as altitudes seguintes. A
 entrega em tempo real exige que o servidor mantenha conexões abertas e, portanto, estado. A

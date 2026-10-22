@@ -1,0 +1,59 @@
+# Mastodon a 100.000 pés: diagrama de contexto final (C4, nível 1) (Figura 3.2.4).
+# Diagrama de contexto: pessoas à esquerda, o sistema no centro, sistemas externos à direita.
+# Convenção do livro: linha contínua = síncrona; tracejada = assíncrona.
+vars: {d2-config: {layout-engine: elk; theme-id: 0}}
+
+grid-columns: 3
+grid-gap: 260
+
+classes: {
+  sinc: {style: {stroke: "#1A2E4A"; stroke-width: 2; font-size: 16}}
+  assinc: {style: {stroke: "#0F7A8C"; stroke-width: 2; stroke-dash: 5; font-size: 16}}
+  apoio: {style: {stroke: "#9FB0C4"; stroke-width: 2}}
+  faixa: {style: {fill: "#F4F6F9"; stroke: "#2A4468"; border-radius: 10; font-size: 20; bold: true}}
+  livre: {label: ""; style: {fill: transparent; stroke: transparent}}
+  vazio: {label: ""; width: 300; height: 330; style: {fill: transparent; stroke: transparent}}
+  pessoa: {shape: image; style.font-size: 17}
+  sistema: {width: 300; height: 200; label.near: top-center; icon.near: bottom-center; style: {fill: "#1A2E4A"; stroke: "#1A2E4A"; font-color: "#FFFFFF"; font-size: 20; bold: true; border-radius: 10}}
+  externo: {width: 250; height: 130; label.near: top-center; icon.near: bottom-center; style: {fill: "#FFFFFF"; stroke: "#2A4468"; font-size: 17; border-radius: 6}}
+}
+
+pessoas: "Pessoas" {
+  class: faixa
+  grid-rows: 3
+  grid-gap: 90
+  usuarios: "Usuários locais\nnavegador ou aplicativo" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F359-users.svg}
+  terceiros: "Aplicativos de terceiros" {class: pessoa; icon: https://icons.terrastruct.com/tech%2F052-smartphone-3.svg}
+  admins: "Administradores\ne moderadores" {class: pessoa; icon: https://icons.terrastruct.com/essentials%2F204-settings.svg}
+}
+
+centro: {
+  class: livre
+  grid-rows: 3
+  grid-gap: 0
+  topo: {class: vazio}
+  mastodon: "Instância Mastodon\nex.: social.exemplo.org" {class: sistema; icon: https://icons.terrastruct.com/dev%2Frails.svg}
+  base: {class: vazio}
+}
+
+externos: "Sistemas externos" {
+  class: faixa
+  grid-rows: 6
+  grid-gap: 40
+  outras: "Outras instâncias\nMastodon, Pixelfed, PeerTube..." {class: externo; icon: https://icons.terrastruct.com/essentials%2F092-network.svg}
+  relays: "Relays" {class: externo; icon: https://icons.terrastruct.com/essentials%2F108-megaphone.svg}
+  bloqueadas: "Instâncias bloqueadas" {class: externo; icon: https://icons.terrastruct.com/essentials%2F140-internet.svg}
+  s3: "Armazenamento de objetos" {class: externo; icon: https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg}
+  email: "Serviço de e-mail" {class: externo; icon: https://icons.terrastruct.com/aws%2FCustomer%20Engagement%2FAmazon-Simple-Email-Service-SES.svg}
+  push: "Serviços de notificação push" {class: externo; icon: https://icons.terrastruct.com/aws%2FApplication%20Integration%2FAmazon-Simple-Notification-Service-SNS.svg}
+}
+
+pessoas.usuarios -> centro.mastodon: "API REST, WebSocket, OAuth2" {class: sinc}
+pessoas.terceiros -> centro.mastodon: "API REST e streaming" {class: sinc}
+pessoas.admins -> centro.mastodon: "painel de administração" {class: sinc}
+centro.mastodon <-> externos.outras: "ActivityPub: POST assinado" {class: assinc}
+centro.mastodon -> externos.relays: "ActivityPub" {class: assinc}
+centro.mastodon -> externos.bloqueadas: "bloqueio de domínio" {class: sinc}
+centro.mastodon -> externos.s3: "API S3" {class: sinc}
+centro.mastodon -> externos.email: "SMTP" {class: sinc}
+centro.mastodon -> externos.push: "Web Push" {class: assinc}
