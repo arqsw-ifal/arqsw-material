@@ -21,7 +21,7 @@ atividades/
 │   ├── scripts/run_tests.sh   <- o corretor (modos: tudo | compila | comportamento | arquitetura | json)
 │   ├── Makefile               <- make, make test, make run
 │   └── .github/workflows/autograding.yml
-├── gabaritos/            <- soluções (NÃO publicar nos repositórios dos alunos)
+├── modelo-exercicio-solucao/ <- solução do exercício-modelo (discutida no Apêndice E)
 ├── classroom50/          <- distribuição e coleta de notas (ver classroom50/README.md)
 └── SEGURANCA.md          <- modelo de ameaça do corretor
 ```
@@ -31,7 +31,8 @@ atividades/
 1. Copie `modelo-exercicio/` e troque o pacote/código em `src/main/java`.
 2. Escreva os testes: `*ComportamentoTest.java` (o que o sistema faz) e `*ArquiteturaTest.java`
    (como ele deve estar organizado). O corretor encontra as categorias **pelo sufixo do nome**.
-3. Escreva a solução em `gabaritos/<slug>/` e confirme que ela tira 100:
+3. Escreva a solução em `atividades/gabaritos/<slug>/` do repositório **privado**
+   [`arqsw-docente`](https://github.com/arqsw-ifal/arqsw-docente) e confirme que ela tira 100:
    copie `scripts/` para junto dela e rode `./scripts/run_tests.sh`.
 4. Confirme que o código entregue ao aluno **compila** e tira uma nota parcial.
 5. Acrescente uma linha em `classroom50/exercicios.tsv` e rode `classroom50/provisionar.sh`.

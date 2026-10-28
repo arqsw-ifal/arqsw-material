@@ -215,7 +215,7 @@ aluno vê antes de enviar é a mesma que ele recebe.
 | arquitetura (*fitness functions* ArchUnit de `*ArquiteturaTest`) | 40, proporcional |
 
 > Comportamento validado no exercício-modelo: código legado recebido → 45/100 (5 de 7 testes de
-> comportamento, 0 de 4 de arquitetura); gabarito (`../gabaritos/modelo-exercicio`) → 100/100.
+> comportamento, 0 de 4 de arquitetura); gabarito (`../modelo-exercicio-solucao`) → 100/100.
 
 Para mudar os pesos, edite as variáveis `PTS_*` no topo de
 [`../modelo-exercicio/scripts/run_tests.sh`](../modelo-exercicio/scripts/run_tests.sh) (precisam

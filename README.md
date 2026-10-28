@@ -30,7 +30,8 @@ com links quebrados).
 - `docs/interativos/`: animações HTML autocontidas, embutidas por `iframe`
 - `docs/assets/css/extra.css`: identidade visual (navy/teal/gold) e faixas de altitude
 - `slides/`: apresentações Reveal.js (publicadas em `/slides`)
-- `docente/`: plano de ensino, roteiros, quizzes, podcasts (**não publicado**)
+- Material docente (plano de ensino, roteiros, quizzes, podcasts) e gabaritos: no repositório
+  privado [`arqsw-docente`](https://github.com/arqsw-ifal/arqsw-docente)
 - `atividades/`: exercícios em Java com correção automática (JUnit + ArchUnit) via Classroom 50
 
 As marcações **"Para desenvolver"** indicam pendências (podcasts, vídeos, interativos). As regras de escrita estão em `GUIA-DE-REDACAO.md`.

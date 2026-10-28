@@ -305,7 +305,7 @@ solução de referência. Os componentes são os quatro pacotes `web`, `aplicaca
 | `infra` | 2 / 1 / 0,33 | 0 / 1 / 1,00 |
 
 Fonte: elaborado pelo autor (2026), medido com `ArchitectureMetrics.componentDependencyMetrics`
-do ArchUnit 1.3.0 sobre `atividades/modelo-exercicio` e `atividades/gabaritos/modelo-exercicio`.
+do ArchUnit 1.3.0 sobre `atividades/modelo-exercicio` e `atividades/modelo-exercicio-solucao`.
 
 A Figura E.1 desenha os mesmos dados como grafos de dependência, anotando a instabilidade de
 cada pacote.
@@ -986,7 +986,7 @@ public class ServicoDePedidos {
     }
 ```
 
-Fonte: `atividades/gabaritos/modelo-exercicio/src/main/java/br/edu/ifal/arqsw/pedidos/aplicacao/ServicoDePedidos.java`,
+Fonte: `atividades/modelo-exercicio-solucao/src/main/java/br/edu/ifal/arqsw/pedidos/aplicacao/ServicoDePedidos.java`,
 linhas 12-29.
 
 Em aplicações Spring, a camada de serviço costuma ser marcada com `@Service` e é o lugar natural
@@ -2091,7 +2091,7 @@ infraestrutura.
 
 ### E.7.5 A solução de referência
 
-A solução de referência, em `atividades/gabaritos/modelo-exercicio`, executa quatro mudanças. As
+A solução de referência, em `atividades/modelo-exercicio-solucao`, executa quatro mudanças. As
 regras 1 e 2 passam a ser verificadas pela raiz do agregado; o método `salvar()` e a importação
 da infraestrutura desaparecem de `Pedido`; o controlador recebe o serviço de aplicação pelo
 construtor e delega a ele todas as operações; e a classe `App` passa a montar as camadas. A
@@ -2129,8 +2129,8 @@ public class App {
         var controller = new PedidoController(new ServicoDePedidos(new PedidoRepositoryEmMemoria()));
 ```
 
-Fonte: `atividades/gabaritos/modelo-exercicio/src/main/java/br/edu/ifal/arqsw/pedidos/web/PedidoController.java`
-e `atividades/gabaritos/modelo-exercicio/src/main/java/br/edu/ifal/arqsw/pedidos/App.java`.
+Fonte: `atividades/modelo-exercicio-solucao/src/main/java/br/edu/ifal/arqsw/pedidos/web/PedidoController.java`
+e `atividades/modelo-exercicio-solucao/src/main/java/br/edu/ifal/arqsw/pedidos/App.java`.
 
 O comentário da classe `App` na solução registra que, num projeto Spring, quem faz esse papel é o
 contêiner de inversão de controle. Executado sobre a solução, o corretor atribui 100 pontos. A

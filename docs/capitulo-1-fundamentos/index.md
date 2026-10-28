@@ -2,7 +2,7 @@
 
 !!! todo "Para desenvolver"
     Podcast do capítulo (NotebookLM → SoundCloud), embutido aqui com o bloco
-    `<figure class="podcast-capitulo">` (ver `docente/podcasts/README.md`).
+    `<figure class="podcast-capitulo">` (ver `docente/podcasts/README.md` no repositório privado `arqsw-docente`).
 
 ## Objetivos
 
