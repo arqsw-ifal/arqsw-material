@@ -35,3 +35,9 @@ com links quebrados).
 - `atividades/`: exercícios em Java com correção automática (JUnit + ArchUnit) via Classroom 50
 
 As marcações **"Para desenvolver"** indicam pendências (podcasts, vídeos, interativos). As regras de escrita estão em `GUIA-DE-REDACAO.md`.
+
+## Licença
+
+O texto, as figuras e os slides estão sob a licença
+[Creative Commons Atribuição-NãoComercial-CompartilhaIgual 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt-br)
+(CC BY-NC-SA 4.0). Erratas e sugestões são bem-vindas por *issue* ou *pull request*.

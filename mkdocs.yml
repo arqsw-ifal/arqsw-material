@@ -1,8 +1,11 @@
 site_name: "Arquitetura de Software: um voo do negócio ao código"
 site_description: Material da disciplina Arquitetura de Software (BSI) - IFAL-Maceio
 site_author: Leo Fernandes, PhD
-site_url: https://leofernandesmo.github.io/arqsw-material/
-copyright: Leo Fernandes, PhD &middot; IFAL-Maceio
+site_url: https://arqsw-ifal.github.io/arqsw-material/
+repo_url: https://github.com/arqsw-ifal/arqsw-material
+repo_name: arqsw-ifal/arqsw-material
+edit_uri: ""
+copyright: Leo Fernandes, PhD &middot; IFAL-Maceio &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt-br">CC BY-NC-SA 4.0</a>
 
 theme:
   name: material
